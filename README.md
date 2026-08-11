@@ -17,7 +17,7 @@ flowchart LR
 
 
     subgraph Service Diagram
-        load("load-generator</br>(k6)"):::load
+        load("load-generator<br/>(k6)"):::load
         geocode(geocode):::geocode
         otelcol{"otel-collector<br/>(contrib)"}:::otelcol
         docker[("Docker socket")]:::docker
