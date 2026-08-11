@@ -19,6 +19,20 @@ container via [compose.yaml](../../compose.yaml).
   exporters.
 - **logs**: `otlp` receiver → `debug` + `otlp_grpc/aspire` exporters.
 
+## Self-telemetry
+
+The collector also exports its own internal metrics and logs to the Aspire
+Dashboard, via `service::telemetry` in [config.yaml](config.yaml):
+
+- **metrics**: a `periodic` reader pushes internal metrics (e.g. receiver/
+  exporter throughput, queue sizes) to Aspire over OTLP/gRPC.
+- **logs**: a `batch` processor forwards the collector's own log records to
+  Aspire over OTLP/gRPC, in addition to the default stdout logging.
+
+These show up in Aspire as their own resource, separate from the
+`otlp_grpc/aspire` exporter used for the pipelines above (which carries
+telemetry *received from* other services).
+
 ## Ports
 
 | Port   | Protocol       | Purpose                        |

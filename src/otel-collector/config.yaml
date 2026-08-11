@@ -50,3 +50,21 @@ service:
       receivers: [otlp]
       processors: [resource]
       exporters: [debug, otlp_grpc/aspire]
+
+  telemetry:
+    metrics:
+      readers:
+        - periodic:
+            exporter:
+              otlp:
+                protocol: grpc
+                endpoint: http://aspire-dashboard:18889
+                insecure: true
+    logs:
+      processors:
+        - batch:
+            exporter:
+              otlp:
+                protocol: grpc
+                endpoint: http://aspire-dashboard:18889
+                insecure: true
