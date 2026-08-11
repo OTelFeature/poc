@@ -1,0 +1,52 @@
+receivers:
+  otlp:
+    protocols:
+      grpc:
+        endpoint: ${env:OTEL_COLLECTOR_HOST}:${env:OTEL_COLLECTOR_PORT_GRPC}
+      http:
+        endpoint: ${env:OTEL_COLLECTOR_HOST}:${env:OTEL_COLLECTOR_PORT_HTTP}
+  docker_stats:
+    endpoint: unix:///var/run/docker.sock
+
+processors:
+  resource:
+    attributes:
+      - key: deployment.environment.name
+        value: "otelfeature"
+        action: upsert
+  transform:
+    error_mode: ignore
+    metric_statements:
+      - context: scope
+        conditions:
+          - name == "github.com/open-telemetry/opentelemetry-collector-contrib/receiver/dockerstatsreceiver"
+        statements:
+          - set(resource.attributes["service.name"], "docker-stats")
+
+connectors:
+  span_metrics: {}
+
+exporters:
+  debug: {}
+  otlp_grpc/aspire:
+    endpoint: "http://aspire-dashboard:18889"
+    tls:
+      insecure: true
+    sending_queue:
+      batch:
+
+
+service:
+  pipelines:
+    traces:
+      receivers: [otlp]
+      processors: [resource]
+      exporters: [debug, otlp_grpc/aspire, span_metrics]
+    metrics:
+      receivers: [otlp, span_metrics, docker_stats]
+      processors: [transform, resource]
+      exporters: [debug, otlp_grpc/aspire]
+    logs:
+      receivers: [otlp]
+      processors: [resource]
+      exporters: [debug, otlp_grpc/aspire]
