@@ -1,0 +1,50 @@
+# load-generator
+
+A [k6](https://k6.io/) script that continuously sends `POST /geocode`
+requests to [geocode](../geocode), so there's steady traffic to look at in
+the Aspire Dashboard.
+
+Runs via the official `grafana/k6` image in [compose.yaml](../../compose.yaml)
+— no build step, just the script in [load-test.js](load-test.js) mounted in.
+
+## Behavior
+
+Each iteration picks a random city/country pair from a small fixed list and
+POSTs it to `geocode`, using k6's `constant-arrival-rate` executor to hold a
+steady request rate regardless of response latency.
+
+> [!NOTE]
+> Nominatim's public usage policy caps requests at ~1/s, *shared across all
+> users of the source IP*. `geocode` caches resolved coordinates in
+> `coordinates-db`, so only new city/country pairs cost a live Nominatim
+> lookup — but the default rate here is still deliberately low (1 request
+> every 5s) to stay well under that limit for whatever does miss the cache.
+> Raise `REQUEST_INTERVAL_SECONDS` at your own risk of getting rate-limited
+> (HTTP 429).
+
+## Configuration
+
+| Environment variable             | Default               | Description                                       |
+|----------------------------------|-----------------------|---------------------------------------------------|
+| `GEOCODE_BASE_URL`               | `http://geocode:8000` | Base URL of the `geocode` service                 |
+| `REQUEST_INTERVAL_SECONDS`       | `5`                   | Seconds between requests (1 request / N seconds)  |
+| `DURATION`                       | `1h`                  | How long the test runs                            |
+| `K6_OTEL_GRPC_EXPORTER_ENDPOINT` | -                     | Collector endpoint for k6's own OTLP/gRPC metrics |
+| `K6_OTEL_GRPC_EXPORTER_INSECURE` | -                     | Disable TLS for the gRPC exporter                 |
+| `K6_OTEL_SERVICE_NAME`           | -                     | `service.name` reported in k6's own telemetry     |
+
+## Running standalone
+
+```sh
+docker compose run --rm -e DURATION=30s load-generator
+```
+
+## Telemetry
+
+This isn't instrumentation of *application* code — it's k6 exporting its own
+built-in test metrics (`http_req_duration`, `http_req_failed`, `iterations`,
+etc.) over OTLP/gRPC to `otel-collector`, tagged with `service.name:
+load-generator`. Only the gRPC exporter is confirmed working in this setup;
+see [compose.yaml](../../compose.yaml) for the exact env vars — the HTTP
+exporter env vars are documented upstream but were not honored by this k6
+image in testing.

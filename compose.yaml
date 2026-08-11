@@ -1,0 +1,93 @@
+networks:
+  default:
+    name: otelfeature-poc
+    driver: bridge
+
+volumes:
+  coordinates-db-data:
+
+services:
+  geocode:
+    build:
+      context: ./src/geocode
+    ports:
+      - 8000:8000
+    environment:
+      - GEOCODE_PORT=8000
+      - OTEL_SERVICE_NAME=geocode
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4318
+      - OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf
+      - POSTGRES_HOST=coordinates-db
+      - POSTGRES_PORT=5432
+      - POSTGRES_USER=postgres
+      - POSTGRES_PWD=password
+      - POSTGRES_DB=coordinates
+    depends_on:
+      otel-collector:
+        condition: service_started
+      coordinates-db:
+        condition: service_healthy
+
+  load-generator:
+    image: grafana/k6:latest
+    command: run --out opentelemetry /scripts/load-test.js
+    volumes:
+      - ./src/load-generator/load-test.js:/scripts/load-test.js
+    environment:
+      - GEOCODE_BASE_URL=http://geocode:8000
+      - REQUEST_INTERVAL_SECONDS=5
+      - DURATION=1h
+      - K6_OTEL_GRPC_EXPORTER_ENDPOINT=otel-collector:4317
+      - K6_OTEL_GRPC_EXPORTER_INSECURE=true
+      - K6_OTEL_SERVICE_NAME=load-generator
+    depends_on:
+      geocode:
+        condition: service_started
+  
+  coordinates-db:
+    image: postgres:18.4-alpine3.24
+    ports:
+      - 5432
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=password
+      - POSTGRES_DB=coordinates
+    volumes:
+      - ./src/coordinates-db/init-coordinates-db.sh:/docker-entrypoint-initdb.d/init-coordinates-db.sh
+      - coordinates-db-data:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d coordinates"]
+      interval: 2s
+      timeout: 3s
+      retries: 10
+
+  ########################
+  # TELEMETRY COMPONENTS #
+  ########################
+
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:0.158.0
+    user: "10001:0"
+    command:
+      - --config=/etc/otel-collector-config.yaml
+    volumes:
+      - ./src/otel-collector/config.yaml:/etc/otel-collector-config.yaml
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    ports:
+      - 4317 # OTLP gRPC
+      - 4318 # OTLP HTTP
+    environment:
+      - OTEL_COLLECTOR_HOST=otel-collector
+      - OTEL_COLLECTOR_PORT_GRPC=4317
+      - OTEL_COLLECTOR_PORT_HTTP=4318
+    depends_on:
+      aspire-dashboard:
+        condition: service_started
+
+  aspire-dashboard:
+    image: mcr.microsoft.com/dotnet/aspire-dashboard:13.4
+    ports:
+      - 18888:18888  # Aspire UI
+      - 18889        # Aspire OTLP/gRPC
+    environment:
+      - DOTNET_DASHBOARD_UNSECURED_ALLOW_ANONYMOUS=true
