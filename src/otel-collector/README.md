@@ -52,7 +52,7 @@ telemetry *received from* other services).
 ## Ports
 
 | Port   | Protocol       | Purpose                          |
-|--------|----------------|-----------------------------------|
+|--------|----------------|----------------------------------|
 | `4317` | OTLP/gRPC      | Used by `load-generator`         |
 | `4318` | OTLP/HTTP      | Used by `geocode` and `flagd`    |
 
@@ -72,7 +72,7 @@ Reads its own OTLP receiver endpoints, plus Datadog export credentials, from
 environment variables (set in [compose.yaml](../../compose.yaml), which
 passes `DD_SITE`/`DD_API_KEY` through from the shell/`.env` unchanged):
 
-| Environment variable       | Default           | Description                                    |
+| Environment variable       | Default           | Description                                     |
 |----------------------------|-------------------|-------------------------------------------------|
 | `OTEL_COLLECTOR_HOST`      | `otel-collector`  | Bind host for the OTLP receivers                |
 | `OTEL_COLLECTOR_PORT_GRPC` | `4317`            | OTLP/gRPC receiver port                         |

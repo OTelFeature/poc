@@ -48,19 +48,19 @@ curl -s -X POST http://localhost:8000/geocode \
 
 ## Configuration
 
-| Environment variable          | Default                       | Description                                    |
-|-------------------------------|-------------------------------|------------------------------------------------|
-| `GEOCODE_PORT`                | `8000`                        | Port uvicorn listens on                        |
-| `NOMINATIM_USER_AGENT`        | `poc-otelfeature-geocode/1.0` | `User-Agent` header sent to Nominatim          |
-| `OTEL_SERVICE_NAME`           | -                             | Service name reported in telemetry             |
-| `OTEL_EXPORTER_OTLP_ENDPOINT` | -                             | OTLP collector endpoint (OTLP/HTTP always)     |
+| Environment variable          | Default                       | Description                                                                         |
+|-------------------------------|-------------------------------|-------------------------------------------------------------------------------------|
+| `GEOCODE_PORT`                | `8000`                        | Port uvicorn listens on                                                             |
+| `NOMINATIM_USER_AGENT`        | `poc-otelfeature-geocode/1.0` | `User-Agent` header sent to Nominatim                                               |
+| `OTEL_SERVICE_NAME`           | -                             | Service name reported in telemetry                                                  |
+| `OTEL_EXPORTER_OTLP_ENDPOINT` | -                             | OTLP collector endpoint (OTLP/HTTP always)                                          |
 | `FLAGD_HOST`                  | `localhost`                   | flagd host, used to resolve the `telemetryLevel` flag (see [Telemetry](#telemetry)) |
-| `FLAGD_PORT`                  | `8015`                        | flagd gRPC sync port (in-process resolver)     |
-| `POSTGRES_HOST`               | `coordinates-db`              | Postgres host                                  |
-| `POSTGRES_PORT`               | `5432`                        | Postgres port                                  |
-| `POSTGRES_USER`               | `postgres`                    | Postgres user                                  |
-| `POSTGRES_PWD`                | `password`                    | Postgres password                              |
-| `POSTGRES_DB`                 | `coordinates`                 | Postgres database name                         |
+| `FLAGD_PORT`                  | `8015`                        | flagd gRPC sync port (in-process resolver)                                          |
+| `POSTGRES_HOST`               | `coordinates-db`              | Postgres host                                                                       |
+| `POSTGRES_PORT`               | `5432`                        | Postgres port                                                                       |
+| `POSTGRES_USER`               | `postgres`                    | Postgres user                                                                       |
+| `POSTGRES_PWD`                | `password`                    | Postgres password                                                                   |
+| `POSTGRES_DB`                 | `coordinates`                 | Postgres database name                                                              |
 
 ## Running locally
 

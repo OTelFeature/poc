@@ -58,23 +58,23 @@ curl -s -X POST http://localhost:8016/ofrep/v1/evaluate/flags/telemetryLevel \
 
 ## Ports
 
-| Port   | Protocol  | Purpose                                              |
-|--------|-----------|-------------------------------------------------------|
+| Port   | Protocol  | Purpose                                                                                      |
+|--------|-----------|----------------------------------------------------------------------------------------------|
 | `8013` | gRPC      | Flag evaluation (`rpc` resolver mode) — unused by `geocode`, which uses `in-process` instead |
-| `8015` | gRPC      | Flag sync (`in-process` resolver mode) — what `geocode` actually connects to |
-| `8016` | HTTP      | [OFREP](https://github.com/open-feature/protocol) REST evaluation |
+| `8015` | gRPC      | Flag sync (`in-process` resolver mode) — what `geocode` actually connects to                 |
+| `8016` | HTTP      | [OFREP](https://github.com/open-feature/protocol) REST evaluation                            |
 
 `8014` (flagd's own Prometheus metrics/health endpoint) isn't published —
 nothing in this repo consumes it.
 
 ## Configuration
 
-| Environment variable          | Description                                        |
-|--------------------------------|----------------------------------------------------|
-| `GOMEMLIMIT`                   | Go runtime soft memory limit (`60MiB` here)         |
-| `OTEL_SERVICE_NAME`            | Service name flagd reports on its own telemetry     |
+| Environment variable          | Description                                            |
+|--------------------------------|-------------------------------------------------------|
+| `GOMEMLIMIT`                   | Go runtime soft memory limit (`60MiB` here)           |
+| `OTEL_SERVICE_NAME`            | Service name flagd reports on its own telemetry       |
 | `OTEL_EXPORTER_OTLP_ENDPOINT`  | Collector endpoint flagd exports its own telemetry to |
-| `OTEL_EXPORTER_OTLP_PROTOCOL`  | OTLP wire protocol for that export                  |
+| `OTEL_EXPORTER_OTLP_PROTOCOL`  | OTLP wire protocol for that export                    |
 
 ## Flag changes with no effect?
 
