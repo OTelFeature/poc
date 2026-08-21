@@ -1,0 +1,14 @@
+{
+  "$schema": "https://flagd.dev/schema/v0/flags.json",
+  "flags": {
+    "telemetryLevel": {
+      "defaultVariant": "full",
+      "description": "Control telemetry level",
+      "state": "ENABLED",
+      "variants": {
+        "io": "IO",
+        "full": "FULL"
+      }
+    }
+  }
+}

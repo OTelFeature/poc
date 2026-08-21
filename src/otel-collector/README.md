@@ -1,23 +1,39 @@
 # otel-collector
 
 An `otel/opentelemetry-collector-contrib` instance that's the hub of this
-repo's telemetry: it receives OTLP from [geocode](../geocode) and
-[load-generator](../load-generator), scrapes Docker container stats directly,
-derives span metrics, and forwards everything to the Aspire Dashboard.
+repo's telemetry: it receives OTLP from [geocode](../geocode),
+[load-generator](../load-generator), and [flagd](../flagd), scrapes Docker
+container stats directly, derives span metrics, and forwards everything to
+the Aspire Dashboard — and, optionally, to Datadog.
 
 Configured entirely by [config.yaml](config.yaml), mounted read-only into the
 container via [compose.yaml](../../compose.yaml).
 
 ## Pipelines
 
-- **traces**: `otlp` receiver → `debug` + `otlp_grpc/aspire` exporters, and
-  the `span_metrics` connector (derives RED metrics from spans).
+- **traces**: `otlp` receiver → `resource` processor → `debug` +
+  `otlp_grpc/aspire` + `otlp_http/datadog` exporters, and the `span_metrics`
+  connector (derives RED metrics from spans).
 - **metrics**: `otlp` + `span_metrics` + `docker_stats` receivers → a
   `transform` processor (relabels `docker_stats`-sourced metrics'
   `service.name` to `docker-stats`, so they show up as their own service in
-  Aspire rather than under `otelcol-contrib`) → `debug` + `otlp_grpc/aspire`
-  exporters.
-- **logs**: `otlp` receiver → `debug` + `otlp_grpc/aspire` exporters.
+  Aspire rather than under `otelcol-contrib`), a `resource` processor, and
+  `cumulativetodelta` (Datadog's metrics intake expects delta temporality,
+  not the OTLP default of cumulative) → `debug` + `otlp_grpc/aspire` +
+  `otlp_http/datadog` exporters.
+- **logs**: `otlp` receiver → `resource` processor → `debug` +
+  `otlp_grpc/aspire` + `otlp_http/datadog` exporters.
+
+## Datadog export
+
+`otlp_http/datadog` forwards all three signals to Datadog's OTLP intake
+(`https://otlp.${DD_SITE}/`), authenticated via `DD_API_KEY`. Both are read
+from the environment with no default — see [Configuration](#configuration).
+This is optional: if `DD_SITE`/`DD_API_KEY` are unset, the exporter still
+starts, but with a malformed endpoint (`https://otlp./`) and no valid API
+key, so those requests just fail — everything else (Aspire, `debug` logging)
+keeps working unaffected. Set both in a git-ignored `.env` file at the repo
+root to enable it (`docker compose` loads `.env` automatically).
 
 ## Self-telemetry
 
@@ -35,10 +51,10 @@ telemetry *received from* other services).
 
 ## Ports
 
-| Port   | Protocol       | Purpose                        |
-|--------|----------------|--------------------------------|
-| `4317` | OTLP/gRPC      | Used by `load-generator`       |
-| `4318` | OTLP/HTTP      | Used by `geocode`              |
+| Port   | Protocol       | Purpose                          |
+|--------|----------------|-----------------------------------|
+| `4317` | OTLP/gRPC      | Used by `load-generator`         |
+| `4318` | OTLP/HTTP      | Used by `geocode` and `flagd`    |
 
 ## Docker socket access
 
@@ -52,14 +68,17 @@ privilege needed; running as full root isn't necessary.
 
 ## Configuration
 
-Reads its own OTLP receiver endpoints from environment variables (set in
-[compose.yaml](../../compose.yaml)):
+Reads its own OTLP receiver endpoints, plus Datadog export credentials, from
+environment variables (set in [compose.yaml](../../compose.yaml), which
+passes `DD_SITE`/`DD_API_KEY` through from the shell/`.env` unchanged):
 
-| Environment variable       | Default           | Description                      |
-|----------------------------|-------------------|----------------------------------|
-| `OTEL_COLLECTOR_HOST`      | `otel-collector`  | Bind host for the OTLP receivers |
-| `OTEL_COLLECTOR_PORT_GRPC` | `4317`            | OTLP/gRPC receiver port          |
-| `OTEL_COLLECTOR_PORT_HTTP` | `4318`            | OTLP/HTTP receiver port          |
+| Environment variable       | Default           | Description                                    |
+|----------------------------|-------------------|-------------------------------------------------|
+| `OTEL_COLLECTOR_HOST`      | `otel-collector`  | Bind host for the OTLP receivers                |
+| `OTEL_COLLECTOR_PORT_GRPC` | `4317`            | OTLP/gRPC receiver port                         |
+| `OTEL_COLLECTOR_PORT_HTTP` | `4318`            | OTLP/HTTP receiver port                         |
+| `DD_SITE`                  | -                 | Datadog site to export to, e.g. `datadoghq.com` |
+| `DD_API_KEY`               | -                 | Datadog API key                                 |
 
 ## Debugging
 
