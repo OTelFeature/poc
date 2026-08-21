@@ -7,13 +7,14 @@ requires-python = ">=3.14"
 dependencies = [
     "fastapi==0.141.1",
     "httpx==0.28.1",
-    "openfeature-provider-flagd==0.5.2",
-    "openfeature-sdk==0.10.0",
-    "opentelemetry-exporter-otlp-proto-http==1.44.0",
+    "opentelemetry-api==1.44.0",
     "opentelemetry-instrumentation-fastapi==0.65b0",
     "opentelemetry-instrumentation-httpx==0.65b0",
     "opentelemetry-instrumentation-psycopg2==0.65b0",
-    "opentelemetry-sdk==1.44.0",
+    "otelfeature-instrument",
     "psycopg2-binary==2.9.12",
     "uvicorn[standard]==0.52.1",
 ]
+
+[tool.uv.sources]
+otelfeature-instrument = { git = "https://github.com/OTelFeature/otelfeature-instrument" }

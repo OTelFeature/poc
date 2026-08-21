@@ -68,7 +68,7 @@ curl -s -X POST http://localhost:8000/geocode \
 uv sync
 OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4318 \
 OTEL_SERVICE_NAME=geocode \
-  uv run uvicorn main:app --reload
+  uv run otelfeature-instrument uvicorn main:app --reload
 ```
 
 Without a collector running at `OTEL_EXPORTER_OTLP_ENDPOINT`, the app still
@@ -97,6 +97,15 @@ The Docker build runs `uv sync --locked` (see [Dockerfile](Dockerfile)),
 which fails if `uv.lock` is out of sync with `pyproject.toml` — run `uv lock`
 locally first if the build complains about a stale lock file.
 
+> [!NOTE]
+> `otelfeature-instrument` isn't published to a package index yet — it's
+> pulled straight from its GitHub repo (`[tool.uv.sources]` in
+> [pyproject.toml](pyproject.toml)). That's why the Dockerfile's builder
+> stage installs `git` before running `uv sync`: without it, resolving that
+> dependency fails with "Git executable not found." `uv lock` re-pins it to
+> the repo's current `HEAD` commit; if you've pushed new commits there and
+> want geocode to pick them up, re-run `uv lock`.
+
 ## Running via Docker Compose
 
 The service is wired up as `geocode` in the repo-root [compose.yaml](../../compose.yaml),
@@ -108,46 +117,45 @@ docker compose up --build geocode
 
 > [!TIP]
 > The `--build` matters: `compose.yaml` doesn't rebuild on its own when
-> `src/geocode`'s code changes. Running `docker compose up -d` (no `--build`)
-> after editing e.g. [otel_setup.py](otel_setup.py) silently keeps serving
-> the old image — symptoms look like a flagd/config problem (e.g. flipping
-> `telemetryLevel` in [flagd.json](../flagd/flagd.json) appears to do
-> nothing) when it's actually just a stale container.
+> `src/geocode`'s code changes, or when `otelfeature-instrument`'s repo gets
+> new commits (only `uv lock` re-pins to them — see
+> [Dependencies](#dependencies)). Running `docker compose up -d` (no
+> `--build`) silently keeps serving the old image — symptoms look like a
+> flagd/config problem (e.g. flipping `telemetryLevel` in
+> [flagd.json](../flagd/flagd.json) appears to do nothing) when it's
+> actually just a stale container.
 
 ## Telemetry
 
-Telemetry is bootstrapped by hand in [otel_setup.py](otel_setup.py) rather
-than via the zero-code `opentelemetry-instrument` launcher, so that a custom
-`TracerProvider`/`Tracer` can sit between the instrumentation libraries and
-the SDK. The `FastAPIInstrumentor`, `HTTPXClientInstrumentor`, and
-`Psycopg2Instrumentor` are still wired up explicitly in [main.py](main.py),
-covering the inbound FastAPI requests, the outbound `httpx` calls to
-Nominatim, and the `psycopg2` queries against `coordinates-db` — all
-correlated under one trace per request, exported over OTLP/HTTP to the
-collector configured via `OTEL_EXPORTER_OTLP_ENDPOINT`.
+`main.py` has zero OpenTelemetry configuration code — telemetry is bootstrapped
+entirely by [otelfeature-instrument](https://github.com/OTelFeature/otelfeature-instrument),
+a zero-code launcher (like `opentelemetry-instrument`) that this service runs
+under instead of running `uvicorn` directly (see the `CMD` in
+[Dockerfile](Dockerfile)). It handles resource detection, OTLP export, and
+zero-code instrumentation of `fastapi`/`httpx`/`psycopg2` (all still declared
+as dependencies in [pyproject.toml](pyproject.toml) so it can discover them),
+exported over OTLP/HTTP to the collector configured via
+`OTEL_EXPORTER_OTLP_ENDPOINT` — all correlated under one trace per request.
+
+The one manual span in this codebase is `geocode.resolve` in
+[main.py](main.py), wrapping the cache-lookup/Nominatim-call/persist logic —
+kept purely to have something concrete for the flag below to suppress.
 
 ### The `telemetryLevel` flag
 
-This is a prototype of controlling trace verbosity live, without an app
-restart, via [OpenFeature](https://openfeature.dev/) and
-[flagd](https://flagd.dev/) (see [src/flagd](../flagd)): `otel_setup.py`
-wraps the real `TracerProvider`/`Tracer` so that, when the `telemetryLevel`
-flag evaluates to `IO`, any span of kind `INTERNAL` —
-[main.py](main.py)'s own `geocode.resolve` span, and the ASGI-level spans
-FastAPI's instrumentation creates — is never created and never attached to
-context. Its would-be children (the `psycopg2`/`httpx` `CLIENT` spans) attach
-directly to the real parent instead, so nothing is orphaned; the suppressed
-span simply never existed.
-
-The flagd provider runs in ["in-process" resolver
-mode](https://flagd.dev/reference/specifications/in-process-providers/):
-geocode syncs the flag ruleset from flagd once (over gRPC, `FLAGD_PORT`,
-default `8015`) and evaluates it in memory on every span — no network call on
-the per-span hot path. flagd pushes ruleset updates over that same stream as
-they happen, so editing [src/flagd/flagd.json](../flagd/flagd.json) (or
-whatever's behind flagd's configured source) takes effect on geocode's very
-next span, with no restart. See [flagd's README](../flagd/README.md#updating-a-flag)
-for how to flip it.
+`otelfeature-instrument`'s one addition over a plain zero-code launcher:
+trace verbosity is controlled live, with no restart, via
+[OpenFeature](https://openfeature.dev/) and [flagd](https://flagd.dev/) (see
+[src/flagd](../flagd)). When the `telemetryLevel` flag evaluates to `IO`, any
+span of kind `INTERNAL` — `geocode.resolve` above, and the ASGI-level spans
+FastAPI's instrumentation creates — is suppressed transparently: never
+created, never attached to context. Its would-be children (the
+`psycopg2`/`httpx` `CLIENT` spans) attach directly to the real parent
+instead, so nothing is orphaned. See
+[otelfeature-instrument's README](https://github.com/OTelFeature/otelfeature-instrument#how-it-works)
+for exactly how (and why a `Sampler` can't do this cleanly), and
+[flagd's README](../flagd/README.md#updating-a-flag) for how to flip the
+flag — this service just consumes it via `FLAGD_HOST`/`FLAGD_PORT`.
 
 With `telemetryLevel=FULL`, a `/geocode` request that misses cache produces:
 

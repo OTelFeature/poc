@@ -45,13 +45,14 @@ flowchart LR
   a city/country to latitude/longitude. It checks `coordinates-db` first; on
   a cache miss it falls back to the
   [Nominatim](https://nominatim.org/release-docs/latest/api/Search/) API and
-  persists the result for next time. Telemetry is bootstrapped by hand
-  (rather than zero-code auto-instrumentation) so a custom `TracerProvider`
-  can suppress `INTERNAL` spans live, controlled by the `telemetryLevel`
-  flag served from `flagd`.
+  persists the result for next time. Runs under
+  [otelfeature-instrument](https://github.com/OTelFeature/otelfeature-instrument),
+  a separate, reusable zero-code launcher that also suppresses `INTERNAL`
+  spans live, controlled by the `telemetryLevel` flag served from `flagd`.
 - **flagd** ([src/flagd](src/flagd)) — an [OpenFeature](https://openfeature.dev/)
   flag backend serving the `telemetryLevel` flag that controls `geocode`'s
-  trace verbosity, editable live with no restart.
+  trace verbosity (via `otelfeature-instrument`), editable live with no
+  restart.
 - **coordinates-db** ([src/coordinates-db](src/coordinates-db)) — a Postgres
   instance caching previously resolved city/country → lat/lon lookups, so
   repeat requests don't hit Nominatim's rate limit.
@@ -64,6 +65,15 @@ flowchart LR
   forwards everything to the Aspire Dashboard — and, optionally, to Datadog.
 - **aspire-dashboard** — Microsoft's Aspire Dashboard, used here purely as a
   local OTLP viewer/UI.
+
+> [!NOTE]
+> `geocode`'s telemetry bootstrap (`opentelemetry-instrument`-style zero-code
+> launcher, plus the flagd-controlled `INTERNAL`-span suppression) has moved
+> out of this repo into
+> [OTelFeature/otelfeature-instrument](https://github.com/OTelFeature/otelfeature-instrument),
+> a standalone, reusable dependency any Python service can adopt — not just
+> `geocode`. `src/geocode` pulls it in as a regular (if not-yet-published)
+> dependency; see [geocode's README](src/geocode/README.md#dependencies).
 
 ## Requirements
 
