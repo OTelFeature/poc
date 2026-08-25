@@ -1,8 +1,9 @@
 # coordinates-db
 
-A Postgres instance used by [geocode](../geocode) as a cache: previously
-resolved `city, country → latitude, longitude` lookups are stored here so
-repeat requests skip Nominatim entirely.
+A Postgres instance used by [geocode](../geocode) and [weather](../weather)
+as a cache: previously resolved `city, country → latitude, longitude` lookups
+are stored here so repeat requests skip external APIs entirely. The `weather`
+service also caches weather results in a separate `weather` table.
 
 ## Schema
 
@@ -17,6 +18,19 @@ CREATE TABLE IF NOT EXISTS coordinates (
     latitude TEXT NOT NULL,
     longitude TEXT NOT NULL,
     PRIMARY KEY (latitude, longitude)
+);
+
+CREATE TABLE IF NOT EXISTS weather (
+    city TEXT NOT NULL,
+    country TEXT NOT NULL,
+    latitude DOUBLE PRECISION NOT NULL,
+    longitude DOUBLE PRECISION NOT NULL,
+    temperature DOUBLE PRECISION,
+    windspeed DOUBLE PRECISION,
+    weather_code INTEGER,
+    weather_description TEXT,
+    cached_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (city, country)
 );
 ```
 
@@ -51,9 +65,9 @@ reset the cache.
 
 ## Health
 
-A `pg_isready` healthcheck gates `geocode`'s startup (`depends_on: ...
-condition: service_healthy` in [compose.yaml](../../compose.yaml)), so
-`geocode` doesn't attempt to connect before Postgres is actually accepting
+A `pg_isready` healthcheck gates `geocode`'s and `weather`'s startup
+(`depends_on: ... condition: service_healthy` in [compose.yaml](../../compose.yaml)),
+so they don't attempt to connect before Postgres is actually accepting
 connections.
 
 ## Inspecting the cache
@@ -61,4 +75,7 @@ connections.
 ```sh
 docker exec -it $(docker compose ps -q coordinates-db) \
   psql -U postgres -d coordinates -c "SELECT * FROM coordinates;"
+
+docker exec -it $(docker compose ps -q coordinates-db) \
+  psql -U postgres -d coordinates -c "SELECT * FROM weather;"
 ```

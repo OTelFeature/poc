@@ -32,6 +32,34 @@ services:
       flagd:
         condition: service_started
 
+  weather:
+    build:
+      context: ./src/weather
+    container_name: weather
+    ports:
+      - 8001:8001
+    environment:
+      - WEATHER_PORT=8001
+      - OTEL_SERVICE_NAME=weather
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4318
+      - OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf
+      - OTEL_INSTRUMENTATION_COMMON_EXPERIMENTAL_CONTROLLER_TELEMETRY_ENABLED=true
+      - POSTGRES_HOST=coordinates-db
+      - POSTGRES_PORT=5432
+      - POSTGRES_USER=postgres
+      - POSTGRES_PWD=password
+      - POSTGRES_DB=coordinates
+      # otelfeature-java-extension: connects to flagd to evaluate telemetryLevel
+      - FLAGD_HOST=flagd
+      - FLAGD_PORT=8016
+    depends_on:
+      otel-collector:
+        condition: service_started
+      coordinates-db:
+        condition: service_healthy
+      flagd:
+        condition: service_started
+
   load-generator:
     image: grafana/k6:latest
     container_name: load-generator
@@ -40,6 +68,7 @@ services:
       - ./src/load-generator/load-test.js:/scripts/load-test.js
     environment:
       - GEOCODE_BASE_URL=http://geocode:8000
+      - WEATHER_BASE_URL=http://weather:8001
       - REQUEST_INTERVAL_SECONDS=5
       - DURATION=1h
       - K6_OTEL_GRPC_EXPORTER_ENDPOINT=otel-collector:4317
@@ -47,6 +76,8 @@ services:
       - K6_OTEL_SERVICE_NAME=load-generator
     depends_on:
       geocode:
+        condition: service_started
+      weather:
         condition: service_started
   
   coordinates-db:
