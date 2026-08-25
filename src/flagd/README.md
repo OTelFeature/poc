@@ -32,7 +32,7 @@ mounted read-only into the container at `/etc/flagd` and passed via
 {
   "flags": {
     "telemetryLevel": {
-      "defaultVariant": "io",
+      "defaultVariant": "full",
       "description": "Control telemetry level",
       "state": "ENABLED",
       "variants": {
@@ -44,8 +44,9 @@ mounted read-only into the container at `/etc/flagd` and passed via
 }
 ```
 
-The default is `"io"` — `INTERNAL` spans are suppressed by default. Flip to
-`"full"` to see all spans including controller/internal implementation spans.
+The default is `"full"` — all spans are visible, including controller and
+internal implementation spans. Flip to `"io"` to suppress `INTERNAL` spans
+and see only the I/O boundary (SERVER and CLIENT) spans.
 
 ## Updating a flag
 
