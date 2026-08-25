@@ -1,8 +1,8 @@
 # poc-otelfeature
 
 A proof-of-concept sandbox for exploring OpenTelemetry instrumentation:
-a small Python API service, an OpenTelemetry Collector, and an
-[Aspire Dashboard](https://learn.microsoft.com/en-us/dotnet/aspire/fundamentals/dashboard/overview)
+a Python geocoding API, a Java weather API, an OpenTelemetry Collector,
+and an [Aspire Dashboard](https://learn.microsoft.com/en-us/dotnet/aspire/fundamentals/dashboard/overview)
 to visualize the resulting traces, metrics, and logs.
 
 ## Architecture
@@ -11,8 +11,9 @@ to visualize the resulting traces, metrics, and logs.
 flowchart LR
     classDef load fill:#00e5ff,color:black;
     classDef geocode fill:#4ab52f,color:white;
+    classDef weather fill:#ee0943,color:white;
     classDef otelcol fill:#ffd500,color:black;
-    classDef aspire fill:#8000ff,color:white;
+    classDef aspire fill:#9966ff,color:white;
     classDef docker fill:#607d8b,color:white;
     classDef flagd fill:#f57c00,color:white;
     classDef datadog fill:#632ca6,color:white;
@@ -21,20 +22,28 @@ flowchart LR
     subgraph Service Diagram
         load("load-generator<br/>(k6)"):::load
         geocode(geocode):::geocode
+        weather(weather):::weather
         flagd(flagd):::flagd
         otelcol{"otel-collector<br/>(contrib)"}:::otelcol
         docker[("Docker socket")]:::docker
         coordinates[(coordinates-db<br/>PostgreSQL)]
         aspire[aspire]:::aspire
-        datadog[("Datadog<br/>(optional)")]:::datadog
+        datadog("Datadog<br/>(optional)"):::datadog
 
-        load --->|HTTP| geocode
+        docker -..->|docker_stats| otelcol
         load -->|OTLP/gRPC| otelcol
-        docker -...->|docker_stats| otelcol
-        geocode -.->|cache miss| nominatim["Nominatim API"]
+        load -->|HTTP| geocode
+        load -->|HTTP| weather
+        
+        geocode -..->|cache miss| nominatim["Nominatim API"]
+        geocode ---->|OTLP/HTTP| otelcol
+        geocode --->|"telemetryLevel<br/>(gRPC sync)"| flagd
+
         geocode -->|SQL| coordinates
-        geocode -->|OTLP/HTTP| otelcol
-        geocode -->|"telemetryLevel<br/>(gRPC sync)"| flagd
+        weather -->|SQL| coordinates
+        weather --->|"telemetryLevel<br/>(OFREP REST)"| flagd
+        weather --->|OTLP/HTTP| otelcol
+        weather -..->|cache miss| openmeteo["Open-Meteo API"]
         flagd -->|OTLP/HTTP| otelcol
         otelcol -->|OTLP/gRPC| aspire
         otelcol -.->|OTLP/HTTP| datadog
@@ -50,15 +59,31 @@ flowchart LR
   a separate, reusable zero-code launcher that also suppresses `INTERNAL`
   spans live, controlled by the `telemetryLevel` flag served from `flagd`.
 - **flagd** ([src/flagd](src/flagd)) — an [OpenFeature](https://openfeature.dev/)
-  flag backend serving the `telemetryLevel` flag that controls `geocode`'s
-  trace verbosity (via `otelfeature-instrument`), editable live with no
+  flag backend serving the `telemetryLevel` flag that controls both
+  `geocode`'s and `weather`'s trace verbosity (via `otelfeature-instrument`
+  and `otelfeature-java-extension` respectively), editable live with no
   restart.
+- **weather** ([src/weather](src/weather)) — a Java/Spring Boot service that
+  resolves current weather for a city/country pair. It checks the `weather`
+  cache table in `coordinates-db` first; on a miss it looks up coordinates
+  (from the `coordinates` table shared with `geocode`, or Open-Meteo's
+  geocoding API as fallback), queries the
+  [Open-Meteo](https://open-meteo.com/) forecast API, and persists the result.
+  Instrumented with the [OpenTelemetry Java auto-instrumentation
+  agent](https://github.com/open-telemetry/opentelemetry-java-instrumentation)
+  — zero-code `-javaagent` instrumentation of Spring Boot, JDBC, and
+  `java.net.http.HttpClient`. Also uses
+  [otelfeature-java-extension](https://github.com/OTelFeature/otelfeature-java-extension)
+  for flagd-controlled `INTERNAL`-span suppression (the Java counterpart to
+  `otelfeature-instrument`).
 - **coordinates-db** ([src/coordinates-db](src/coordinates-db)) — a Postgres
-  instance caching previously resolved city/country → lat/lon lookups, so
-  repeat requests don't hit Nominatim's rate limit.
+  instance caching previously resolved city/country → lat/lon lookups (shared
+  by `geocode` and `weather`) and weather results, so repeat requests don't
+  hit external APIs.
 - **load-generator** ([src/load-generator](src/load-generator)) — a k6 script
-  that continuously sends `POST /geocode` requests to `geocode`, exporting its
-  own metrics to the collector over OTLP/gRPC.
+  that continuously sends requests to both `geocode` (`POST /geocode`) and
+  `weather` (`POST /weather`), exporting its own metrics to the collector
+  over OTLP/gRPC.
 - **otel-collector** ([src/otel-collector](src/otel-collector)) — an
   `opentelemetry-collector-contrib` instance that receives OTLP from the
   services, also scrapes Docker container stats, derives span metrics, and
@@ -74,6 +99,14 @@ flowchart LR
 > a standalone, reusable dependency any Python service can adopt — not just
 > `geocode`. `src/geocode` pulls it in as a regular (if not-yet-published)
 > dependency; see [geocode's README](src/geocode/README.md#dependencies).
+>
+> `weather` uses the Java counterpart,
+> [OTelFeature/otelfeature-java-extension](https://github.com/OTelFeature/otelfeature-java-extension),
+> an OTel Java agent extension JAR that adds the same flagd-controlled
+> `INTERNAL`-span suppression. The JAR is downloaded from
+> [GitHub Releases](https://github.com/OTelFeature/otelfeature-java-extension/releases)
+> during the Docker build. See
+> [weather's README](src/weather/README.md#otelfeature-java-extension) for details.
 
 ## Requirements
 
@@ -93,18 +126,25 @@ Once started:
 
 - Aspire Dashboard: http://localhost:18888
 - Geocode health check: http://localhost:8000/health
+- Weather health check: http://localhost:8001/health
 
-Example request:
+Example requests:
 
 ```sh
+# Geocode — resolve city/country to lat/lon
 curl -s -X POST http://localhost:8000/geocode \
+  -H "Content-Type: application/json" \
+  -d '{"city": "linz", "country": "austria"}'
+
+# Weather — get current weather for a city/country
+curl -s -X POST http://localhost:8001/weather \
   -H "Content-Type: application/json" \
   -d '{"city": "linz", "country": "austria"}'
 ```
 
 Each service has its own README with configuration details:
-[geocode](src/geocode/README.md), [flagd](src/flagd/README.md),
-[coordinates-db](src/coordinates-db/README.md),
+[geocode](src/geocode/README.md), [weather](src/weather/README.md),
+[flagd](src/flagd/README.md), [coordinates-db](src/coordinates-db/README.md),
 [load-generator](src/load-generator/README.md),
 [otel-collector](src/otel-collector/README.md).
 
@@ -115,16 +155,20 @@ compose.yaml              # service definitions and wiring
 Makefile                  # build/start/stop shortcuts around docker compose
 src/
   geocode/                # FastAPI geocoding service (uv + Docker)
+  weather/                # Java/Spring Boot weather service (Gradle + Docker)
   flagd/                  # OpenFeature flag definitions (flagd)
-  coordinates-db/         # Postgres init script (coordinates cache)
-  load-generator/         # k6 load test script targeting geocode
+  coordinates-db/         # Postgres init script (coordinates + weather cache)
+  load-generator/         # k6 load test script targeting geocode and weather
   otel-collector/         # collector config.yaml
 ```
 
 > [!NOTE]
 > `geocode` caches resolved coordinates in `coordinates-db`, so only
-> first-time city/country lookups hit Nominatim. `load-generator`'s default
-> rate is still deliberately low (1 request every 5s) to stay well under
+> first-time city/country lookups hit Nominatim. `weather` similarly caches
+> weather results and shares the `coordinates` table with `geocode`, so only
+> first-time lookups hit [Open-Meteo](https://open-meteo.com/) (which has no
+> API key and generous rate limits). `load-generator`'s default rate is still
+> deliberately low (1 request every 5s per service) to stay well under
 > [Nominatim's usage policy](https://operations.osmfoundation.org/policies/nominatim/)
 > for whatever does miss the cache — raise `REQUEST_INTERVAL_SECONDS` at your
 > own risk of getting rate-limited (HTTP 429).
