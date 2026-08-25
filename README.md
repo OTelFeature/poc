@@ -36,7 +36,7 @@ flowchart LR
         geocode -->|OTLP/HTTP| otelcol
         geocode -->|"telemetryLevel<br/>(gRPC sync)"| flagd
         flagd -->|OTLP/HTTP| otelcol
-        otelcol --->|OTLP/gRPC| aspire
+        otelcol -->|OTLP/gRPC| aspire
         otelcol -.->|OTLP/HTTP| datadog
     end
 ```
