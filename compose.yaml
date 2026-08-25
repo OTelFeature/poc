@@ -10,9 +10,11 @@ services:
   geocode:
     build:
       context: ./src/geocode
+    container_name: geocode
     ports:
       - 8000:8000
     environment:
+      - FLAGD_HOST=flagd
       - GEOCODE_PORT=8000
       - OTEL_SERVICE_NAME=geocode
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4318
@@ -27,9 +29,12 @@ services:
         condition: service_started
       coordinates-db:
         condition: service_healthy
+      flagd:
+        condition: service_started
 
   load-generator:
     image: grafana/k6:latest
+    container_name: load-generator
     command: run --out opentelemetry /scripts/load-test.js
     volumes:
       - ./src/load-generator/load-test.js:/scripts/load-test.js
@@ -46,6 +51,7 @@ services:
   
   coordinates-db:
     image: postgres:18.4-alpine3.24
+    container_name: coordinates-db
     ports:
       - 5432
     environment:
@@ -61,12 +67,34 @@ services:
       timeout: 3s
       retries: 10
 
+  flagd:
+    image: ghcr.io/open-feature/flagd:v0.16.2
+    container_name: flagd
+    environment:
+      - GOMEMLIMIT=60MiB
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4318
+      - OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf
+      - OTEL_SERVICE_NAME=flagd
+    command: [
+      "start",
+      "--uri",
+      "file:./etc/flagd/flagd.json"
+    ]
+    ports:
+      - 8013 # gRPC flag evaluation (rpc resolver)
+      - 8015 # gRPC flag sync (in-process resolver)
+      - 8016 # OFREP REST evaluation
+    volumes:
+      - ./src/flagd:/etc/flagd
+
+
   ########################
   # TELEMETRY COMPONENTS #
   ########################
 
   otel-collector:
-    image: otel/opentelemetry-collector-contrib:0.158.0
+    image: otel/opentelemetry-collector-contrib:0.159.0
+    container_name: otel-collector
     user: "10001:0"
     command:
       - --config=/etc/otel-collector-config.yaml
@@ -80,6 +108,8 @@ services:
       - OTEL_COLLECTOR_HOST=otel-collector
       - OTEL_COLLECTOR_PORT_GRPC=4317
       - OTEL_COLLECTOR_PORT_HTTP=4318
+      - DD_SITE
+      - DD_API_KEY
     depends_on:
       aspire-dashboard:
         condition: service_started

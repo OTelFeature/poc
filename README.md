@@ -14,15 +14,19 @@ flowchart LR
     classDef otelcol fill:#ffd500,color:black;
     classDef aspire fill:#8000ff,color:white;
     classDef docker fill:#607d8b,color:white;
+    classDef flagd fill:#f57c00,color:white;
+    classDef datadog fill:#632ca6,color:white;
 
 
     subgraph Service Diagram
         load("load-generator<br/>(k6)"):::load
         geocode(geocode):::geocode
+        flagd(flagd):::flagd
         otelcol{"otel-collector<br/>(contrib)"}:::otelcol
         docker[("Docker socket")]:::docker
         coordinates[(coordinates-db<br/>PostgreSQL)]
         aspire[aspire]:::aspire
+        datadog[("Datadog<br/>(optional)")]:::datadog
 
         load --->|HTTP| geocode
         load -->|OTLP/gRPC| otelcol
@@ -30,7 +34,10 @@ flowchart LR
         geocode -.->|cache miss| nominatim["Nominatim API"]
         geocode -->|SQL| coordinates
         geocode -->|OTLP/HTTP| otelcol
+        geocode -->|"telemetryLevel<br/>(gRPC sync)"| flagd
+        flagd -->|OTLP/HTTP| otelcol
         otelcol --->|OTLP/gRPC| aspire
+        otelcol -.->|OTLP/HTTP| datadog
     end
 ```
 
@@ -38,8 +45,14 @@ flowchart LR
   a city/country to latitude/longitude. It checks `coordinates-db` first; on
   a cache miss it falls back to the
   [Nominatim](https://nominatim.org/release-docs/latest/api/Search/) API and
-  persists the result for next time. Auto-instrumented with
-  `opentelemetry-distro`, exporting traces/metrics/logs over OTLP/HTTP.
+  persists the result for next time. Runs under
+  [otelfeature-instrument](https://github.com/OTelFeature/otelfeature-instrument),
+  a separate, reusable zero-code launcher that also suppresses `INTERNAL`
+  spans live, controlled by the `telemetryLevel` flag served from `flagd`.
+- **flagd** ([src/flagd](src/flagd)) — an [OpenFeature](https://openfeature.dev/)
+  flag backend serving the `telemetryLevel` flag that controls `geocode`'s
+  trace verbosity (via `otelfeature-instrument`), editable live with no
+  restart.
 - **coordinates-db** ([src/coordinates-db](src/coordinates-db)) — a Postgres
   instance caching previously resolved city/country → lat/lon lookups, so
   repeat requests don't hit Nominatim's rate limit.
@@ -49,9 +62,18 @@ flowchart LR
 - **otel-collector** ([src/otel-collector](src/otel-collector)) — an
   `opentelemetry-collector-contrib` instance that receives OTLP from the
   services, also scrapes Docker container stats, derives span metrics, and
-  forwards everything to the Aspire Dashboard.
+  forwards everything to the Aspire Dashboard — and, optionally, to Datadog.
 - **aspire-dashboard** — Microsoft's Aspire Dashboard, used here purely as a
   local OTLP viewer/UI.
+
+> [!NOTE]
+> `geocode`'s telemetry bootstrap (`opentelemetry-instrument`-style zero-code
+> launcher, plus the flagd-controlled `INTERNAL`-span suppression) has moved
+> out of this repo into
+> [OTelFeature/otelfeature-instrument](https://github.com/OTelFeature/otelfeature-instrument),
+> a standalone, reusable dependency any Python service can adopt — not just
+> `geocode`. `src/geocode` pulls it in as a regular (if not-yet-published)
+> dependency; see [geocode's README](src/geocode/README.md#dependencies).
 
 ## Requirements
 
@@ -81,7 +103,8 @@ curl -s -X POST http://localhost:8000/geocode \
 ```
 
 Each service has its own README with configuration details:
-[geocode](src/geocode/README.md), [coordinates-db](src/coordinates-db/README.md),
+[geocode](src/geocode/README.md), [flagd](src/flagd/README.md),
+[coordinates-db](src/coordinates-db/README.md),
 [load-generator](src/load-generator/README.md),
 [otel-collector](src/otel-collector/README.md).
 
@@ -92,6 +115,7 @@ compose.yaml              # service definitions and wiring
 Makefile                  # build/start/stop shortcuts around docker compose
 src/
   geocode/                # FastAPI geocoding service (uv + Docker)
+  flagd/                  # OpenFeature flag definitions (flagd)
   coordinates-db/         # Postgres init script (coordinates cache)
   load-generator/         # k6 load test script targeting geocode
   otel-collector/         # collector config.yaml
@@ -104,3 +128,8 @@ src/
 > [Nominatim's usage policy](https://operations.osmfoundation.org/policies/nominatim/)
 > for whatever does miss the cache — raise `REQUEST_INTERVAL_SECONDS` at your
 > own risk of getting rate-limited (HTTP 429).
+
+> [!NOTE]
+> Forwarding telemetry to Datadog (`otel-collector`'s `otlp_http/datadog`
+> exporter) is optional and off by default — see
+> [otel-collector's README](src/otel-collector/README.md#datadog-export).
