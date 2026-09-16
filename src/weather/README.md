@@ -48,8 +48,16 @@ flag served by flagd is set to `"IO"`, drops `INTERNAL` spans (e.g. Spring
 WebMVC controller spans) while **re-parenting** their children to the
 nearest non-suppressed ancestor — preserving the trace tree instead of
 orphaning child spans. Flip the flag in
-[flagd.json](../flagd/flagd.json) and the change takes effect within seconds
-— no restart needed.
+[flagd.json](../flagd/flagd.json) and the change takes effect on the very next
+span — no restart needed.
+
+The extension uses flagd's
+[in-process resolver](https://flagd.dev/reference/specifications/in-process-providers/)
+(gRPC sync port `8015`), the same mechanism `geocode` uses: flagd pushes the
+whole flag ruleset to the JVM and keeps it current, so evaluation never leaves
+the process. Earlier versions polled flagd's OFREP REST endpoint (`8016`) every
+five seconds instead — hence the `FLAGD_PORT` change in
+[compose.yaml](../../compose.yaml).
 
 Controller spans must be enabled for the extension to have something to
 suppress, so `OTEL_INSTRUMENTATION_COMMON_EXPERIMENTAL_CONTROLLER_TELEMETRY_ENABLED=true`
@@ -104,7 +112,7 @@ curl -s http://localhost:8001/health
 | `OTEL_EXPORTER_OTLP_ENDPOINT`  | -                 | OTLP collector endpoint                             |
 | `OTEL_EXPORTER_OTLP_PROTOCOL`  | -                 | OTLP protocol (`http/protobuf`, `grpc`, etc.)       |
 | `FLAGD_HOST`                  | `flagd`           | flagd host (for `telemetryLevel` flag evaluation)  |
-| `FLAGD_PORT`                  | `8016`            | flagd OFREP REST port                               |
+| `FLAGD_PORT`                  | `8015`            | flagd gRPC **sync** port (in-process resolver)      |
 
 ## Running locally
 

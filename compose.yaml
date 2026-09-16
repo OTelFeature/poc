@@ -49,9 +49,11 @@ services:
       - POSTGRES_USER=postgres
       - POSTGRES_PWD=password
       - POSTGRES_DB=coordinates
-      # otelfeature-java-extension: connects to flagd to evaluate telemetryLevel
+      # otelfeature-java-extension: syncs telemetryLevel from flagd in-process,
+      # over the gRPC sync stream (8015) - not the OFREP REST port (8016) it
+      # used to poll. Same port geocode uses.
       - FLAGD_HOST=flagd
-      - FLAGD_PORT=8016
+      - FLAGD_PORT=8015
     depends_on:
       otel-collector:
         condition: service_started
