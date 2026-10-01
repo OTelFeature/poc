@@ -12,7 +12,7 @@ RUN wget -q -O /opentelemetry-javaagent.jar \
 FROM alpine:3.24 AS otelfeature-agent
 # otelfeature-java-extension: flagd-controlled INTERNAL span suppression
 # See https://github.com/OTelFeature/otelfeature-java-extension
-ARG OTELFEATURE_EXTENSION_VERSION=v0.2.3
+ARG OTELFEATURE_EXTENSION_VERSION=v0.3.0
 RUN wget -q -O /otelfeature-java-extension.jar \
     https://github.com/OTelFeature/otelfeature-java-extension/releases/download/${OTELFEATURE_EXTENSION_VERSION}/otelfeature-java-extension.jar
 

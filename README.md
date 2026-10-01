@@ -41,7 +41,7 @@ flowchart LR
 
         geocode -->|SQL| coordinates
         weather -->|SQL| coordinates
-        weather --->|"telemetryLevel<br/>(OFREP REST)"| flagd
+        weather --->|"telemetryLevel<br/>(gRPC sync)"| flagd
         weather --->|OTLP/HTTP| otelcol
         weather -..->|cache miss| openmeteo["Open-Meteo API"]
         flagd -->|OTLP/HTTP| otelcol
@@ -75,7 +75,9 @@ flowchart LR
   `java.net.http.HttpClient`. Also uses
   [otelfeature-java-extension](https://github.com/OTelFeature/otelfeature-java-extension)
   for flagd-controlled `INTERNAL`-span suppression (the Java counterpart to
-  `otelfeature-instrument`).
+  `otelfeature-instrument`). Like `geocode`, it syncs the flag ruleset
+  in-process from flagd over the gRPC sync stream, so a flag edit takes effect
+  on the very next span.
 - **coordinates-db** ([src/coordinates-db](src/coordinates-db)) — a Postgres
   instance caching previously resolved city/country → lat/lon lookups (shared
   by `geocode` and `weather`) and weather results, so repeat requests don't
@@ -107,6 +109,11 @@ flowchart LR
 > [GitHub Releases](https://github.com/OTelFeature/otelfeature-java-extension/releases)
 > during the Docker build. See
 > [weather's README](src/weather/README.md#otelfeature-java-extension) for details.
+>
+> Both services now talk to flagd the same way — the in-process resolver on
+> the gRPC sync port `8015` — and both evaluate `telemetryLevel` only as often
+> as the flag actually requires: once while it is static, per span once it
+> carries a `targeting` block. See [flagd's README](src/flagd/README.md).
 
 ## Requirements
 

@@ -15,10 +15,14 @@ mechanism:
   [geocode's README](../geocode/README.md#the-telemetrylevel-flag).
 - **weather** ([Java](../weather)) — uses
   [otelfeature-java-extension](https://github.com/OTelFeature/otelfeature-java-extension),
-  an OTel Java agent extension that polls flagd's OFREP REST endpoint (port
-  `8016`) every 5 seconds and suppresses `INTERNAL` spans (with re-parenting
-  of child spans) at the exporter level. See
+  an OTel Java agent extension that connects to flagd via gRPC (in-process
+  resolver, port `8015`) and suppresses `INTERNAL` spans (with re-parenting of
+  child spans) at the exporter level. See
   [weather's README](../weather/README.md#otelfeature-java-extension).
+
+Both therefore consume the flag the same way: flagd **pushes** the ruleset
+down a gRPC sync stream and each service evaluates it in-process, with no
+network call on the span hot path and no poll interval to wait out.
 
 ## Flag definitions
 
@@ -56,20 +60,64 @@ or any consuming service:
 1. flagd's file-provider watches the file for changes (`Starting filepath
    sync notifier` in its startup logs) and picks up the edit almost
    instantly.
-2. For `geocode`: flagd pushes the updated ruleset to the in-process provider
+2. flagd pushes the updated ruleset to both services' in-process providers
    over the gRPC sync stream (port `8015`).
-3. For `weather`: the extension's background poller picks up the change
-   within 5 seconds via the OFREP REST endpoint (port `8016`).
-4. Both services evaluate the new value on the very next span they create.
+3. Each provider raises `PROVIDER_CONFIGURATION_CHANGED`, and both services
+   re-evaluate `telemetryLevel` on the very next span they create.
 
 To flip trace verbosity, change `defaultVariant` between `"full"` and `"io"`.
 More elaborate changes (targeting rules, additional flags) follow the same
-[flag definition schema](https://flagd.dev/reference/flag-definitions/).
+[flag definition schema](https://flagd.dev/reference/flag-definitions/) — see
+below for what a targeting rule changes about how the flag is *evaluated*.
+
+## Static flags are evaluated once; targeted flags, every time
+
+`telemetryLevel` is consulted on every single span, so both services do
+something slightly clever with it. flagd reports *why* it produced a value,
+and the flag definition above has no `targeting` block, so the reason is
+`STATIC`: one `defaultVariant` for the whole world, the same answer for every
+span. Both services therefore evaluate it **once**, from their provider's
+configuration-change handler, and answer every span from memory after that.
+
+Add a `targeting` block and the reason becomes `TARGETING_MATCH` — the value
+now depends on who is asking, so caching switches itself off and every span is
+evaluated individually. Remove it and caching resumes. Nothing is configured
+and nothing is restarted; the flag definition itself decides.
+
+### Seeing it happen
+
+Paste a `targeting` block into `telemetryLevel` in
+[flagd.json](flagd.json) and save. This one flips on every second, so
+consecutive spans genuinely get different answers:
+
+```json
+"targeting": {
+  "if": [
+    { "==": [{ "%": [{ "var": "$flagd.timestamp" }, 2] }, 0] },
+    "io",
+    "full"
+  ]
+}
+```
+
+`$flagd.timestamp` (unix seconds) is injected by flagd itself, so this needs
+no evaluation context from the services. Watch the Aspire Dashboard: traces
+start alternating between full and I/O-only as the second ticks over, and both
+services log that `telemetryLevel` is now being evaluated per span. Delete the
+block again and they log that it is static and go back to evaluating it once.
+
+> [!NOTE]
+> Passing the span's own attributes to the targeting rules — so a rule could
+> say "keep our spans, drop the framework's" — isn't wired up yet. The
+> evaluation machinery above already handles such a flag correctly; it just
+> has nothing to match on beyond flagd's own `$flagd.*` properties.
 
 ## Verifying a flag's current value
 
 Without going through any service, flagd's OFREP REST endpoint (port `8016`,
-published in [compose.yaml](../../compose.yaml)) evaluates a flag directly:
+published in [compose.yaml](../../compose.yaml)) evaluates a flag directly.
+Nothing in this repo consumes OFREP any more — it's kept published purely as
+a debugging convenience:
 
 ```sh
 curl -s -X POST http://localhost:8016/ofrep/v1/evaluate/flags/telemetryLevel \
@@ -81,8 +129,8 @@ curl -s -X POST http://localhost:8016/ofrep/v1/evaluate/flags/telemetryLevel \
 | Port   | Protocol  | Purpose                                                                                              |
 |--------|-----------|------------------------------------------------------------------------------------------------------|
 | `8013` | gRPC      | Flag evaluation (`rpc` resolver mode) — unused                                                       |
-| `8015` | gRPC      | Flag sync (`in-process` resolver mode) — what `geocode`'s otelfeature-instrument connects to          |
-| `8016` | HTTP      | [OFREP](https://github.com/open-feature/protocol) REST evaluation — what `weather`'s extension polls   |
+| `8015` | gRPC      | Flag sync (`in-process` resolver mode) — what **both** services connect to                            |
+| `8016` | HTTP      | [OFREP](https://github.com/open-feature/protocol) REST evaluation — debugging only, no longer consumed |
 
 `8014` (flagd's own Prometheus metrics/health endpoint) isn't published —
 nothing in this repo consumes it.
