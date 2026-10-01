@@ -113,6 +113,7 @@ curl -s http://localhost:8001/health
 | `OTEL_EXPORTER_OTLP_PROTOCOL`  | -                 | OTLP protocol (`http/protobuf`, `grpc`, etc.)       |
 | `FLAGD_HOST`                  | `flagd`           | flagd host (for `telemetryLevel` flag evaluation)  |
 | `FLAGD_PORT`                  | `8015`            | flagd gRPC **sync** port (in-process resolver)      |
+| `FLAGD_COMPILE_TARGETING`     | `auto`            | flagd targeting-rule compile mode. Set to `disabled` — the agent's extension classloader can't see `javax.tools`, so the `auto` probe crashes the agent at startup (`NoClassDefFoundError`) |
 
 ## Running locally
 
