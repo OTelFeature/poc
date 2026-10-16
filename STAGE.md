@@ -92,7 +92,7 @@ starts are available, so rules use `url.path`, never `http.route`.
 - `make flags` lists the presets; `make flag` with no argument prints usage.
 - `make flag` leaves `src/flagd/flagd.json` modified in git. `make demo-reset`
   restores it.
-- Run `make validate-flags` after editing a preset. It runs the CI checks:
+- Run `make test` after editing a preset. It runs the CI checks:
   the flagd schema, baseline = `flagd.json`, and an evaluation of every rule
   with the Python flagd provider (`src/flagd/test_presets.py`).
 - `make flag` swaps `flagd.json` atomically (temp file + rename) and always
