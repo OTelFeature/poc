@@ -231,7 +231,8 @@ stack (see [traceability.md](traceability.md#merge-order)).
   Coarse Linux timestamps can make a fast rewrite invisible. Preset scripts
   (`make flag`), `make demo-reset`, extension tests and the e2e flag-flip
   helper bump the mtime and then confirm the new value over OFREP (port 8016)
-  before counting spans. See
+  before counting spans; OFREP only verifies, services evaluate in process
+  (C-002). See
   [flag file reload](entity_model.md#flag-file-reload).
 
 ### Toolchain images (OTelFeature/otelfeature-instrument#20, OTelFeature/otelfeature-java-extension#32)
