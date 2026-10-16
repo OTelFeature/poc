@@ -182,7 +182,10 @@ Open `poc` items, in lane order: OTelFeature/poc#27 (measurements: harness
 merged with PR OTelFeature/poc#79, numbers posted, OQ-1 decided: `processor`), OTelFeature/poc#31 (public repo), OTelFeature/poc#14 (env-var tier
 docs), OTelFeature/poc#70 (faster builds and e2e), OTelFeature/poc#80 (Python
 parity in e2e), OTelFeature/poc#75 (unit test for the `FaultInjection` bounds),
-OTelFeature/poc#76 (`geocode` on Python 3.15), and OTelFeature/poc#35 until its nightly runs are green.
+OTelFeature/poc#76 (`geocode` on Python 3.15: blocked, because
+`openfeature-provider-flagd` requires `cachebox<6` and cachebox 5 has no
+3.15 build; `geocode` stays on 3.14 and Dependabot ignores 3.15 until then,
+decided by Simon, 2026-10-16), and OTelFeature/poc#35 until its nightly runs are green.
 People, not agents: OTelFeature/poc#74 (full stage rehearsal three times,
 offline, NFR-012), OTelFeature/poc#32 (fallback videos),
 OTelFeature/poc#33 (OTel Demo footage).
