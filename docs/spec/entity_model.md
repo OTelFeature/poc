@@ -124,7 +124,7 @@ context; scope and span keys are merged per span.
 | Attribute | Description | Data Type | Length/Precision | Validation Rules |
 |---|---|---|---|---|
 | targetingKey | Trace id, hex, so `fractional` buckets a trace the same in every service | String | 32 | Not Null, Format: 32 lower-case hex characters |
-| shape | How dotted semconv names are represented (OQ-2, OTelFeature/poc#22) | String | 10 | Not Null, Values: nested, flat |
+| shape | How dotted semconv names are represented (OQ-2, OTelFeature/poc#22) | String | 10 | Not Null, Values: nested (decided, OTelFeature/poc#22) |
 
 ### CONTEXT_KEY
 
@@ -168,6 +168,7 @@ The outcome for one span start.
 |---|---|---|---|---|---|---|
 | `otelEnabled` | boolean | `on`=true, `off`=false | `on` | extension | planned | OTelFeature/poc#8 |
 | `telemetryLevel` | string | `full`=FULL, `io`=IO, `off`=OFF | `full` | extension | FULL/IO exist; OFF planned | OTelFeature/poc#8 |
+| `recordSpan` | boolean | `on`=true, `off`=false | `on` | extension | planned, per-span drop for Demo 2 | OTelFeature/otelfeature-instrument#14, OTelFeature/otelfeature-java-extension#27 |
 | `traceSampleRatio` | number | e.g. `all`=1.0, `tenth`=0.1, `none`=0.0 | `all` | extension | planned | OTelFeature/poc#10 |
 | `weatherUpstreamFailure` | number | e.g. `none`=0.0, `incident`=0.3 | `none` | application (`weather`) | planned | OTelFeature/poc#28 |
 | `signalsEnabled` | object | per signal | all on | extension | deferred, out of scope | OTelFeature/poc#11 |
@@ -190,9 +191,10 @@ Unknown `telemetryLevel` values resolve to `FULL` (existing behaviour, kept).
 
 ### Evaluation-context contract
 
-Shape (nested objects vs flat dotted keys) is pending OTelFeature/poc#22
-(OQ-2). The expected outcome is nesting by dot segment, `service.name` →
-`{"service": {"name": ...}}`.
+Shape: **nested by dot segment**, `service.name` → `{"service": {"name": ...}}`.
+Flat dotted keys never match in flagd's evaluators (OTelFeature/poc#22, OQ-2
+resolved). On a leaf/prefix collision the namespace wins; extension-provided
+keys win over a clashing span start attribute.
 
 | Key | Source | Type | Known at start | Notes |
 |---|---|---|---|---|

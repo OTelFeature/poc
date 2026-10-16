@@ -12,7 +12,7 @@
 - **Work Items:** OTelFeature/poc#10, OTelFeature/poc#25, OTelFeature/poc#22, OTelFeature/otelfeature-instrument#7, OTelFeature/otelfeature-java-extension#20, OTelFeature/otelfeature-java-extension#21
 - **Test Cases:** TC-004
 - **Script Beat:** Demo 3 ("your evaluation context is just my resource attributes", "sample rate as a number flag")
-- **Open Questions:** OQ-2
+- **Open Questions:** none (OQ-2 resolved)
 
 ## Preconditions
 

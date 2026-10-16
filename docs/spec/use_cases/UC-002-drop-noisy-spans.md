@@ -9,10 +9,10 @@
 - **Goal:** The operator writes one targeting rule per noise source (health-check requests in `geocode`, database spans in `weather`) so that those spans are never created, while every other span in both services is kept.
 - **Status:** Draft
 - **Requirements:** FR-004, FR-005, FR-006, FR-007, FR-008, NFR-002, NFR-003, NFR-005, NFR-007, C-003, C-004
-- **Work Items:** OTelFeature/poc#22, OTelFeature/otelfeature-instrument#7, OTelFeature/otelfeature-java-extension#20, OTelFeature/otelfeature-java-extension#21, OTelFeature/poc#12, OTelFeature/poc#9
+- **Work Items:** OTelFeature/poc#22, OTelFeature/otelfeature-instrument#7, OTelFeature/otelfeature-java-extension#20, OTelFeature/otelfeature-java-extension#21, OTelFeature/otelfeature-instrument#14, OTelFeature/otelfeature-java-extension#27, OTelFeature/poc#12, OTelFeature/poc#9
 - **Test Cases:** TC-002
 - **Script Beat:** Demo 2 ("service name, instrumentation scope, the path")
-- **Open Questions:** OQ-1, OQ-2, OQ-5, OQ-6, OQ-7, OQ-8
+- **Open Questions:** OQ-1, OQ-5, OQ-7
 
 ## Preconditions
 
@@ -107,7 +107,7 @@ The evaluation context is built only when the flag is not static. While all flag
 
 ### BR-003: Dropping a root drops its subtree
 
-A dropped root span takes its descendants in the same service with it, and downstream services receive a not-sampled trace context. How Python's tracer wrapper and Java's processor mode achieve this is open (OQ-6).
+A dropped root span takes its descendants in the same service with it, and downstream services receive a not-sampled trace context. Python returns a non-recording, non-sampled span for a dropped root; Java uses sampler `DROP` for roots and non-propagating leaves, and processor suppression for spans that propagate mid-trace (OTelFeature/otelfeature-instrument#14, OTelFeature/otelfeature-java-extension#27).
 
 ### BR-004: Sampler only drops roots and leaves
 
@@ -119,4 +119,4 @@ A span's fate is decided once, at start (NFR-007).
 
 ### BR-006: Which flag carries the drop rule
 
-Working assumption: the rules are targeting on `telemetryLevel` returning `OFF` for the matching context, so they map onto `enabled=false` in the policy. Not decided (OQ-8).
+The drop rules are targeting on the dedicated boolean flag `recordSpan` (default `true`), evaluated per span against the semconv context. `otelEnabled` and `telemetryLevel` stay global switches. Precedence: `OTEL_SDK_DISABLED` (hard floor) > `otelEnabled`/`telemetryLevel=OFF` > `recordSpan`; `recordSpan=true` never re-enables anything the global switches turned off.
