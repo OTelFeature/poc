@@ -97,7 +97,7 @@ PRs.
 State as of 2026-10-16, checked with `gh` and
 `git merge-base --is-ancestor <head> origin/main`. Both extension chains are
 **merged on `main`** (not released yet, C-006). The `poc` lane is an open
-stack. The toolchain PRs are open.
+stack. The toolchain PRs are merged.
 
 ### Python (`OTelFeature/otelfeature-instrument`): merged
 
@@ -115,6 +115,7 @@ Every PR below is on `main`. All but #15 were merged into `main` directly;
 | OTelFeature/otelfeature-instrument#16 | OTelFeature/otelfeature-instrument#9 (closed) | FR-014, NFR-006 | UC-007 | TC-005 |
 | OTelFeature/otelfeature-instrument#17 | OTelFeature/poc#12, Python half (closed) | FR-007 | UC-002 | TC-002 |
 | OTelFeature/otelfeature-instrument#19 | none (parity request) | FR-025 | none | TC-001 |
+| OTelFeature/otelfeature-instrument#23 | OTelFeature/otelfeature-instrument#22 (closed) | NFR-001, FR-009 | UC-004 (A1) | TC-004 |
 
 ### Java (`OTelFeature/otelfeature-java-extension`): merged
 
@@ -171,8 +172,12 @@ Not stacked; each is its own PR from `main`.
 
 | Issue | PR | Requirements | State |
 |---|---|---|---|
-| OTelFeature/otelfeature-instrument#20 | OTelFeature/otelfeature-instrument#21 | NFR-016, C-014 | open, CI green three runs in a row, not merged |
-| OTelFeature/otelfeature-java-extension#32 | OTelFeature/otelfeature-java-extension#35 | NFR-016, C-013, C-014 | open, not merged |
+| OTelFeature/otelfeature-instrument#20 | OTelFeature/otelfeature-instrument#21 | NFR-016, C-014 | merged 2026-10-16 |
+| OTelFeature/otelfeature-java-extension#32 | OTelFeature/otelfeature-java-extension#35 | NFR-016, C-013, C-014 | merged 2026-10-16 |
+
+NFR-016 stays In Progress: both extensions have `ci/Dockerfile`, `make test`,
+`make shell`, image-based CI and Dependabot on `/ci`, but `poc` has no
+`make shell` target yet (its `ci/Dockerfile` serves `make e2e` only).
 
 ### Merge lessons
 
