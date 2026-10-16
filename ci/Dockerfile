@@ -2,7 +2,7 @@
 # .github/workflows/e2e.yml, so local runs and CI run the same toolchain:
 # Python, uv and the locked test dependencies, nothing else. The tests
 # themselves are mounted at /e2e/tests at run time (compose.e2e.yaml).
-FROM ghcr.io/astral-sh/uv:0.12.23-python3.14-trixie-slim
+FROM ghcr.io/astral-sh/uv:0.13.1-python3.14-trixie-slim
 
 ENV UV_PROJECT_ENVIRONMENT=/opt/e2e-venv \
     UV_COMPILE_BYTECODE=1 \
