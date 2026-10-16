@@ -16,6 +16,7 @@ services:
     environment:
       - FLAGD_HOST=flagd
       - GEOCODE_PORT=8000
+      - NOMINATIM_URL=${NOMINATIM_URL:-http://stub-apis:8080/search}
       - OTEL_SERVICE_NAME=geocode
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4318
       - OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf
@@ -31,6 +32,8 @@ services:
         condition: service_healthy
       flagd:
         condition: service_started
+      stub-apis:
+        condition: service_healthy
 
   weather:
     build:
@@ -40,6 +43,8 @@ services:
       - 8001:8001
     environment:
       - WEATHER_PORT=8001
+      - OPEN_METEO_GEOCODING_URL=${OPEN_METEO_GEOCODING_URL:-http://stub-apis:8080/v1/search}
+      - OPEN_METEO_FORECAST_URL=${OPEN_METEO_FORECAST_URL:-http://stub-apis:8080/v1/forecast}
       - OTEL_SERVICE_NAME=weather
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4318
       - OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf
@@ -59,6 +64,8 @@ services:
         condition: service_healthy
       flagd:
         condition: service_started
+      stub-apis:
+        condition: service_healthy
 
   load-generator:
     image: grafana/k6:2.3.0
@@ -74,12 +81,35 @@ services:
       - K6_OTEL_GRPC_EXPORTER_ENDPOINT=otel-collector:4317
       - K6_OTEL_GRPC_EXPORTER_INSECURE=true
       - K6_OTEL_SERVICE_NAME=load-generator
+      - K6_NO_USAGE_REPORT=true
     depends_on:
       geocode:
         condition: service_started
       weather:
         condition: service_started
   
+  # Offline stand-in for Nominatim and Open-Meteo (see src/stub-apis).
+  # geocode and weather point at it unless `make start-live` overrides the
+  # URLs above. Stdlib-only script on the image geocode is built from, so
+  # there's no build step; `make prepare-offline` pulls the image.
+  stub-apis:
+    image: python:3.14-slim-bookworm
+    container_name: stub-apis
+    command: ["python", "-u", "/app/stub.py"]
+    volumes:
+      - ./src/stub-apis/stub.py:/app/stub.py:ro
+    environment:
+      - STUB_PORT=8080
+      - STUB_LATENCY_MIN_MS=20
+      - STUB_LATENCY_MAX_MS=120
+    ports:
+      - 8080
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8080/health')"]
+      interval: 2s
+      timeout: 2s
+      retries: 10
+
   coordinates-db:
     image: postgres:18.6-alpine3.24
     container_name: coordinates-db

@@ -9,7 +9,7 @@ from pydantic import BaseModel
 
 from db import get_coordinates_from_db, insert_coordinates_into_db
 
-NOMINATIM_URL = "https://nominatim.openstreetmap.org/search"
+NOMINATIM_URL = os.environ.get("NOMINATIM_URL", "https://nominatim.openstreetmap.org/search")
 USER_AGENT = os.environ.get("NOMINATIM_USER_AGENT", "poc-otelfeature-geocode/1.0")
 
 tracer = trace.get_tracer(__name__)

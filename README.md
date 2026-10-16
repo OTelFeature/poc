@@ -35,7 +35,7 @@ flowchart LR
         load -->|HTTP| geocode
         load -->|HTTP| weather
         
-        geocode -..->|cache miss| nominatim["Nominatim API"]
+        geocode -..->|cache miss| stub["stub-apis<br/>(Nominatim + Open-Meteo,<br/>or the real APIs)"]
         geocode ---->|OTLP/HTTP| otelcol
         geocode --->|"telemetryLevel<br/>(gRPC sync)"| flagd
 
@@ -43,7 +43,7 @@ flowchart LR
         weather -->|SQL| coordinates
         weather --->|"telemetryLevel<br/>(gRPC sync)"| flagd
         weather --->|OTLP/HTTP| otelcol
-        weather -..->|cache miss| openmeteo["Open-Meteo API"]
+        weather -..->|cache miss| stub
         flagd -->|OTLP/HTTP| otelcol
         otelcol -->|OTLP/gRPC| aspire
         otelcol -.->|OTLP/HTTP| datadog
@@ -82,6 +82,9 @@ flowchart LR
   instance caching previously resolved city/country → lat/lon lookups (shared
   by `geocode` and `weather`) and weather results, so repeat requests don't
   hit external APIs.
+- **stub-apis** ([src/stub-apis](src/stub-apis)) — an offline stand-in for
+  Nominatim and Open-Meteo, so the stack runs with no network. `make start`
+  points both services at it; `make start-live` uses the real APIs.
 - **load-generator** ([src/load-generator](src/load-generator)) — a k6 script
   that continuously sends requests to both `geocode` (`POST /geocode`) and
   `weather` (`POST /weather`), exporting its own metrics to the collector
@@ -124,9 +127,11 @@ flowchart LR
 ## Running
 
 ```sh
-make build   # docker compose build
-make start   # docker compose up -d
-make stop    # docker compose down
+make build            # docker compose build
+make start            # docker compose up -d, external APIs stubbed
+make start-live       # same, but geocode/weather call the real Nominatim and Open-Meteo
+make prepare-offline  # pull + build everything, so `make start` later needs no network
+make stop             # docker compose down
 ```
 
 Once started:
@@ -149,10 +154,40 @@ curl -s -X POST http://localhost:8001/weather \
   -d '{"city": "linz", "country": "austria"}'
 ```
 
+### Running on stage
+
+The default stack needs no network once its images exist. `geocode` and
+`weather` call [stub-apis](src/stub-apis) instead of Nominatim and Open-Meteo,
+and nothing else in the stack needs to reach outside the compose network.
+One exception: the collector's optional Datadog exporter is always in the
+pipelines and, without `DD_SITE`/`DD_API_KEY`, logs export errors (which
+also show up in Aspire as collector logs). Ignore them.
+
+1. While online: `make prepare-offline`. This pulls every image and builds
+   `geocode` and `weather` (their builds download dependencies, the OTel Java
+   agent and the otelfeature extension, so they can't run offline).
+2. Offline: `make start`. It never rebuilds on its own; don't run
+   `make build` or `docker compose up --build` without network.
+
+The outgoing `CLIENT` spans still show a real HTTP call, with
+`server.address` = `stub-apis` and 20–120 ms of latency. They only appear on
+a cache miss, and the Postgres volume survives `make stop`. To show them
+again after a rehearsal, start from an empty cache with
+`docker compose down -v`.
+
+To demo against the real APIs instead, use `make start-live` (and keep the
+request rate within
+[Nominatim's usage policy](https://operations.osmfoundation.org/policies/nominatim/)).
+Live mode lasts only for that invocation: a later `make start` or
+`docker compose up -d <service>` recreates the services with the stub URLs.
+To make it stick, put `NOMINATIM_URL`, `OPEN_METEO_GEOCODING_URL` and
+`OPEN_METEO_FORECAST_URL` in `.env` (gitignored).
+
 Each service has its own README with configuration details:
 [geocode](src/geocode/README.md), [weather](src/weather/README.md),
 [flagd](src/flagd/README.md), [coordinates-db](src/coordinates-db/README.md),
 [load-generator](src/load-generator/README.md),
+[stub-apis](src/stub-apis/README.md),
 [otel-collector](src/otel-collector/README.md).
 
 ## Repository layout
@@ -166,10 +201,13 @@ src/
   flagd/                  # OpenFeature flag definitions (flagd)
   coordinates-db/         # Postgres init script (coordinates + weather cache)
   load-generator/         # k6 load test script targeting geocode and weather
+  stub-apis/              # offline stand-in for Nominatim and Open-Meteo
   otel-collector/         # collector config.yaml
 ```
 
 > [!NOTE]
+> This note is about `make start-live`; the default `make start` talks to
+> `stub-apis`, which has no rate limit.
 > `geocode` caches resolved coordinates in `coordinates-db`, so only
 > first-time city/country lookups hit Nominatim. `weather` similarly caches
 > weather results and shares the `coordinates` table with `geocode`, so only

@@ -25,6 +25,9 @@ k6's `constant-arrival-rate` executor holds a steady request rate regardless of
 response latency.
 
 > [!NOTE]
+> This only matters with `make start-live`. By default both services call
+> [stub-apis](../stub-apis), which has no rate limit.
+>
 > Nominatim's public usage policy caps requests at ~1/s, *shared across all
 > users of the source IP*. `geocode` caches resolved coordinates in
 > `coordinates-db`, so only new city/country pairs cost a live Nominatim
