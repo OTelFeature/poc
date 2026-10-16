@@ -35,6 +35,10 @@
 3. **Fail open (OTelFeature/poc#8, OTelFeature/poc#9):** with flagd stopped, or with an unknown `telemetryLevel` value, spans are created as with the stock SDK; the failure is logged once, not per span.
 4. **Java sampler mode (OTelFeature/otelfeature-java-extension#21):** with `OTELFEATURE_ENFORCEMENT=sampler` and tracing off, zero spans reach any span processor.
 5. **Pure refactor (OTelFeature/poc#9):** existing `FULL`/`IO` behaviour is unchanged; existing extension tests pass.
+6. **Hard floor `OTEL_SDK_DISABLED` (OTelFeature/poc#9):** with `OTEL_SDK_DISABLED=true`, flags saying on (`otelEnabled=true`, `telemetryLevel=FULL`) create no spans in either language. In Java the customizer still runs and installs nothing: no sampler, no processor, no flagd connection.
+7. **Hard floor `always_off` (OTelFeature/poc#10):** with `OTEL_TRACES_SAMPLER=always_off`, no flag and no sampled parent produces a sampled span.
+8. **Known limitation documented (OTelFeature/poc#8):** both extension READMEs have a "Known limitations" entry saying that trace context keeps propagating while `OFF`, so services still tracing can produce traces with gaps or missing parents.
+9. **Propagation under OFF (OTelFeature/poc#8):** a request arriving with a `traceparent` while `OFF` passes it on to its outgoing calls (Python: the extracted remote parent stays current).
 
 ## Postconditions
 

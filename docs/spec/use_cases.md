@@ -19,7 +19,7 @@ flowchart LR
         UC004(["UC-004<br/>Target trace sampling by environment and service"])
         UC005(["UC-005<br/>Raise sampling while a service is failing"])
         UC006(["UC-006<br/>Inject upstream failures"])
-        UC007(["UC-007<br/>Explain a telemetry decision from the trace"])
+        UC007(["UC-007<br/>See flag evaluations in the trace"])
         UC008(["UC-008<br/>Run the demo on stage"])
         UC009(["UC-009<br/>Try the demo from the public repository"])
     end

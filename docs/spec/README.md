@@ -10,7 +10,8 @@ The source for the gap analysis and decisions D1 to D6 is `DEMO-BACKLOG.md`
 the backlog is out of date.
 
 **Focus: spans and traces.** Metrics appear only as an input to span
-sampling. Metrics and logs gating is out of scope.
+sampling. Metrics and logs gating is out of scope (OTelFeature/poc#11, P2).
+The noisy-demo workload (OTelFeature/poc#23) is P2 as well.
 
 ## Process: AI Unified Process (AIUP)
 
@@ -61,7 +62,7 @@ Use cases:
 | [UC-004](use_cases/UC-004-target-trace-sampling.md) | Target trace sampling by environment and service | Demo 3 |
 | [UC-005](use_cases/UC-005-raise-sampling-on-errors.md) | Raise sampling while a service is failing | Demo 3 control loop |
 | [UC-006](use_cases/UC-006-inject-upstream-failures.md) | Inject upstream failures | Demo 3 incident |
-| [UC-007](use_cases/UC-007-explain-telemetry-decision.md) | Explain a telemetry decision from the trace | Demo 3 "flag explains itself" |
+| [UC-007](use_cases/UC-007-see-flag-evaluations-in-trace.md) | See flag evaluations in the trace | Demo 3 "flag explains itself" (OQ-9) |
 | [UC-008](use_cases/UC-008-run-demo-on-stage.md) | Run the demo on stage | all |
 | [UC-009](use_cases/UC-009-try-demo-from-public-repo.md) | Try the demo from the public repository | CTA |
 
@@ -147,21 +148,39 @@ the affected requirement status.
 7. Stay in your lane (see traceability.md). The extensions and `poc` are
    separate repos; a cross-repo issue is filed once per repo.
 
+### Workflow for implementation (Simon, 2026-10-16)
+
+- **Spec first.** A change that moves behaviour updates these documents
+  before (or in the same PR as) the code.
+- **Stacked PRs, one per issue.** Each lane's issues are implemented in lane
+  order, each as its own PR stacked on the previous one. The open stacks are
+  listed in [traceability.md](traceability.md#implementation).
+- **Fresh-agent review.** Each PR is reviewed by a fresh agent that has not
+  seen the implementation. Its fixes are applied to that PR before the next
+  issue in the lane starts.
+- **Agents never merge.** Merging and retargeting the stack is done by a
+  person.
+- **Stop and ask** when a review finding or an implementation detail changes
+  an issue's design (what it does, not how). Record the answer in the spec.
+
 ## Open questions
 
-Each is referenced by ID from the documents. None of these is answered in
-the spec; whoever settles one updates the spec.
+Each is referenced by ID from the documents. Open ones are not answered in
+the spec; whoever settles one updates the spec and marks it resolved here
+with a pointer to where the answer now lives. Resolved questions keep their
+row so references stay valid.
 
-| ID | Question | Settled by | Affects |
-|---|---|---|---|
-| OQ-1 | Java enforcement for the talk: sampler or processor (D3)? The Demo 2 script line follows it: "never created" or "never batched, never serialized, never sent". | Measurements in OTelFeature/poc#27 plus effort notes from OTelFeature/otelfeature-java-extension#21 | UC-001, UC-002, UC-003, FR-008 |
-| OQ-2 | **Resolved:** nested by dot segment. Flat dotted keys never match in any of the three flagd evaluators; on a leaf/prefix collision the namespace wins, and extension keys win over a clashing start attribute (OTelFeature/poc#22 results). Original question: shape of dotted semconv keys in the evaluation context: nested (`{"service": {"name": ...}}`) or flat (`"service.name"`), and the rule for a key that is both a leaf and a prefix (`http` vs `http.route`). Expected: nested. | Spike OTelFeature/poc#22 | FR-005, entity model, UC-002, UC-004 |
-| OQ-3 | What per-span decision cost is acceptable on the targeted path? No bound is set; measure first. | OTelFeature/poc#27, extension benchmarks | NFR-005 |
-| OQ-4 | Do the pinned OpenFeature OTel hooks emit the current `feature_flag` semconv (`feature_flag.evaluation` event, `feature_flag.key`, `feature_flag.result.variant`, `feature_flag.provider.name`)? | OTelFeature/poc#30 | UC-007, FR-015 |
-| OQ-5 | With OTelFeature/poc#23 deferred, nothing calls `/health`. Where does health-check traffic for Demo 2 come from (compose healthchecks, a k6 scenario folded into OTelFeature/poc#26, or a different noise source for the demo)? | Speakers, before OTelFeature/poc#26 | UC-002, UC-003, TC-002 |
-| OQ-6 | **Resolved by the `recordSpan` issues:** Python returns a non-recording, non-sampled span for a dropped root; Java uses sampler `DROP` for roots and non-propagating leaves, and processor suppression otherwise (OTelFeature/otelfeature-instrument#14, OTelFeature/otelfeature-java-extension#27). Original question: how is a dropped root's subtree dropped outside the Java sampler? Python's tracer wrapper returns the current span, so children of a dropped `SERVER` span would start new traces. Java processor mode drops at start but children are still created and would be re-parented to roots. Options: Python returns a non-recording, unsampled span (or uses a sampler) for roots; Java processor records dropped roots so descendants are dropped too. | OTelFeature/otelfeature-instrument#7 (Python), OTelFeature/otelfeature-java-extension#21 (Java) | UC-002 BR-003, FR-006 |
-| OQ-7 | How does Python know a rule reads only resource and scope keys, so it may decide per tracer? | OTelFeature/poc#12 | UC-002 A2 |
-| OQ-8 | **Resolved (Simon, 2026-10-16):** a dedicated per-span boolean flag `recordSpan` (default true), evaluated against the semconv context (OTelFeature/otelfeature-instrument#14, OTelFeature/otelfeature-java-extension#27). Original question: which flag carries the Demo 2 drop rules? Working assumption: targeting on `telemetryLevel` returning `OFF` for the matching context. Alternatives: targeting on `otelEnabled`, or `traceSampleRatio=0` for roots (does not cover leaf spans). | Speakers, with OTelFeature/poc#26 presets | UC-002 BR-006, entity model |
+| ID | Question | Status | Settled by | Affects |
+|---|---|---|---|---|
+| OQ-1 | Java enforcement for the talk: sampler or processor (D3)? The Demo 2 script line follows it: "never recorded" (sampler) or "never batched, never serialized, never sent" (processor). Both modes are built and selected with `OTELFEATURE_ENFORCEMENT`, default `processor` (FR-008). | **Open**, pending the OTelFeature/poc#27 benchmark | Measurements in OTelFeature/poc#27 plus effort notes from OTelFeature/otelfeature-java-extension#21 | UC-001, UC-002, UC-003, FR-008 |
+| OQ-2 | Shape of dotted semconv keys in the evaluation context, and the rule for a key that is both a leaf and a prefix. | **Resolved:** nested by dot segment; flat dotted keys never match in any flagd evaluator; on a leaf/prefix collision the namespace wins; extension-provided keys win over a clashing span start attribute; `otelfeature.*` is reserved. See FR-005, [entity model](entity_model.md#evaluation-context-contract), UC-002 BR-001 | Spike OTelFeature/poc#22 | FR-005, entity model, UC-002, UC-004 |
+| OQ-3 | What per-span decision cost is acceptable on the targeted path? No bound is set; measure first. | **Open** | OTelFeature/poc#27, extension benchmarks | NFR-005 |
+| OQ-4 | Do the pinned OpenFeature OTel hooks emit the current `feature_flag` semconv (`feature_flag.evaluation` event, `feature_flag.key`, `feature_flag.result.variant`, `feature_flag.provider.name`)? | **Open** | OTelFeature/poc#30 | UC-007, FR-015 |
+| OQ-5 | With OTelFeature/poc#23 deferred (P2), nothing calls `/health`. Where does health-check traffic for Demo 2 come from (compose healthchecks, a k6 scenario folded into OTelFeature/poc#26, or a different noise source for the demo)? | **Open** | Speakers, before OTelFeature/poc#26 | UC-002, UC-003, TC-002 |
+| OQ-6 | How is a dropped root's subtree dropped outside the Java sampler? | **Resolved (Simon, 2026-10-16):** an incoming request span (`SERVER`/`CONSUMER`) with a remote parent counts as a root. Python returns a non-recording span with a valid, non-sampled context for a dropped root and suppresses only the span itself for a non-root. Java sampler mode returns `DROP` for roots and non-propagating leaves and leaves spans that propagate mid-trace to the processor; processor mode suppresses at `onStart`. Known Java edge with a non-parent-based sampler documented, not fixed. See UC-002 BR-003, C-004, [enforcement points](entity_model.md#enforcement-points) | OTelFeature/otelfeature-instrument#14, OTelFeature/otelfeature-java-extension#27 | UC-002 BR-003, FR-006 |
+| OQ-7 | How does Python know a rule reads only resource and scope keys, so it may decide per tracer? | **Resolved (Simon, 2026-10-16):** Python reads the rule and decides once per tracer only when every key it reads is present on the tracer (resource and scope keys); `fractional` (reads `targetingKey`) and `missing_some` are handled; an OpenFeature global or transaction context, or API-level hooks, force per-span. See FR-007, UC-002 A2 and BR-007 | OTelFeature/poc#12 | UC-002 A2 |
+| OQ-8 | Which flag carries the Demo 2 drop rules? | **Resolved (Simon, 2026-10-16):** the per-span boolean flag `recordSpan` (default `true`, key override `OTELFEATURE_RECORD_SPAN_FLAG_NAME`). See FR-023, UC-002 BR-006, [flags](entity_model.md#flags) | Speakers, with OTelFeature/otelfeature-instrument#14, OTelFeature/otelfeature-java-extension#27 | UC-002 BR-006, entity model |
+| OQ-9 | Demo 3 script line: "when someone asks why did we stop collecting this, the answer is in the trace" no longer holds for telemetry decisions, because the extensions record none of their own decisions on spans (FR-014). Recommended rewording: "the flag decisions show up in your traces", demonstrated with the application's own `weatherUpstreamFailure` evaluation (OTelFeature/poc#30). | **Open** (recommendation only, not decided) | Speakers | UC-007, TC-005, script |
 
 ## Validation
 

@@ -8,7 +8,7 @@
 - **Secondary Actors:** flagd, geocode, weather, Aspire dashboard
 - **Goal:** The operator stops all span creation in every service with one boolean flag and starts it again, without a restart, so that span ingest drops to zero during an incident and recovers cleanly afterwards.
 - **Status:** Draft
-- **Requirements:** FR-001, FR-002, FR-004, NFR-001, NFR-003, NFR-004, NFR-008, C-001, C-004
+- **Requirements:** FR-001, FR-002, FR-004, NFR-001, NFR-003, NFR-004, NFR-008, C-001, C-004, C-011
 - **Work Items:** OTelFeature/poc#8, OTelFeature/poc#9, OTelFeature/otelfeature-java-extension#21 (sampler mode)
 - **Test Cases:** TC-001
 - **Script Beat:** Demo 1
@@ -69,9 +69,19 @@
 
 **Flow:**
 
-1. Spans of that trace that start after the flip are not created; spans that already started are exported when they end.
+1. Spans of that trace that start after the flip are not created; spans that already started are exported when they end. In Java sampler mode a trace that was already sampled finishes whole; the flip takes effect on the next request.
 2. Context propagation continues, so downstream services see a valid trace context.
 3. Use case continues at step 5.
+
+### A5: Tracing is switched off by an env var
+
+**Trigger:** Step 6, the service runs with `OTEL_SDK_DISABLED=true` or `OTEL_TRACES_SAMPLER=always_off`.
+
+**Flow:**
+
+1. Setting `otelEnabled` back to `true` has no effect on that service; it creates or samples no spans.
+2. In Java with `OTEL_SDK_DISABLED=true`, the extension installed nothing at startup, not even the flagd connection.
+3. Use case ends.
 
 ## Postconditions
 
@@ -89,7 +99,7 @@
 
 ### BR-001: Either flag switches tracing off
 
-Tracing is off when `otelEnabled=false` or `telemetryLevel=OFF`. Neither flag can turn tracing on while the other says off (decision D2).
+Tracing is off when `otelEnabled=false` or `telemetryLevel=OFF`. Both flags are kept (decision D2). Neither flag can turn tracing on while the other says off.
 
 ### BR-002: Traces only
 
@@ -97,7 +107,7 @@ The kill switch affects spans only. Metrics and logs keep flowing (C-001). Per-s
 
 ### BR-003: Suppression, not SDK disable
 
-Context propagation and instrumentation stay in place. In Python no span is created. In Java sampler mode every root span is dropped before creation, which drops its subtree. In Java processor mode spans are created and dropped before batching (A3).
+Context propagation and instrumentation stay in place. In Python no span is created. In Java sampler mode every root span (including incoming request spans with a remote parent) is dropped before creation, which drops its subtree. In Java processor mode spans are created and dropped before batching (A3).
 
 ### BR-004: Fail open
 
@@ -106,3 +116,11 @@ Any provider or flag error resolves to tracing on (NFR-001). Unknown `telemetryL
 ### BR-005: Propagation time
 
 A flip affects new spans within 2 seconds (NFR-004).
+
+### BR-006: Known limitation: gaps in other services' traces
+
+Accepted, and documented under "Known limitations" in both extension READMEs. While tracing is off, trace context keeps propagating. A service that still traces (another team's, or one without the extension) can therefore produce traces with gaps or spans whose parent never arrives.
+
+### BR-007: Env-var hard floors
+
+`OTEL_SDK_DISABLED=true` and `OTEL_TRACES_SAMPLER=always_off` cannot be overridden by `otelEnabled`, `telemetryLevel` or any other flag, nor by a sampled parent. Flags only reduce telemetry (C-011).

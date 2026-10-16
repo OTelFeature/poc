@@ -30,8 +30,9 @@ Two zero-code extensions read OpenFeature flags (served by flagd, evaluated
 in-process) at the point where spans are created:
 
 - `otelfeature-instrument`: a Python launcher that wraps the tracer.
-- `otelfeature-java-extension`: an OTel Java agent extension (span processor
-  today, sampler planned).
+- `otelfeature-java-extension`: an OTel Java agent extension that enforces
+  either in a span processor or in a sampler (`OTELFEATURE_ENFORCEMENT`,
+  default `processor` until D3 is decided).
 
 The flags' evaluation context is built from OpenTelemetry semantic
 conventions (resource, instrumentation scope, span start attributes), so a
@@ -63,20 +64,29 @@ dashboard and k6.
 3. **Demo 3.** Semantic conventions as evaluation context make rules generic;
    the trace sample ratio is a number flag targeted by environment and service;
    a control loop raises sampling for a service whose error rate goes up, and
-   the resulting traces show which flag decided.
+   the application's own flag evaluations (the injected failure) show up in
+   the resulting traces. The extensions do not write their own decisions onto
+   spans (OQ-9 for the script line).
 4. The extensions fail open: no flagd, no flag, or a broken flag means
    behaviour identical to the stock OTel SDK.
+5. Flags only reduce telemetry. They never enable what an env var switched
+   off (`OTEL_SDK_DISABLED=true`, `OTEL_TRACES_SAMPLER=always_off`).
 
 ## Non-goals
 
 - **Gating metrics or logs.** Metrics are cheap compared to spans. They appear
   only as an *input* (the error rate that steers span sampling). Per-signal
-  kill switches (`signalsEnabled`, OTelFeature/poc#11) and a Python logs
+  kill switches (`signalsEnabled`, OTelFeature/poc#11, P2) and a Python logs
   pipeline are out of scope for the talk.
 - Replacing the collector. Tail sampling, redaction and routing stay there. The
   collector *could* read the same flags (decision D4); nothing is built for it.
 - A true SDK disable. `OFF` suppresses spans; context propagation and
-  instrumentation bytecode stay in place.
+  instrumentation bytecode stay in place. Known limitation, accepted: while
+  `OFF`, trace context keeps propagating, so services that still trace can
+  produce traces with gaps or missing parents.
+- Recording the extensions' own flag decisions on spans. No `feature_flag.*`
+  attributes, no `otelfeature.sample_ratio`, no tracestate `ot=th`. Recording
+  flag evaluations is the OpenFeature OpenTelemetry hook's job.
 - Making every `OTEL_*` env var a live flag. Some cannot be (the Java agent
   cannot un-install bytecode). OTelFeature/poc#14 documents which; the roadmap
   is OTelFeature/poc#15.
@@ -91,13 +101,17 @@ dashboard and k6.
 ## Decisions taken in inception
 
 From `DEMO-BACKLOG.md` (settled 2026-10-16). Referenced by ID from the other
-documents.
+documents. Later design decisions (Simon, 2026-10-16: hard floors,
+`recordSpan`, context collisions, per-tracer decisions, root-only ratio,
+error-rate minimum, no decision recording, workflow) live in the requirements,
+use case business rules and the entity model's reference data; the open
+questions table in the [README](README.md#open-questions) points to them.
 
 | ID | Decision |
 |---|---|
 | D1 | OTel Demo footage for the hook, this POC for Demos 1 to 3 |
 | D2 | Demo 1 uses a boolean `otelEnabled` *and* a `telemetryLevel=OFF` variant; both map onto `enabled` in the policy |
-| D3 | Java: build the sampler path next to the processor path, decide from measurements (open, see OQ-1) |
+| D3 | Java: build the sampler path next to the processor path (`OTELFEATURE_ENFORCEMENT`, default `processor`), decide from measurements (open, see OQ-1) |
 | D4 | Collector line softened to "you *could* point the collector at the same flags"; nothing to build |
 | D5 | Control loop = flagd targeting rule over the existing `http.server.request.duration` metric; no outside script, no new metric |
 | D6 | Target `url.path`, not `http.route` (not known at span start) |

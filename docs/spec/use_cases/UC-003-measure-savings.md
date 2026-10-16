@@ -24,7 +24,7 @@
 
 1. The speaker starts the measurement with one command.
 2. The system runs the baseline preset for the configured duration and records, per service, CPU, resident memory, spans per second and export bytes per second, at the service, not at the backend.
-3. The system runs the Demo 2 preset with `weather` in processor mode and records the same values.
+3. The system runs the Demo 2 preset with `weather` in processor mode (the default, `OTELFEATURE_ENFORCEMENT=processor`) and records the same values.
 4. The system runs the Demo 2 preset with `weather` in sampler mode and records the same values.
 5. The system measures the cost of one targeted span decision in each language.
 6. The system prints one table per service comparing the three runs and the decision cost.
@@ -84,6 +84,10 @@ Reported savings include the cost of the targeted flag evaluation (NFR-005).
 
 Two runs of the same preset agree within 10% per metric (NFR-011).
 
-### BR-004: Traffic source
+### BR-004: Script wording follows the decision
+
+Until D3 is decided (OQ-1), the Demo 2 line covers both: sampler mode means "never recorded" (non-recording spans still cost the instrumentation and context work), processor mode means "never batched, never serialized, never sent".
+
+### BR-005: Traffic source
 
 The measurement does not depend on OTelFeature/poc#23 (deferred). It uses the stack's normal traffic plus whatever health-check traffic OQ-5 settles on.
