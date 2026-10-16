@@ -52,7 +52,7 @@ dashboard and k6.
 | Talk audience (developers, SREs, platform engineers) | A demo that shows each claim live and holds up to "but does it really save anything?" |
 | Speakers / maintainers (Simon for OpenFeature, Juliano for OpenTelemetry) | A stage setup that works offline, flips in one keystroke and resets between rehearsals; script lines that are true for both languages |
 | Adopters (teams who try it after the talk) | A public repo that starts with `make start`, extensions that change nothing until a flag is flipped, honest docs about what is and isn't saved |
-| Agents and contributors picking up issues | A spec that says what "done" means for each work item, so code and tests follow from it |
+| Agents and contributors picking up issues | A spec that says what "done" means for each work item, so code and tests follow from it; one Docker-based toolchain per repo, so local runs and CI agree |
 
 ## Goals
 
@@ -71,6 +71,10 @@ dashboard and k6.
    behaviour identical to the stock OTel SDK.
 5. Flags only reduce telemetry. They never enable what an env var switched
    off (`OTEL_SDK_DISABLED=true`, `OTEL_TRACES_SAMPLER=always_off`).
+6. **A scripted demo that is verified automatically.** Every demo beat runs
+   as an end-to-end test against the real stack in CI, in both Java
+   enforcement modes, and must pass before extension code is merged
+   (OTelFeature/poc#35). What runs on stage is what was tested.
 
 ## Non-goals
 
@@ -103,7 +107,8 @@ dashboard and k6.
 From `DEMO-BACKLOG.md` (settled 2026-10-16). Referenced by ID from the other
 documents. Later design decisions (Simon, 2026-10-16: hard floors,
 `recordSpan`, context collisions, per-tracer decisions, root-only ratio,
-error-rate minimum, no decision recording, workflow) live in the requirements,
+error-rate minimum, no decision recording, workflow, end-to-end suite,
+toolchain images, exporter env vars) live in the requirements,
 use case business rules and the entity model's reference data; the open
 questions table in the [README](README.md#open-questions) points to them.
 

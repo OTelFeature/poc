@@ -31,11 +31,20 @@
 
 ## Validation
 
-1. **Offline (OTelFeature/poc#24):** no step needs network access.
+1. **Offline (OTelFeature/poc#24):** no step needs network access. [e2e, partly: `test_tc006_offline`; the suite runs against the API stubs with the external API hosts unreachable, but image pulls and builds still use the network]
 2. **Presets valid (OTelFeature/poc#26):** each preset validates against the flagd schema in CI.
-3. **Flip latency:** every flip is visible in Aspire within 2 s.
+3. **Flip latency:** every flip is visible in Aspire within 2 s. [e2e, partly: every flip in the suite waits on the flag-propagation barrier; CI allows the poll timeout (default 5 s) instead of 2 s, and reads the collector, not Aspire]
 4. **Runbook:** `STAGE.md` maps every script beat to one command.
+5. **Baseline healthy (OTelFeature/poc#35):** both services export server, client and database spans; every trace tree is connected; the resource carries `service.name` and `deployment.environment.name`. [e2e: `test_baseline`]
+6. **Presets apply (OTelFeature/poc#35):** every preset the suite uses is applied the way `make flag PRESET=…` applies it, so a preset that does not parse or does not take effect fails the suite. [e2e: all tests]
 
 ## Postconditions
 
 - Stack at baseline.
+
+## Automation
+
+- **Tests:** `test_baseline` (OTelFeature/poc#35, phase 1) and `test_tc006_offline`. The e2e override points both services at the API stubs (OTelFeature/poc#24), so every test in the suite also runs offline from the external APIs.
+- **How:** `docker compose -f compose.yaml -f compose.e2e.yaml up -d --wait`. The override adds the collector `file` exporter, turns the load generator off, removes the Datadog exporter and Aspire, and enables request-header capture for the `x-e2e-step` marker.
+- **Matrix:** runs in both Java enforcement modes (`processor`, `sampler`).
+- **Not automated:** step 1 (airplane mode on the stage laptop), item 4 (runbook) and the fallback videos stay rehearsal checks (NFR-012).

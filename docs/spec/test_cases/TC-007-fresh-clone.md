@@ -32,3 +32,7 @@
 ## Postconditions
 
 - `make stop` removes the stack.
+
+## Automation
+
+Not part of the end-to-end suite (OTelFeature/poc#35): it is a manual check of the public repository and its docs.

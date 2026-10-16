@@ -8,8 +8,8 @@
 - **Secondary Actors:** flagd, demo stack, Aspire dashboard
 - **Goal:** The speaker runs Demos 1 to 3 from a laptop without network access, moving between states with one command per script beat and resetting between rehearsals, so that the live demo cannot be broken by venue Wi-Fi or a typo in a JSON file.
 - **Status:** Draft
-- **Requirements:** FR-018, FR-019, FR-010, NFR-004, NFR-012, C-007, C-008, C-009
-- **Work Items:** OTelFeature/poc#24, OTelFeature/poc#26, OTelFeature/poc#25, OTelFeature/poc#32, OTelFeature/poc#33
+- **Requirements:** FR-018, FR-019, FR-010, NFR-004, NFR-012, NFR-015, C-007, C-008, C-009
+- **Work Items:** OTelFeature/poc#24, OTelFeature/poc#26, OTelFeature/poc#25, OTelFeature/poc#32, OTelFeature/poc#33, OTelFeature/poc#35
 - **Test Cases:** TC-006
 - **Script Beat:** all demos; cold open uses OTel Demo footage (D1)
 
@@ -75,3 +75,7 @@ Every preset validates against the flagd schema.
 ### BR-004: Opening hook is footage
 
 The wall of spans in the cold open is recorded OTel Demo footage; the POC does not need to be noisy (OTelFeature/poc#23 is deferred).
+
+### BR-005: Every beat is tested before it reaches the stage
+
+Each demo beat runs as an automated end-to-end test in CI, with the same presets the speaker applies, and the suite must be green before extension code is merged (NFR-015, OTelFeature/poc#35). Rehearsals (NFR-012) check what CI cannot: the dashboard, the runbook and the laptop.

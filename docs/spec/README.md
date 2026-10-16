@@ -50,6 +50,7 @@ The core ideas, as they apply here:
 | Elaboration | [use_cases.md](use_cases.md) | Use case diagram (Mermaid) |
 | Construction | [use_cases/](use_cases) | One spec per use case, `UC-XXX-name.md` |
 | Construction | [test_cases/](test_cases) | End-to-end journeys with acceptance checks, `TC-XXX-name.md` |
+| Construction | [ratio-parity.md](ratio-parity.md) | Why Java and Python can disagree at the same `traceSampleRatio`, and the `fractional` fix (UC-004 BR-008) |
 | All | [traceability.md](traceability.md) | Script beat ↔ requirement ↔ use case ↔ test case ↔ issue |
 
 Use cases:
@@ -87,6 +88,11 @@ Use cases:
   acceptance-criteria section. Each test case's *Validation* list holds the
   acceptance checks, each tagged with the issue whose acceptance criteria it
   mirrors.
+- **Automation tags in test cases.** A Validation item that the end-to-end
+  suite checks ends with `[e2e: test_name]`, or `[e2e, partly: …]` when only
+  the observable part is automated and the rest stays in unit tests. Each
+  automated test case has an *Automation* section naming the test and its
+  phase. Both are ours, not AIUP's.
 - **Extra Overview fields in use cases.** `Requirements` and `Secondary Actors`
   are AIUP fields. `Work Items`, `Test Cases`, `Script Beat` and `Open
   Questions` are ours. AIUP's `validate_use_case.py` may warn about them; it
@@ -147,6 +153,11 @@ the affected requirement status.
    moves the requirement to Verified.
 7. Stay in your lane (see traceability.md). The extensions and `poc` are
    separate repos; a cross-repo issue is filed once per repo.
+8. Run tests with `make test` (in `poc`, also `make e2e`) inside WSL. They
+   run in the repo's `ci/Dockerfile` image; install nothing on the host but
+   Docker (C-014). Keep scripts and Dockerfiles at LF line endings.
+9. A stack is merged only when the end-to-end suite is green against its top
+   (C-013). See [Verification and tooling](#verification-and-tooling).
 
 ### Workflow for implementation (Simon, 2026-10-16)
 
@@ -159,9 +170,67 @@ the affected requirement status.
   seen the implementation. Its fixes are applied to that PR before the next
   issue in the lane starts.
 - **Agents never merge.** Merging and retargeting the stack is done by a
-  person.
+  person, in the [merge order](traceability.md#merge-order), and only with
+  the end-to-end suite green.
 - **Stop and ask** when a review finding or an implementation detail changes
   an issue's design (what it does, not how). Record the answer in the spec.
+
+## Verification and tooling
+
+Decided by Simon, 2026-10-16. Requirements: NFR-015, NFR-016, C-013, C-014.
+
+### End-to-end suite (OTelFeature/poc#35)
+
+The talk script's demo beats run as an automated suite in GitHub Actions.
+
+- **Stack:** Docker Compose with a test override `compose.e2e.yaml`, started
+  with `docker compose up -d --wait`. The override removes Datadog and
+  Aspire, turns the load generator off and points the services at the API
+  stubs.
+- **Span sink:** the collector's `file` exporter (JSON). It was chosen over
+  Tracetest and over querying Jaeger or Tempo because the test reads every
+  exported span, so absence assertions ("no `/health` spans") are exact.
+- **Traffic and flips:** pytest sends all requests itself. Flags are flipped
+  with the stage presets (OTelFeature/poc#26), the same way the speaker does.
+- **No fixed sleeps:** marker requests with an `x-e2e-step` header are step
+  barriers; after a flip, the test polls until a probe shows the new
+  behaviour. Every wait has a timeout, and a timeout is a failure.
+- **Tests:** one per test case: TC-001, TC-002, TC-004, TC-005, TC-006, plus
+  `test_hard_floors` and `test_baseline`. TC-003 (a measurement) and TC-007
+  (a manual docs check) are excluded. The test cases' Validation lists mark
+  what is automated.
+- **Workflow:** runs on pull requests, on `main` and nightly, with a matrix
+  over the Java enforcement mode (`processor`, `sampler`). On failure the span
+  JSON and the service logs are uploaded as artifacts.
+
+### The suite is the safety net before merging
+
+The suite runs against **extension git refs**: Python installed from
+`git+https://…@ref`, the Java JAR built from the ref in a Docker stage. Until
+releases exist, the default refs are the tops of the open stacks; after that
+the defaults switch back to pinned versions (C-006, C-013). Merge order:
+extension stacks bottom-up → releases → `poc` version bump → `poc` stack (see
+[traceability.md](traceability.md#merge-order)).
+
+### Toolchain images (OTelFeature/otelfeature-instrument#20, OTelFeature/otelfeature-java-extension#32)
+
+- Each repo has a `ci/Dockerfile`: base image pinned by tag and digest,
+  dependencies preinstalled in a layer keyed on the lock files.
+- `make test`, `make e2e` (`poc`) and `make shell` run inside it. GitHub
+  Actions builds and uses the same image (buildx with GHA cache) instead of
+  `setup-python`/`setup-java`. Dependabot watches the Dockerfiles.
+- Python: `otelfeature-instrument` had no test CI at all until
+  OTelFeature/otelfeature-instrument#20.
+- Java: `ci.yml` keeps its shaded service-files check and the JAR upload. Its
+  `ci/Dockerfile` doubles as the build stage of the `poc` e2e suite.
+- `poc`: the e2e runner image is `ci/Dockerfile` in this repo (uv and the
+  pytest dependencies preinstalled).
+
+### Local development
+
+Tests, builds and the stack run inside WSL (Ubuntu, WSL2) with Docker only.
+Tools run from Docker images and are never installed on the host. Scripts and
+Dockerfiles use LF line endings, enforced by `.gitattributes`.
 
 ## Open questions
 
@@ -185,8 +254,9 @@ row so references stay valid.
 ## Validation
 
 No AIUP tooling was run against these files. To check use case structure with
-the AIUP plugin installed:
+the AIUP plugin installed, run its script from a Python image (C-014):
 
 ```sh
-python3 scripts/validate_use_case.py docs/spec/use_cases/UC-*.md
+docker run --rm -v "$PWD":/w -w /w python:3.12-slim \
+  python3 scripts/validate_use_case.py docs/spec/use_cases/UC-*.md
 ```

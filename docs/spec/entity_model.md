@@ -238,7 +238,7 @@ OQ-2 resolved). Collision rules:
 | `db.system.name` | span-start | string | if set | Marks DB client leaf spans |
 | `db.operation.name` | span-start | string | if set | |
 | `rpc.service` | span-start | string | if set | |
-| `otelfeature.http.server.error_rate` | metric | number | yes | Extension-owned. Absent when the last interval had fewer than `OTELFEATURE_ERROR_RATE_MIN_REQUESTS` requests (FR-011); lags one to two intervals (NFR-014) |
+| `otelfeature.http.server.error_rate` | metric | number | yes | Extension-owned. Absent when the last interval had fewer than `OTELFEATURE_ERROR_RATE_MIN_REQUESTS` requests (FR-011), and always absent with `OTEL_METRICS_EXPORTER=none` (FR-024); lags one to two intervals (NFR-014) |
 | `http.route` | span-end | - | **no** | Not available; do not write rules on it |
 | `http.response.status_code` | span-end | - | **no** | Not available; do not write rules on it |
 
@@ -297,10 +297,17 @@ dropped spans record nothing.
 | `OTELFEATURE_OPENFEATURE_TRACING_HOOK` | `false` | both | `true` records the extension's own evaluations through the OpenFeature OTel hook |
 | `OTELFEATURE_FLAG_PROVIDER` | `flagd` | python | `none` lets the application manage OpenFeature (NFR-009) |
 | `OTEL_SEMCONV_STABILITY_OPT_IN` | unset | python | Documented, not set by the extension (C-005) |
+| `OTEL_METRICS_EXPORTER` | `otlp` | both | Honoured like the SDK (FR-024). `none`: no metrics SDK, so the error-rate reader is not registered, `otelfeature.http.server.error_rate` is absent and error-rate rules never match. Java: OTelFeature/otelfeature-java-extension#31; Python: OTelFeature/otelfeature-instrument#15 |
+| `OTEL_TRACES_EXPORTER` | `otlp` | both | Honoured like the SDK (FR-025). `none`: nothing is exported; the tracer, the flag policy and context propagation keep working and the recording CPU cost remains. Java: SDK autoconfigure; Python: OTelFeature/otelfeature-instrument#19 |
+
+Exporter values: only an exact `none` switches export off (case and
+surrounding whitespace ignored). `none` mixed with other values logs a warning
+and keeps exporting. Python exports any other value over OTLP/HTTP.
 
 Python's other flag keys (`telemetryLevel`, `otelEnabled`,
 `traceSampleRatio`) are fixed.
 
-Java's error-rate (OTelFeature/otelfeature-java-extension#22) and tracing-hook
-(OTelFeature/otelfeature-java-extension#23) settings follow the Python names;
-neither is built yet.
+Java's error-rate settings follow the Python names
+(OTelFeature/otelfeature-java-extension#22, in PR
+OTelFeature/otelfeature-java-extension#31). Its tracing-hook setting
+(OTelFeature/otelfeature-java-extension#23) is not built yet.

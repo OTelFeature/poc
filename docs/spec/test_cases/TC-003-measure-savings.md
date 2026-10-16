@@ -36,3 +36,7 @@
 ## Postconditions
 
 - Stack back at baseline preset, Java in default mode.
+
+## Automation
+
+Not part of the end-to-end suite (OTelFeature/poc#35): this is a measurement, not a pass/fail check.
