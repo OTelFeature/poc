@@ -127,7 +127,7 @@ flowchart LR
 ## Running
 
 ```sh
-make build            # docker compose build
+make build            # docker compose build (staging twins included)
 make start            # docker compose up -d, external APIs stubbed
 make start-live       # same, but geocode/weather call the real Nominatim and Open-Meteo
 make start-staging    # also start the staging twins (compose profile `staging`)
@@ -167,6 +167,7 @@ attributes through `OTEL_RESOURCE_ATTRIBUTES` in
 | `service.namespace` | `otelfeature` |
 | `service.version` | `0.1.0` (the version in `pyproject.toml` / `build.gradle`) |
 | `deployment.environment.name` | `production`, or `staging` for the staging twins |
+| `service.instance.id` | the container name (`geocode`, `geocode-staging`, ...) |
 
 The flag decisions happen in the SDK, so rules on these attributes only work
 if the service itself sets them. The collector's `resource` processor only
@@ -175,8 +176,11 @@ one (flagd, k6, docker stats); it never overwrites a service's value.
 
 `make start-staging` (or `docker compose --profile staging up -d`) adds
 `geocode-staging` (port 8002), `weather-staging` (port 8003) and a second k6
-instance driving them, so Aspire shows four services split by
-`deployment.environment.name`.
+instance driving them. Aspire groups by `service.name`, so it shows two
+instances each of `geocode` and `weather` (told apart by
+`service.instance.id`), with the environment in the resource attributes.
+Both environments share `coordinates-db`, so a location one environment has
+resolved is a cache hit for the other.
 
 ### Running on stage
 
@@ -188,8 +192,9 @@ pipelines and, without `DD_SITE`/`DD_API_KEY`, logs export errors (which
 also show up in Aspire as collector logs). Ignore them.
 
 1. While online: `make prepare-offline`. This pulls every image and builds
-   `geocode` and `weather` (and their staging twins) (their builds download dependencies, the OTel Java
-   agent and the otelfeature extension, so they can't run offline).
+   `geocode`, `weather` and their staging twins (their builds download
+   dependencies, the OTel Java agent and the otelfeature extension, so they
+   can't run offline).
 2. Offline: `make start`. It never rebuilds on its own; don't run
    `make build` or `docker compose up --build` without network.
 
@@ -197,7 +202,7 @@ The outgoing `CLIENT` spans still show a real HTTP call, with
 `server.address` = `stub-apis` and 20–120 ms of latency. They only appear on
 a cache miss, and the Postgres volume survives `make stop`. To show them
 again after a rehearsal, start from an empty cache with
-`docker compose down -v`.
+`docker compose --profile staging down -v`.
 
 To demo against the real APIs instead, use `make start-live` (and keep the
 request rate within

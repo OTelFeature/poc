@@ -66,6 +66,7 @@ start:
 	@printf '%s\n' '                  -H "Content-Type: application/json" \'
 	@printf '%s\n' "                  -d '{\"city\": \"linz\", \"country\": \"austria\"}'"
 	@printf '%s\n' '         - Aspire Dashboard: http://localhost:18888'
+	@printf '%s\n' '         - Staging twins (make start-staging): geocode :8002, weather :8003'
 
 stop:
 	docker compose --profile staging down
