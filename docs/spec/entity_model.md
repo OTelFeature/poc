@@ -210,6 +210,7 @@ Nothing about the decision is written onto the span (FR-014).
 | `recordSpan` | boolean | `on`=true, `off`=false | `on` | extension | released (v0.3.0 / v0.4.0): Python OTelFeature/otelfeature-instrument#18, Java OTelFeature/otelfeature-java-extension#29 (landed via #33); carries the Demo 2 drop rules (OQ-8) | OTelFeature/otelfeature-instrument#14, OTelFeature/otelfeature-java-extension#27 |
 | `traceSampleRatio` | number | `all`=1.0, `half`=0.5 (PR OTelFeature/poc#56, merged), `tenth`=0.1, `none`=0.0 | `all` | extension | released (v0.3.0 / v0.4.0): Python OTelFeature/otelfeature-instrument#13, Java OTelFeature/otelfeature-java-extension#30 (landed via #33); in `flagd.json` since PR OTelFeature/poc#41 (merged) | OTelFeature/poc#10 |
 | `weatherUpstreamFailure` | number | `none`=0.0, `incident`=0.5 (UC-006 BR-003), `outage`=1.0 (e2e) | `none` | application (`weather`) | merged (OTelFeature/poc#42) | OTelFeature/poc#28 |
+| `geocodeUpstreamFailure` | number | e2e only: `none`=0.0, `outage`=1.0 | `none` (not in the stage presets; missing resolves to 0.0) | application (`geocode`) | OTelFeature/poc#80 | OTelFeature/poc#80 |
 | `signalsEnabled` | object | per signal | all on | extension | deferred, out of scope (OTelFeature/poc#11 closed as not planned) | OTelFeature/poc#11 |
 
 The variant names in this table are the ones `src/flagd/flagd.json` and the

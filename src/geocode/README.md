@@ -54,6 +54,19 @@ both services, with `geocode` as the entry point that decides their sampling
 `/geocode`. If `weather` fails or can't be reached, this request fails with
 `502`.
 
+### Fault injection
+
+`geocodeUpstreamFailure` (number, 0.0 to 1.0) makes that share of `POST /geocode`
+requests, and so of `POST /forecast`, fail with `503` before the cache lookup
+(FR-012, UC-006 A3). It exists so the e2e suite can run the control loop for
+the Python error-rate reader (OTelFeature/poc#80); the stage presets don't
+define it, so there it resolves to 0.0. `geocode` evaluates it with its own
+OpenFeature client on the API otelfeature-instrument set up, with the
+OpenFeature OpenTelemetry traces hook on that client only: the failed
+request's span carries a `feature_flag.evaluation` event (UC-007 A2). An
+API-wide hook would also record the extension's own evaluations (UC-007
+BR-006).
+
 ### `GET /health`
 
 Liveness check, returns `{"status": "ok"}`.

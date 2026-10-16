@@ -3,7 +3,7 @@
 ## Overview
 
 - **ID:** TC-005
-- **Goal:** The operator injects failures into `weather`; within one to two collection intervals `weather` samples at 1.0 while `geocode` does not change, the failed traces show the cause flag (`weatherUpstreamFailure`), and reverting returns `weather` to its ratio before the incident.
+- **Goal:** The operator injects failures into `weather` (the e2e suite also into `geocode`, item 14); within one to two collection intervals `weather` samples at 1.0 while `geocode` does not change, the failed traces show the cause flag (`weatherUpstreamFailure`), and reverting returns `weather` to its ratio before the incident.
 - **Priority:** High
 - **Status:** Passed
 
@@ -47,6 +47,7 @@
 11. **Repeatable (OTelFeature/poc#29):** steps 1 to 9 pass three times in a row.
 12. **Metrics export off (OTelFeature/otelfeature-instrument#15, OTelFeature/otelfeature-java-extension#31):** with `OTEL_METRICS_EXPORTER=none`, no error-rate reader is registered, the context never contains `otelfeature.http.server.error_rate` and the control-loop rule never matches; `none` mixed with another exporter logs a warning and keeps exporting (FR-024).
 13. **Loop end to end (OTelFeature/poc#35):** with `weatherUpstreamFailure=1.0`, `weather` samples at 1.0 within a bounded number of error-rate intervals; `geocode` sampling does not change; after reverting only `weatherUpstreamFailure` (the rule stays), `weather` returns to its ratio before the incident after an error-free interval (UC-005 steps 6 to 8, the loop letting go on its own). [e2e: `test_tc005_control_loop`]
+14. **Loop end to end in both languages (OTelFeature/poc#80):** the same with `geocodeUpstreamFailure=1.0` (UC-006 A3): `geocode`'s error rate, from the Python error-rate reader, raises its sampling to 1.0 while `weather` stays at its ratio; the failed `/geocode` trace carries the Python hook's `feature_flag.evaluation` event for `geocodeUpstreamFailure` with the current names (UC-007 A2, BR-004; `weather`'s Java hook writes the 1.28 names); after the revert `geocode` is back at its ratio. [e2e: `test_tc005_control_loop`, parametrized over the failing service]
 
 ## Note on the stage preset
 
@@ -58,9 +59,9 @@ On stage, `03b-incident` builds on `03a-weather-boost` (UC-008 BR-006), which se
 
 ## Automation
 
-- **Test:** `test_tc005_control_loop` in `tests/e2e/` (OTelFeature/poc#35, phase 4). Needs the fault-injection flag (OTelFeature/poc#28), the control-loop preset (OTelFeature/poc#29) and the error-rate code in both extensions.
+- **Test:** `test_tc005_control_loop` in `tests/e2e/` (OTelFeature/poc#35, phase 4). Needs the fault-injection flags (OTelFeature/poc#28, `geocodeUpstreamFailure` OTelFeature/poc#80), the control-loop preset (OTelFeature/poc#29) and the error-rate code in both extensions.
 - **How:** differs from the stage flow so it runs fast and deterministically: the failure fraction is 1.0 instead of 0.5, and the e2e override sets a short `OTELFEATURE_ERROR_RATE_INTERVAL` and a low `OTELFEATURE_ERROR_RATE_MIN_REQUESTS`. The test sends its own requests (load generator off).
-- **Matrix:** runs in both Java enforcement modes (`processor`, `sampler`).
+- **Matrix:** runs in both Java enforcement modes (`processor`, `sampler`), and in each once per failing service (`weather`, `geocode`; item 14).
 - **Extension code:** the pinned released versions (C-006): otelfeature-instrument v0.3.0, otelfeature-java-extension v0.4.0. A git ref can be passed explicitly to check unreleased extension code (C-013).
 - **Not automated:** items 1 to 7, 10 and 12; item 9 is partly automated (`test_tc005_control_loop`); steps 6 and 7 (reading the trace) stay manual. Item 11 is covered for the suite as a whole by NFR-015 (three green runs in a row), not for the stage timings.
 

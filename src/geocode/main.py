@@ -1,8 +1,12 @@
 import asyncio
+import math
 import os
+import random
 
 import httpx
 from fastapi import FastAPI, HTTPException
+from openfeature import api as openfeature_api
+from openfeature.contrib.hook.opentelemetry import TracingHook
 from opentelemetry import trace
 from opentelemetry.trace import SpanKind
 from pydantic import BaseModel
@@ -14,6 +18,30 @@ USER_AGENT = os.environ.get("NOMINATIM_USER_AGENT", "poc-otelfeature-geocode/1.0
 WEATHER_URL = os.environ.get("WEATHER_URL", "http://weather:8001")
 
 tracer = trace.get_tracer(__name__)
+
+# Fault injection (FR-012, UC-006 A3, OTelFeature/poc#80): the share of
+# /geocode requests (and so /forecast) that fail with 503, from the number
+# flag geocodeUpstreamFailure. Evaluated through geocode's own client on the
+# OpenFeature API otelfeature-instrument already set a flagd provider on.
+# The traces hook records the evaluation as a span event (UC-007 A2). It sits
+# on this client only: an API-wide hook would also record the extension's
+# own evaluations (UC-007 BR-006). No exception events: the stage presets
+# don't define the flag, so it resolves to 0.0 with a "not found" error on
+# every request there.
+FAULT_FLAG = "geocodeUpstreamFailure"
+flags = openfeature_api.get_client("geocode")
+flags.add_hooks([TracingHook(exclude_exceptions=True)])
+
+
+def maybe_fail() -> None:
+    share = flags.get_float_value(FAULT_FLAG, 0.0)
+    # flagd accepts a boolean variant for a float flag (bool is an int);
+    # non-numbers act as 0.0 (UC-006 A2).
+    if isinstance(share, bool) or math.isnan(share) or share <= 0.0:
+        return
+    if share >= 1.0 or random.random() < share:
+        raise HTTPException(status_code=503, detail=f"Injected upstream failure ({FAULT_FLAG}={share})")
+
 
 app = FastAPI(title="geocode")
 
@@ -36,6 +64,8 @@ class ForecastResponse(BaseModel):
 
 @app.post("/geocode", response_model=GeocodeResponse)
 async def geocode(request: GeocodeRequest) -> GeocodeResponse:
+    # Before the cache lookup, so the error rate doesn't depend on cache hits.
+    maybe_fail()
     # Wraps the cache lookup / Nominatim call / persist steps below in one
     # INTERNAL span, purely to have something for otelfeature-instrument's
     # telemetryLevel=IO to suppress. Its children (the psycopg2/httpx CLIENT
