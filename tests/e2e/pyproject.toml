@@ -22,4 +22,5 @@ package = false
 addopts = "-ra"
 markers = [
     "slow: statistical or long-running, nightly only",
+    "stage_run: the full stage run-through; main, nightly and manual runs, not pull requests",
 ]

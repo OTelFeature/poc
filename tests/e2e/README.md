@@ -37,8 +37,10 @@ pinned versions.
 In CI, [e2e.yml](../../.github/workflows/e2e.yml) runs `make e2e` for both
 Java enforcement modes on PRs, on `main` and nightly, against the pinned
 releases. The refs are `workflow_dispatch` inputs, default `release` (exactly
-that word; anything else is a git ref). Each job should finish in under 4
-minutes with a warm layer cache (NFR-015). Artifacts (compose log, spans,
+that word; anything else is a git ref). Pull requests skip the full stage
+run-through (`stage_run`, TC-006), which runs on `main`, nightly and on
+manual runs, so a pull-request job finishes in under 5 minutes with a warm
+layer cache (NFR-015). Artifacts (compose log, spans,
 metrics) are uploaded on every run. The e2e override also starts the JVMs with C1 only and the serial
 GC: four weather JVMs start at once, and that start dominated the stack's
 start-up time. The images
@@ -151,7 +153,8 @@ requests until the new behaviour shows) before counting.
    through `step.remark()` + `step.since_mark()` (after the flip has taken
    effect), and tree shape with `tree_problem` (pass `remote_parents` for a
    request the test sent with a `traceparent`).
-5. Mark statistical or long tests `@pytest.mark.slow` (nightly only).
+5. Mark statistical or long tests `@pytest.mark.slow` (nightly only), and
+   a full run-through `@pytest.mark.stage_run` (not on pull requests).
 6. In the TC's **Validation** list (spec), mark which checks are now
    automated.
 
