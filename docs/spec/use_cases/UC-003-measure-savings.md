@@ -12,7 +12,7 @@
 **Work Items:** OTelFeature/poc#27, OTelFeature/otelfeature-java-extension#21  
 **Test Cases:** TC-003  
 **Script Beat:** Demo 2 ("CPU [X%] lower, memory [Y MB] lower, export bytes [Z%] lower"); input to decision D3  
-**Open Questions:** OQ-1, OQ-3, OQ-5  
+**Open Questions:** OQ-3 (deferred to a later load test), OQ-5 (OQ-1 answered: BR-004)  
 
 ## Preconditions
 
@@ -35,7 +35,7 @@
 
 ### A1: Runs are not reproducible
 
-**Trigger:** The two measurements differ by more than 10% on a metric for the same preset (step 7).
+**Trigger:** The two measurements differ by more than 10% on spans or bytes, or by more than the run-to-run noise on CPU or memory, for the same preset (step 7).
 
 **Flow:**
 
@@ -83,11 +83,11 @@ Reported savings include the cost of the targeted flag evaluation (NFR-005).
 
 ### BR-003: Reproducibility
 
-Two runs of the same preset agree within 10% per metric (NFR-011).
+Two runs of the same preset agree within 10% on exported spans and bytes per service. CPU and memory are reported as mean ± sd of 5 s samples; a difference counts only beyond the run-to-run noise the report prints, the difference between geocode's two identically configured runs (NFR-011; softened by Simon, 2026-10-16, OQ-15).
 
 ### BR-004: Script wording follows the decision
 
-Until D3 is decided (OQ-1), the Demo 2 line covers both: sampler mode means "never recorded" (non-recording spans still cost the instrumentation and context work), processor mode means "never batched, never serialized, never sent".
+D3 is decided: `processor` (OQ-1, Simon, 2026-10-16; to confirm with Juliano, OTelFeature/poc#84). The Demo 2 line is "never batched, never serialized, never sent". Sampler mode would have meant "never recorded" (non-recording spans still cost the instrumentation and context work).
 
 ### BR-005: Traffic source
 

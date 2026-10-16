@@ -24,7 +24,7 @@
 | 1 | Run harness | Run the benchmark command | `make bench`, default duration | [UC-003](../use_cases/UC-003-measure-savings.md) |
 | 2 | Verify table | One table per service with six runs (baseline, targeted no-op and Demo 2, each in processor and sampler mode), the decision cost per mode (UC-003 BR-006) and no load warning | - | - |
 | 3 | Repeat | Run the harness again | same | [UC-003](../use_cases/UC-003-measure-savings.md) |
-| 4 | Verify reproducibility | Every metric within ±10% of the first run | - | - |
+| 4 | Verify reproducibility | Spans and bytes within ±10% of the first run; CPU and memory within the run-to-run noise the report prints (NFR-011) | - | - |
 
 ## Validation
 

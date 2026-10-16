@@ -315,7 +315,7 @@ OQ-2 resolved). Collision rules:
 | `FlagAwareSampler` | java | before-create | yes | `DROP` for roots (incl. remote-parent entry spans) and non-propagating leaves (DB client spans, `db.system.name`); ratio on trace roots | released in v0.4.0, via landing PR OTelFeature/otelfeature-java-extension#33 (#26 for java#21, #29 for java#27, #30 for the ratio, OTelFeature/poc#10) |
 
 Java mode is chosen with `OTELFEATURE_ENFORCEMENT=processor|sampler`, default
-`processor` until OTelFeature/poc#27 decides (OQ-1). In sampler mode, the
+`processor`, which is also the mode for the talk (D3, decided 2026-10-16 from the OTelFeature/poc#27 measurements, OQ-1). In sampler mode, the
 processor still enforces mid-trace `INTERNAL` suppression (`IO`), `recordSpan`
 for spans that propagate mid-trace, and rules the sampler can't see (a
 `Sampler` is not told the instrumentation scope, so a rule on

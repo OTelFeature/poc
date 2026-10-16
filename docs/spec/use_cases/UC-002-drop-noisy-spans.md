@@ -12,7 +12,7 @@
 **Work Items:** OTelFeature/poc#22, OTelFeature/otelfeature-instrument#7, OTelFeature/otelfeature-java-extension#20, OTelFeature/otelfeature-java-extension#21, OTelFeature/otelfeature-instrument#14, OTelFeature/otelfeature-java-extension#27, OTelFeature/poc#12, OTelFeature/poc#9  
 **Test Cases:** TC-002  
 **Script Beat:** Demo 2 ("service name, instrumentation scope, the path")  
-**Open Questions:** OQ-1, OQ-5  
+**Open Questions:** OQ-5 (OQ-1 answered: `processor`, UC-003 BR-004)  
 
 ## Preconditions
 
