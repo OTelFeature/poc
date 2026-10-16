@@ -206,7 +206,7 @@ services:
       retries: 10
 
   flagd:
-    image: ghcr.io/open-feature/flagd:v0.17.0
+    image: ghcr.io/open-feature/flagd:v0.18.0
     container_name: flagd
     environment:
       - GOMEMLIMIT=60MiB
