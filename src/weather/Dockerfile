@@ -19,13 +19,14 @@ RUN wget -q -O /opentelemetry-javaagent.jar \
 #   release (default) - the released JAR OTELFEATURE_EXTENSION_VERSION
 #   git               - built from OTELFEATURE_EXTENSION_REF (branch, tag or
 #                       commit) with Gradle's shadowJar, for testing
-#                       unreleased extension code (make e2e). ADD of a git
+#                       unreleased extension code (only when passed
+#                       explicitly to make e2e). ADD of a git
 #                       URL resolves the ref on every build, so a moved
 #                       branch is rebuilt.
 # (declared at the top: an ARG used in FROM must come before the first FROM)
 
 FROM alpine:3.24 AS extension-release
-ARG OTELFEATURE_EXTENSION_VERSION=v0.3.1
+ARG OTELFEATURE_EXTENSION_VERSION=v0.4.0
 RUN wget -q -O /otelfeature-java-extension.jar \
     https://github.com/OTelFeature/otelfeature-java-extension/releases/download/${OTELFEATURE_EXTENSION_VERSION}/otelfeature-java-extension.jar
 

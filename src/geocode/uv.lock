@@ -1,5 +1,5 @@
 version = 1
-revision = 3
+revision = 5
 requires-python = ">=3.14"
 
 [[package]]
@@ -183,7 +183,7 @@ requires-dist = [
     { name = "opentelemetry-instrumentation-fastapi", specifier = "==0.66b1" },
     { name = "opentelemetry-instrumentation-httpx", specifier = "==0.66b1" },
     { name = "opentelemetry-instrumentation-psycopg2", specifier = "==0.66b1" },
-    { name = "otelfeature-instrument", git = "https://github.com/OTelFeature/otelfeature-instrument" },
+    { name = "otelfeature-instrument", git = "https://github.com/OTelFeature/otelfeature-instrument?tag=v0.3.0" },
     { name = "psycopg2-binary", specifier = "==2.9.13" },
     { name = "uvicorn", extras = ["standard"], specifier = "==0.54.0" },
 ]
@@ -603,8 +603,8 @@ wheels = [
 
 [[package]]
 name = "otelfeature-instrument"
-version = "0.2.0"
-source = { git = "https://github.com/OTelFeature/otelfeature-instrument#9dd4488b57f9ff2a1b0ef17e957e6fc9d1f48c59" }
+version = "0.3.0"
+source = { git = "https://github.com/OTelFeature/otelfeature-instrument?tag=v0.3.0#a538a35358033f6fc98282ac5e4a1b19f32ff4fa" }
 dependencies = [
     { name = "openfeature-provider-flagd" },
     { name = "openfeature-sdk" },

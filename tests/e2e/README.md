@@ -20,21 +20,25 @@ spans to `tests/e2e/.artifacts/`, and tears everything down.
 
 | Variable | Default | Meaning |
 |---|---|---|
-| `OTELFEATURE_INSTRUMENT_REF` | `main` | Git ref (branch, tag, commit) of otelfeature-instrument that geocode is built with |
-| `OTELFEATURE_EXTENSION_REF` | `main` | Git ref of otelfeature-java-extension that weather's agent extension is built from |
+| `OTELFEATURE_INSTRUMENT_REF` | `release` | `release` = the otelfeature-instrument version pinned in `src/geocode/uv.lock` (v0.3.0); otherwise a git ref (branch, tag, commit) that geocode's extension is built from |
+| `OTELFEATURE_EXTENSION_REF` | `release` | `release` = the otelfeature-java-extension JAR pinned by `OTELFEATURE_EXTENSION_VERSION` in `src/weather/Dockerfile` (v0.4.0); otherwise a git ref that weather's agent extension is built from |
 | `OTELFEATURE_ENFORCEMENT` | `processor` | Java enforcement mode, `processor` or `sampler` |
 | `PYTEST_ARGS` | `-m "not slow"` | Passed to pytest, e.g. `-k baseline -x` |
 | `E2E_KEEP` | unset | Set to keep the stack running afterwards (also when startup fails); `make e2e-down` removes it. Run `make e2e-down` before the next `make e2e` |
 
-The extension refs exist so unreleased extension code can be checked with
-the demo before it's merged or released. Once releases exist, the defaults
-should go back to pinned versions. The stage stack (`make start`) always uses
-the pinned versions; only the e2e override builds from git (`ADD` of a git
-URL in the Dockerfiles, which re-resolves the ref on every build).
+By default the suite runs the pinned releases, the same as the stage
+(C-006, C-013). A git ref is used only when you pass one, to check unreleased
+extension code with the demo before it's released, e.g.
+`make e2e OTELFEATURE_EXTENSION_REF=main`. The Makefile then switches that
+extension's Dockerfile stage to `git` (`ADD` of a git URL, which re-resolves
+the ref on every build). The stage stack (`make start`) always uses the
+pinned versions.
 
 In CI, [e2e.yml](../../.github/workflows/e2e.yml) runs `make e2e` for both
-Java enforcement modes on PRs, on `main` and nightly. The refs are
-`workflow_dispatch` inputs. Artifacts are uploaded on every run. The images
+Java enforcement modes on PRs, on `main` and nightly, against the pinned
+releases. The refs are `workflow_dispatch` inputs, default `release` (exactly
+that word; anything else is a git ref). Artifacts are uploaded on every run.
+The images
 are built first by `docker/bake-action` with the GitHub Actions layer cache
 (one cache scope per image; `make e2e E2E_SKIP_BUILD=1` then uses them). The nightly run also includes
 the `slow` statistical tests and runs everything three times in a row

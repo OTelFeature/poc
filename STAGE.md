@@ -5,14 +5,16 @@ One command per script beat. Each `make flag` copies a complete preset from
 pushes the change to both services and they apply it to the next span. Aspire
 (http://localhost:18888, **Traces** view) shows the effect within a second or two.
 
-> [!IMPORTANT]
-> The `weatherUpstreamFailure` part of 03b works with the stack as it is:
-> weather's own code evaluates it. Presets 01–03b otherwise need extension
-> releases that understand `otelEnabled`,
-> `recordSpan`, `traceSampleRatio` and the semconv evaluation context
-> (otelfeature-instrument and otelfeature-java-extension, not released yet).
-> Until `src/geocode` and `src/weather` are bumped to those versions, the
-> pinned extensions ignore these flags and every preset looks like baseline.
+> [!NOTE]
+> The stage runs the pinned extension releases: otelfeature-instrument
+> **v0.3.0** in `geocode` (`src/geocode/pyproject.toml`, `uv.lock`) and
+> otelfeature-java-extension **v0.4.0** in `weather`
+> (`OTELFEATURE_EXTENSION_VERSION` in `src/weather/Dockerfile`). Both
+> understand `otelEnabled`, `telemetryLevel` (including `OFF`), `recordSpan`,
+> `traceSampleRatio` and the semconv evaluation context. The stage never builds
+> an extension from a git ref; unreleased code needs a pre-release (`v…-rc.N`).
+> `make start` doesn't rebuild: after pulling a version bump, run
+> `make prepare-offline` once, or the old images keep the old extensions.
 > `geocode` runs with `OTEL_SEMCONV_STABILITY_OPT_IN=http`, so its server
 > spans carry `url.path` at start (the old conventions only set `http.target`).
 
