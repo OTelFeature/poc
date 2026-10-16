@@ -14,7 +14,7 @@
 ## Preconditions
 
 - `docker compose --profile staging up` runs four service instances (OTelFeature/poc#25).
-- Extension releases containing OTelFeature/poc#10 in both languages.
+- Extension code in the pinned released versions (C-006: otelfeature-instrument v0.3.0, otelfeature-java-extension v0.4.0; a git ref only when passed explicitly to the e2e suite, C-013) containing OTelFeature/poc#10 in both languages.
 - The cross-service path (FR-026, OTelFeature/poc#59) for step 6.
 
 ## Flow
@@ -31,7 +31,7 @@
 ## Validation
 
 1. **Flag defined (OTelFeature/poc#10):** `traceSampleRatio` exists in `src/flagd/flagd.json`, default 1.0.
-2. **Clamping (OTelFeature/poc#10, OTelFeature/otelfeature-instrument#22):** a value above 1.0 clamps to 1.0; a negative value, NaN, infinity or a non-number falls back to the startup ratio, logged once; no exception on the hot path.
+2. **Clamping (OTelFeature/poc#10, OTelFeature/otelfeature-instrument#22):** a value above 1.0 clamps to 1.0; a negative value, NaN, infinity or a non-number falls back to the startup ratio, logged once per state change; no exception on the hot path.
 3. **Parent-based consistency (OTelFeature/poc#10):** decisions are consistent within one trace.
 4. **Environment from service (OTelFeature/poc#25):** the collector only inserts `deployment.environment.name` when missing; a rule on it affects only matching instances. [e2e, partly: `test_baseline` checks that the resource carries the key; `test_tc004_target_sampling` checks that a rule on it affects only matching instances]
 5. **Docs (OTelFeature/poc#10):** READMEs document the entry-point caveat and the `jaeger_remote` comparison.
@@ -52,5 +52,5 @@
 - **Test:** `test_tc004_target_sampling` in `tests/e2e/` (OTelFeature/poc#35, phase 4). Needs the production and staging instances (OTelFeature/poc#25) and the ratio code in both extensions.
 - **How:** CI asserts only deterministic ratios (0.0 and 1.0); the 0.1 and 0.5 volumes of steps 3 and 5 are not asserted. The statistical case at 0.5 runs nightly.
 - **Matrix:** runs in both Java enforcement modes (`processor`, `sampler`).
-- **Extension code:** built from git refs (each extension's `main`, where both chains are merged) until the releases in the preconditions exist (C-013).
+- **Extension code:** the pinned released versions (C-006): otelfeature-instrument v0.3.0, otelfeature-java-extension v0.4.0. A git ref can be passed explicitly to check unreleased extension code (C-013).
 - **Not automated:** items 1 to 3, 5 to 7 and 9 are extension unit tests or docs checks. Step 6 waits for the cross-service path (OTelFeature/poc#59); once it exists, the e2e test asserts completeness only, not the 10% volume.

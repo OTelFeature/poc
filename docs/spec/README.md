@@ -194,7 +194,7 @@ The talk script's demo beats run as an automated suite in GitHub Actions.
   Tracetest and over querying Jaeger or Tempo because the test reads every
   exported span, so absence assertions ("no `/health` spans") are exact.
 - **Traffic and flips:** pytest sends all requests itself. Flags are flipped
-  with the stage presets (OTelFeature/poc#26), the same way the speaker does.
+  with the stage presets (OTelFeature/poc#26), the same way the operator does on stage.
 - **No fixed sleeps:** marker requests with an `x-e2e-step` header are step
   barriers; after a flip, the test polls until a probe shows the new
   behaviour. Every wait has a timeout, and a timeout is a failure.
@@ -208,13 +208,18 @@ The talk script's demo beats run as an automated suite in GitHub Actions.
 
 ### The suite is the safety net before merging
 
-The suite runs against **extension git refs**: Python installed from
-`git+https://…@ref`, the Java JAR built from the ref in a Docker stage. Both
-extension chains are merged, so until releases exist the default ref is each
-extension's `main` (the old stack-top branches are deleted); after that
-the defaults switch back to pinned versions (C-006, C-013). Merge order:
-extension stacks bottom-up (done) → releases → `poc` version bump → `poc`
-stack (see [traceability.md](traceability.md#merge-order)).
+The suite runs against the **pinned released versions** of both extensions,
+the same as the stage (C-006, C-013). Building the extensions from a git ref
+remains as an explicit workflow input / `make e2e` variable, to check an
+extension change with the demo before it is released. Release order:
+extension PRs merged → `v*` tag and GitHub Release → `poc` version bump →
+e2e green (see [traceability.md](traceability.md#merge-order)).
+
+**Releases** (Simon, 2026-10-16): GitHub Releases created by a `v*` tag in
+each extension repo. The first releases with the talk's features are
+otelfeature-instrument v0.3.0 and otelfeature-java-extension v0.4.0. The
+stage never builds from git refs; unreleased code gets a pre-release
+(`v…-rc.N`).
 
 ### Stage tooling: presets and flag flips (OTelFeature/poc#26)
 
@@ -231,13 +236,16 @@ stack (see [traceability.md](traceability.md#merge-order)).
   Coarse Linux timestamps can make a fast rewrite invisible. Preset scripts
   (`make flag`), `make demo-reset`, extension tests and the e2e flag-flip
   helper bump the mtime and then confirm the new value over OFREP (port 8016)
-  before counting spans. See
+  before counting spans; OFREP only verifies, services evaluate in process
+  (C-002). See
   [flag file reload](entity_model.md#flag-file-reload).
 
 ### Toolchain images (OTelFeature/otelfeature-instrument#20, OTelFeature/otelfeature-java-extension#32)
 
-Open: OTelFeature/otelfeature-instrument#21 (CI green three runs in a row)
-and OTelFeature/otelfeature-java-extension#35, neither merged yet.
+Merged 2026-10-16: OTelFeature/otelfeature-instrument#21,
+OTelFeature/otelfeature-java-extension#35 and
+OTelFeature/poc#69 (OTelFeature/poc#67), see
+[traceability.md](traceability.md#toolchain).
 
 - Each repo has a `ci/Dockerfile`: base image pinned by tag and digest,
   dependencies preinstalled in a layer keyed on the lock files.
@@ -247,9 +255,12 @@ and OTelFeature/otelfeature-java-extension#35, neither merged yet.
 - Python: `otelfeature-instrument` had no test CI at all until
   OTelFeature/otelfeature-instrument#20.
 - Java: `ci.yml` keeps its shaded service-files check and the JAR upload. Its
-  `ci/Dockerfile` doubles as the build stage of the `poc` e2e suite.
-- `poc`: the e2e runner image is `ci/Dockerfile` in this repo (uv and the
-  pytest dependencies preinstalled).
+  `ci/Dockerfile` is meant to double as the build stage of the `poc` e2e
+  suite; that stage still builds with its own Gradle image (C-013).
+- `poc`: `ci/Dockerfile` is the toolchain image (uv, the e2e suite's pytest
+  dependencies and the preset-check dependencies preinstalled). `make e2e`
+  runs the suite in it; `make test` runs the stack-free preset checks, the
+  same as `flags.yml`.
 
 ### Spec lint (AIUP `/spec-review`, part A)
 

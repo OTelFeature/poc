@@ -99,12 +99,39 @@ demo-reset:
 		docker compose --profile staging restart load-generator-staging; \
 	fi
 
-# Same checks as CI: flagd schema (needs network for the schema) and the
-# Python provider's evaluation of every preset.
-validate-flags:
-	uvx check-jsonschema --schemafile https://flagd.dev/schema/v0/flags.json src/flagd/flagd.json $(PRESET_DIR)/*.json
-	cmp src/flagd/flagd.json $(PRESET_DIR)/00-baseline.json
-	uv run --no-project --with openfeature-provider-flagd==0.5.2 python src/flagd/test_presets.py
+# ── Toolchain image (ci/Dockerfile, NFR-016) ───────────────────────────
+# `make test` and `make shell` run in the toolchain image with the repo
+# mounted at /workspace, as the host user, so the only host requirement is
+# Docker. It is the same image `make e2e` runs the suite in (same tag).
+# CI (flags.yml) builds it with a layer cache and runs `make test-only`.
+CI_IMAGE ?= otelfeature-e2e-runner
+DOCKER_USER ?= $(shell id -u):$(shell id -g)
+CI_RUN = docker run --rm --user "$(DOCKER_USER)" -e HOME=/tmp \
+	-v "$(CURDIR)":/workspace -w /workspace
+FLAGD_SCHEMA := https://flagd.dev/schema/v0/flags.json
+
+.PHONY: image test test-only shell
+
+image:
+	docker build -f ci/Dockerfile -t $(CI_IMAGE) .
+
+test: image
+	@$(MAKE) --no-print-directory test-only
+
+# The checks that need no stack, the same as CI: every preset against the
+# flagd schema (fetched, so this needs network), committed flagd.json =
+# baseline, and the Python flagd provider's evaluation of every preset.
+test-only:
+	$(CI_RUN) --entrypoint sh $(CI_IMAGE) -ec '\
+		check-jsonschema --schemafile $(FLAGD_SCHEMA) src/flagd/flagd.json $(PRESET_DIR)/*.json; \
+		cmp src/flagd/flagd.json $(PRESET_DIR)/00-baseline.json; \
+		python src/flagd/test_presets.py'
+
+shell: image
+	$(CI_RUN) -it --entrypoint bash $(CI_IMAGE)
+
+# Older name of `make test`, kept for muscle memory.
+validate-flags: test
 
 # ── End-to-end suite (tests/e2e, OTelFeature/poc#35) ───────────────────
 # Needs only Docker. Runs as its own compose project, so it can run next to

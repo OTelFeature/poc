@@ -6,7 +6,7 @@
 **Use Case Name:** See flag evaluations in the trace  
 **Primary Actor:** Operator  
 **Secondary Actors:** weather, geocode, Aspire dashboard  
-**Goal:** Looking at one failed trace, the operator sees the application flag evaluation that caused the failure, recorded by the OpenFeature OpenTelemetry hook, so that the trace explains the incident. The telemetry extensions add nothing of their own to spans; their own evaluations can be recorded on demand for debugging a rule.  
+**Goal:** Looking at one failed trace, the operator sees the application flag evaluation that caused the failure, recorded by the OpenFeature OpenTelemetry hook, so that the trace explains the incident. The telemetry extensions add nothing of their own to spans (opt-in debugging hook: BR-002).  
 **Status:** Draft  
 **Requirements:** FR-014, FR-015, NFR-006, NFR-008  
 **Work Items:** OTelFeature/poc#30, OTelFeature/otelfeature-instrument#9, OTelFeature/otelfeature-java-extension#23 (closed as not planned, 2026-10-16: the extension writes no decision attributes, FR-014)  
@@ -29,19 +29,7 @@
 
 ## Alternative Flows
 
-### A1: Operator debugs a telemetry rule with the opt-in hook
-
-**Trigger:** The operator wants to see the extension's own evaluations and starts the service with `OTELFEATURE_OPENFEATURE_TRACING_HOOK=true` (step 4).
-
-**Flow:**
-
-1. Each targeted evaluation of the extension's flags adds a `feature_flag.evaluation` event to the span that is current at evaluation time, which is the parent of the span being decided.
-2. Decisions for new roots (including every `traceSampleRatio` decision) and for dropped spans record nothing, because there is no current span to write to or it is not exported.
-3. Evaluation errors are not recorded as exceptions on application spans.
-4. The operator switches the hook off again after debugging, because a targeted flag adds up to one event per span.
-5. Use case ends.
-
-### A2: Hook emits older attribute names
+### A1: Hook emits older attribute names
 
 **Trigger:** The pinned hook version does not emit the current `feature_flag` semantic conventions (step 2).
 
@@ -69,11 +57,11 @@ The extensions write no `feature_flag.*` attributes, no `otelfeature.sample_rati
 
 ### BR-002: Hook for the extension's own evaluations is opt-in only
 
-`OTELFEATURE_OPENFEATURE_TRACING_HOOK=true` is never the default, because per-span evaluation would add an event per span. Evaluation exceptions are excluded.
+`OTELFEATURE_OPENFEATURE_TRACING_HOOK=true` is never the default, because a targeted flag adds up to one event per span; it is meant to be switched on for debugging and off again. Each targeted evaluation of the extension's flags adds a `feature_flag.evaluation` event (BR-003). Evaluation errors are not recorded as exceptions on application spans. Only the Python extension has this hook ([configuration](../entity_model.md#configuration)). The Java extension has none (OTelFeature/otelfeature-java-extension#23, closed as not planned) and ignores the variable, so `weather` adds no event. Debugging a telemetry rule with this hook is a rule of this use case, not a flow of it, because its goal differs (decided by Simon, 2026-10-16).
 
 ### BR-003: Where hook events land
 
-The hook writes to the span current at evaluation time: the parent of the span being decided. Decisions for new roots and for dropped spans record nothing.
+The hook writes to the span current at evaluation time: the parent of the span being decided. Decisions for new roots (including every `traceSampleRatio` decision) and for dropped spans record nothing, because there is no current span to write to or it is not exported.
 
 ### BR-004: Attribute names
 

@@ -25,7 +25,7 @@ Issue refs: `OTelFeature/poc#N` (poc), `OTelFeature/otelfeature-instrument#N`
 | "Why not the collector?" (could read the same flags) | C-010 | - | - | none (D4, script only) |
 | CTA: repo and demo on the slide | FR-020, FR-021 | UC-009 | TC-007 | OTelFeature/poc#31, OTelFeature/poc#14 |
 | Stage risk: live demo fails | C-008 | UC-008 | TC-006 | OTelFeature/poc#32 |
-| Stage risk: a beat broke since the last rehearsal | NFR-004, NFR-012, NFR-015, NFR-016, C-013, C-014 | UC-008 (BR-005) | TC-001, TC-002, TC-004, TC-005, TC-006 (Automation sections) | OTelFeature/poc#35, OTelFeature/otelfeature-instrument#20, OTelFeature/otelfeature-java-extension#32 |
+| Stage risk: a beat broke since the last rehearsal | NFR-004, NFR-012, NFR-015, NFR-016, C-013, C-014 | UC-008 (BR-005) | TC-001, TC-002, TC-004, TC-005, TC-006 (Automation sections) | OTelFeature/poc#35, OTelFeature/otelfeature-instrument#20, OTelFeature/otelfeature-java-extension#32, OTelFeature/poc#67 |
 | Q&A: what else can become a flag | FR-021 | UC-009 | TC-007 | OTelFeature/poc#14, OTelFeature/poc#15 |
 
 ## Issue → spec
@@ -58,6 +58,7 @@ the end-to-end suite and the toolchain images.
 | OTelFeature/poc#38 | k6 health-check scenario, split out of OTelFeature/poc#23 (answers OQ-5) | P0 | FR-006 (Demo 2 traffic) | UC-002 | TC-002 |
 | OTelFeature/poc#59 | Cross-service path: `geocode` calls `weather` | P1 | FR-026 | UC-004 | TC-004 |
 | OTelFeature/poc#35 | End-to-end suite in CI, safety net before merging | P1 | NFR-015, C-013 (verifies NFR-004, NFR-012) | UC-008 (BR-005) | TC-001, TC-002, TC-004, TC-005, TC-006 |
+| OTelFeature/poc#64 | Pin released extensions (v0.3.0 / v0.4.0) for stage and e2e | P0 | C-006, C-013 | UC-008 | TC-006 |
 | OTelFeature/otelfeature-instrument#7 | Eval context from semconv (Python) | P0 | FR-005, NFR-003 | UC-002, UC-004 | TC-002, TC-004 |
 | OTelFeature/otelfeature-instrument#8 | Error rate into context (Python); also `OTEL_METRICS_EXPORTER=none` | P1 | FR-011, FR-024, NFR-013, NFR-014, C-005 | UC-005 | TC-005 |
 | OTelFeature/otelfeature-instrument#9 | No decision attributes; opt-in tracing hook (Python) | P1 | FR-014, NFR-006 | UC-007 | TC-005 |
@@ -71,6 +72,9 @@ the end-to-end suite and the toolchain images.
 | OTelFeature/otelfeature-java-extension#23 | Decision attributes (Java); closed as not planned 2026-10-16, the extension writes none (FR-014) | P1 | FR-014 | UC-007 | TC-005 |
 | OTelFeature/otelfeature-java-extension#27 | `recordSpan` (Java) | P0 | FR-006, FR-007, FR-023, C-004 | UC-002 | TC-002 |
 | OTelFeature/otelfeature-java-extension#32 | Toolchain image `ci/Dockerfile` (Java), also the e2e build stage | P1 | NFR-016, C-013, C-014 | none (tooling) | none |
+| OTelFeature/poc#67 | Toolchain (`poc`): `make test`, `make shell`, base pinned by digest | P1 | NFR-016, C-014 | none (tooling) | none |
+| OTelFeature/otelfeature-instrument#24 | Release v0.3.0 (release workflow, wheel + sdist) | P0 | C-006 | UC-008 | TC-006 |
+| OTelFeature/otelfeature-java-extension#37 | Release v0.4.0 | P0 | C-006 | UC-008 | TC-006 |
 
 ## Execution lanes
 
@@ -82,7 +86,7 @@ issue is one PR, stacked on the previous one in its lane (see the
 - **Java** (`otelfeature-java-extension`, merged): poc#8 → poc#9 → java#21 → java#20 → java#27 → poc#10 (java) → java#22 (java#23 closed as not planned)
 - **POC** (`poc`): poc#22 (done) → poc#24 → poc#25 → poc#38 → poc#26 → poc#28 → poc#30 → poc#27 → poc#29 → poc#59 → poc#31
 - **E2E** (`poc`): poc#35 in its five phases (harness, TC-001 and hard floors, TC-002, TC-004 and TC-005, matrix and nightly). Each phase starts once the POC-lane issues and extension code it needs exist.
-- **Toolchain** (not stacked, each its own PR from `main`): instrument#20 (PR #21), java#32 (PR #35). They depend on nothing in the feature stacks; once merged, a rebased stacked PR gets a CI run.
+- **Toolchain** (not stacked, each its own PR from `main`): instrument#20 (PR #21), java#32 (PR #35), poc#67 (PR #69). They depend on nothing in the feature stacks; once merged, a rebased stacked PR gets a CI run.
 - **People, not agents:** poc#33, poc#32
 
 Sync points: poc#22 finishes before instrument#7 / java#20 start. poc#27
@@ -96,8 +100,9 @@ PRs.
 
 State as of 2026-10-16, checked with `gh` and
 `git merge-base --is-ancestor <head> origin/main`. Both extension chains are
-**merged on `main`** (not released yet, C-006). The `poc` lane is an open
-stack. The toolchain PRs are open.
+**merged on `main`** (not released yet, C-006). The toolchain PRs are
+merged. The POC section below was not rechecked: its stack #36–#43 has
+since merged.
 
 ### Python (`OTelFeature/otelfeature-instrument`): merged
 
@@ -115,6 +120,7 @@ Every PR below is on `main`. All but #15 were merged into `main` directly;
 | OTelFeature/otelfeature-instrument#16 | OTelFeature/otelfeature-instrument#9 (closed) | FR-014, NFR-006 | UC-007 | TC-005 |
 | OTelFeature/otelfeature-instrument#17 | OTelFeature/poc#12, Python half (closed) | FR-007 | UC-002 | TC-002 |
 | OTelFeature/otelfeature-instrument#19 | none (parity request) | FR-025 | none | TC-001 |
+| OTelFeature/otelfeature-instrument#23 | OTelFeature/otelfeature-instrument#22 (closed) | NFR-001, FR-009 | UC-004 (A1) | TC-004 |
 
 ### Java (`OTelFeature/otelfeature-java-extension`): merged
 
@@ -171,8 +177,19 @@ Not stacked; each is its own PR from `main`.
 
 | Issue | PR | Requirements | State |
 |---|---|---|---|
-| OTelFeature/otelfeature-instrument#20 | OTelFeature/otelfeature-instrument#21 | NFR-016, C-014 | open, CI green three runs in a row, not merged |
-| OTelFeature/otelfeature-java-extension#32 | OTelFeature/otelfeature-java-extension#35 | NFR-016, C-013, C-014 | open, not merged |
+| OTelFeature/otelfeature-instrument#20 | OTelFeature/otelfeature-instrument#21 | NFR-016, C-014 | merged 2026-10-16 |
+| OTelFeature/otelfeature-java-extension#32 | OTelFeature/otelfeature-java-extension#35 | NFR-016, C-013, C-014 | merged 2026-10-16 |
+
+| OTelFeature/poc#67 | OTelFeature/poc#69 | NFR-016, C-014 | merged 2026-10-16 |
+
+NFR-016 and C-014 are Implemented (set by hand, no use case links them):
+OTelFeature/poc#69 is merged, so all three repos have a
+`ci/Dockerfile` pinned by tag and digest, `make test` and `make shell` in
+it (in `poc` also `make e2e`), image-based CI (no `setup-python`,
+`setup-java` or `setup-uv`), Dependabot on `/ci`, and LF enforced in
+`.gitattributes`. In `poc`, `make test` runs the stack-free preset checks
+(flagd schema, baseline, `src/flagd/test_presets.py`); `make spec-lint`
+runs in its own digest-pinned `python` image, also Docker only.
 
 ### Merge lessons
 
@@ -208,11 +225,15 @@ flowchart LR
    merge.
 2. The suite is green against the extension `main` branches, in both Java
    enforcement modes.
-3. Both extensions are released.
-4. `poc` bumps the extension versions (C-006); the e2e default refs switch
-   back to the pinned released versions.
-5. The `poc` stack (#36 ← #37 ← #40 ← #41 ← #42 ← #43) merges, with the suite
-   green on the pinned versions.
+3. Both extensions are released (Simon, 2026-10-16): otelfeature-instrument
+   v0.3.0 (OTelFeature/otelfeature-instrument#24, adds a release workflow) and
+   otelfeature-java-extension v0.4.0 (OTelFeature/otelfeature-java-extension#37),
+   as GitHub Releases created by a `v*` tag.
+4. `poc` pins the released versions for the stage and the e2e defaults
+   (C-006, C-013, OTelFeature/poc#64). Git refs stay only as an explicit e2e
+   input; the stage never builds from git (OTelFeature/poc#58 closed).
+5. The `poc` stack (#36 ← … ← #44) already merged, before the releases, with
+   the suite green against the extension `main` branches.
 
 The toolchain PRs (OTelFeature/otelfeature-instrument#21,
 OTelFeature/otelfeature-java-extension#35) are independent of this order.

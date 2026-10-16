@@ -228,7 +228,8 @@ Every writer of a watched flag file therefore:
    to the old mtime + 10 ms.
 2. **Confirms the new value** before it counts spans: it polls flagd over
    OFREP (port 8016) until flagd serves the new value (the e2e suite adds a
-   per-write revision flag for this), with a timeout that fails the run.
+   per-write revision flag for this), with a timeout that fails the run. OFREP
+   only verifies the served value; the services evaluate in process (C-002).
 
 This applies to the preset scripts, `make demo-reset`, the extension tests
 that rewrite flag files, and the e2e flag-flip helper (NFR-004, TC-006).
@@ -240,7 +241,7 @@ that rewrite flag files, and the e2e flag-flip helper (NFR-004, TC-006).
 | `enabled` | `otelEnabled != false` and `telemetryLevel != OFF`, unless the hard floor applies | `true`; `false` when `OTEL_SDK_DISABLED=true`, and then no flag can make it `true` |
 | `suppressInternal` | `telemetryLevel == IO` | `false` |
 | `recordSpan` | `recordSpan` flag, per span; only read while `enabled` | `true` |
-| `sampleRatio` | `traceSampleRatio`; above 1.0 clamped to 1.0; negative, NaN, infinity or non-numeric falls back, logged once (NFR-001); trace roots only | From `OTEL_TRACES_SAMPLER` / `OTEL_TRACES_SAMPLER_ARG`, parsed like the SDK: the ratio for `traceidratio`/`parentbased_traceidratio`, 0.0 for `always_off`/`parentbased_always_off`, else 1.0. Python: an unknown name falls back to 1.0 with a warning (C-012) |
+| `sampleRatio` | `traceSampleRatio`; above 1.0 clamped to 1.0; negative, NaN, infinity or non-numeric falls back, logged once per state change (NFR-001); trace roots only | From `OTEL_TRACES_SAMPLER` / `OTEL_TRACES_SAMPLER_ARG`, parsed like the SDK: the ratio for `traceidratio`/`parentbased_traceidratio`, 0.0 for `always_off`/`parentbased_always_off`, else 1.0. Python: an unknown name falls back to 1.0 with a warning (C-012) |
 
 Precedence: hard floors > `otelEnabled`/`telemetryLevel=OFF` > `recordSpan` >
 `traceSampleRatio`. A lower level never re-enables what a higher one turned
@@ -328,7 +329,7 @@ own flags (OTelFeature/poc#30).
 | `feature_flag.*` attributes or events | no; only via the opt-in hook below |
 | `otelfeature.sample_ratio` | no |
 | tracestate `ot=th` (sampling threshold) | no |
-| Hook events for the extension's own evaluations | only with `OTELFEATURE_OPENFEATURE_TRACING_HOOK=true` (never default); evaluation exceptions are excluded |
+| Hook events for the extension's own evaluations | Python only, and only with `OTELFEATURE_OPENFEATURE_TRACING_HOOK=true` (never default); evaluation exceptions are excluded. Java has none (OTelFeature/otelfeature-java-extension#23, not planned) |
 
 Caveat of the opt-in hook: it writes to the span that is current at
 evaluation time, which is the **parent** of the span being decided. So
