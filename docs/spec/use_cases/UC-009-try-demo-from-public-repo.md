@@ -15,7 +15,7 @@
 
 ## Preconditions
 
-- The repository is public and its history is free of secrets.
+- The owner, not an agent, has made the repository public (OTelFeature/poc#31); its history is free of secrets.
 - The README has a "Try it in 5 minutes" section and links both extensions.
 
 ## Main Success Scenario
@@ -28,14 +28,7 @@
 
 ## Alternative Flows
 
-### A1: No network access to the real APIs
-
-**Trigger:** The adopter is offline after building (step 3).
-
-**Flow:**
-
-1. The stack runs on the stubbed APIs as in step 3.
-2. Use case continues at step 4.
+_None: the stack starts on the stubbed APIs (step 3), so being offline after building changes nothing (BR-002)._
 
 ## Postconditions
 
@@ -53,6 +46,6 @@
 
 No local language toolchain is needed to run the demo.
 
-### BR-002: Visibility is an owner action
+### BR-002: Runs offline after building
 
-Making the repository public is done by the owner, not by an agent.
+The stack needs no network access to the real APIs once its images are built, because it starts on the stubbed APIs.

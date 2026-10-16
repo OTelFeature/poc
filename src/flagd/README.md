@@ -58,7 +58,7 @@ to `00-baseline`. [STAGE.md](../../STAGE.md) maps every script beat to a
 preset and says what each one changes.
 
 Every preset is checked in CI ([flags.yml](../../.github/workflows/flags.yml),
-or `make validate-flags` locally):
+or `make test` locally, inside the `ci/Dockerfile` image):
 
 1. It validates against `https://flagd.dev/schema/v0/flags.json`.
 2. [test_presets.py](test_presets.py) loads it with the same Python flagd

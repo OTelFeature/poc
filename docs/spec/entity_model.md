@@ -228,7 +228,8 @@ Every writer of a watched flag file therefore:
    to the old mtime + 10 ms.
 2. **Confirms the new value** before it counts spans: it polls flagd over
    OFREP (port 8016) until flagd serves the new value (the e2e suite adds a
-   per-write revision flag for this), with a timeout that fails the run.
+   per-write revision flag for this), with a timeout that fails the run. OFREP
+   only verifies the served value; the services evaluate in process (C-002).
 
 This applies to the preset scripts, `make demo-reset`, the extension tests
 that rewrite flag files, and the e2e flag-flip helper (NFR-004, TC-006).
@@ -328,7 +329,7 @@ own flags (OTelFeature/poc#30).
 | `feature_flag.*` attributes or events | no; only via the opt-in hook below |
 | `otelfeature.sample_ratio` | no |
 | tracestate `ot=th` (sampling threshold) | no |
-| Hook events for the extension's own evaluations | only with `OTELFEATURE_OPENFEATURE_TRACING_HOOK=true` (never default); evaluation exceptions are excluded |
+| Hook events for the extension's own evaluations | Python only, and only with `OTELFEATURE_OPENFEATURE_TRACING_HOOK=true` (never default); evaluation exceptions are excluded. Java has none (OTelFeature/otelfeature-java-extension#23, not planned) |
 
 Caveat of the opt-in hook: it writes to the span that is current at
 evaluation time, which is the **parent** of the span being decided. So
