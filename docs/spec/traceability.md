@@ -73,8 +73,8 @@ the end-to-end suite and the toolchain images.
 | OTelFeature/otelfeature-java-extension#27 | `recordSpan` (Java) | P0 | FR-006, FR-007, FR-023, C-004 | UC-002 | TC-002 |
 | OTelFeature/otelfeature-java-extension#32 | Toolchain image `ci/Dockerfile` (Java), also the e2e build stage | P1 | NFR-016, C-013, C-014 | none (tooling) | none |
 | OTelFeature/poc#67 | Toolchain (`poc`): `make test`, `make shell`, base pinned by digest | P1 | NFR-016, C-014 | none (tooling) | none |
-| OTelFeature/otelfeature-instrument#24 | Release v0.3.0 (release workflow, wheel + sdist) | P0 | C-006 | UC-008 | TC-006 |
-| OTelFeature/otelfeature-java-extension#37 | Release v0.4.0 | P0 | C-006 | UC-008 | TC-006 |
+| OTelFeature/otelfeature-instrument#24 | Release v0.3.0 (release workflow, wheel + sdist); tagged and released 2026-10-16 | P0 | C-006 | UC-008 | TC-006 |
+| OTelFeature/otelfeature-java-extension#37 | Release v0.4.0; tagged and released 2026-10-16 | P0 | C-006 | UC-008 | TC-006 |
 
 ## Execution lanes
 
@@ -91,8 +91,9 @@ issue is one PR, stacked on the previous one in its lane (see the
 
 Sync points: poc#22 finishes before instrument#7 / java#20 start. poc#27
 decides D3 once java#21 is released. poc#27's final numbers and poc#29 need
-released versions of both extensions (C-006); poc#35 runs against extension
-git refs until then (C-013). The `traceSampleRatio` entry in
+released versions of both extensions (C-006); both are released
+(otelfeature-instrument v0.3.0, otelfeature-java-extension v0.4.0) and pinned
+by poc#64, and poc#35 runs against those pins by default (C-013). The `traceSampleRatio` entry in
 `src/flagd/flagd.json` (poc#10) is a `poc` change, not part of the extension
 PRs.
 
@@ -100,7 +101,8 @@ PRs.
 
 State as of 2026-10-16, checked with `gh` and
 `git merge-base --is-ancestor <head> origin/main`. Both extension chains are
-**merged on `main`** (not released yet, C-006). The toolchain PRs are
+**merged on `main`** and released as otelfeature-instrument v0.3.0 and
+otelfeature-java-extension v0.4.0; `poc` pins them (OTelFeature/poc#64, C-006). The toolchain PRs are
 merged. The POC section below was not rechecked: its stack #36–#43 has
 since merged.
 
@@ -167,7 +169,13 @@ Next `poc` items after this stack, in lane order: OTelFeature/poc#30 (hooks
 in the apps), OTelFeature/poc#27 (measurements, decides OQ-1),
 OTelFeature/poc#29 (control-loop preset), OTelFeature/poc#31 (public repo),
 and the remaining phases of OTelFeature/poc#35. The `poc` version bump to
-released extensions (C-006) waits for the releases.
+the released extensions (C-006) is OTelFeature/poc#64: the stage and the e2e
+defaults run otelfeature-instrument v0.3.0 and otelfeature-java-extension
+v0.4.0; a git ref is built only when passed explicitly (C-013).
+
+C-013 is Implemented with OTelFeature/poc#64 (set by hand, no use case links
+it; Simon's status rule, 2026-10-16). C-006 stays Open: its only linking use
+case, UC-003, is still Draft.
 
 Closed `poc` issues: #8, #9, #10, #12 (both halves landed), #22 (spike done).
 
@@ -207,16 +215,17 @@ workflow step 4):
 
 ## Merge order
 
-Decided by Simon, 2026-10-16 (C-013). Step 2 is done: both extension chains
-are on `main`. The end-to-end suite (OTelFeature/poc#35) did not exist yet
-when they merged, so it now runs against each extension's `main` as its
-default ref until releases exist.
+Decided by Simon, 2026-10-16 (C-013). Steps 1 to 3 are done: both extension
+chains are on `main` and released. The end-to-end suite (OTelFeature/poc#35)
+did not exist yet when they merged, so it ran against each extension's `main`
+until the releases; step 4 (OTelFeature/poc#64) switches its defaults to the
+pinned releases.
 
 ```mermaid
 flowchart LR
     X["Extension stacks merge<br/>bottom-up (done)"] --> E["e2e green against<br/>extension main"]
-    E --> R["Release both<br/>extensions"]
-    R --> B["poc: bump extension versions,<br/>e2e defaults back to pins"]
+    E --> R["Release both<br/>extensions (done)"]
+    R --> B["poc: bump extension versions,<br/>e2e defaults back to pins (poc#64)"]
     B --> P["poc stack merges"]
 ```
 
@@ -228,10 +237,11 @@ flowchart LR
 3. Both extensions are released (Simon, 2026-10-16): otelfeature-instrument
    v0.3.0 (OTelFeature/otelfeature-instrument#24, adds a release workflow) and
    otelfeature-java-extension v0.4.0 (OTelFeature/otelfeature-java-extension#37),
-   as GitHub Releases created by a `v*` tag.
-4. `poc` pins the released versions for the stage and the e2e defaults
+   as GitHub Releases created by a `v*` tag. Done.
+4. This step: `poc` pins the released versions for the stage and the e2e defaults
    (C-006, C-013, OTelFeature/poc#64). Git refs stay only as an explicit e2e
-   input; the stage never builds from git (OTelFeature/poc#58 closed).
+   input; the stage never builds from git (OTelFeature/poc#58 closed). The
+   suite must be green on the bump in both Java enforcement modes.
 5. The `poc` stack (#36 ← … ← #44) already merged, before the releases, with
    the suite green against the extension `main` branches.
 

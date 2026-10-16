@@ -196,10 +196,10 @@ Nothing about the decision is written onto the span (FR-014).
 
 | Key | Type | Variants | Default | Consumer | Status | Issue |
 |---|---|---|---|---|---|---|
-| `otelEnabled` | boolean | `on`=true, `off`=false | `on` | extension | on `main`: Python OTelFeature/otelfeature-instrument#10, Java OTelFeature/otelfeature-java-extension#24; in `flagd.json` with PR OTelFeature/poc#41 | OTelFeature/poc#8 |
-| `telemetryLevel` | string | `full`=FULL, `io`=IO, `off`=OFF | `full` | extension | FULL/IO released; OFF on `main` (Python #10, Java #24), not released | OTelFeature/poc#8 |
-| `recordSpan` | boolean | `on`=true, `off`=false | `on` | extension | on `main`: Python OTelFeature/otelfeature-instrument#18, Java OTelFeature/otelfeature-java-extension#29 (landed via #33); carries the Demo 2 drop rules (OQ-8) | OTelFeature/otelfeature-instrument#14, OTelFeature/otelfeature-java-extension#27 |
-| `traceSampleRatio` | number | `all`=1.0, `half`=0.5 (PR OTelFeature/poc#56), `tenth`=0.1, `none`=0.0 | `all` | extension | on `main`: Python OTelFeature/otelfeature-instrument#13, Java OTelFeature/otelfeature-java-extension#30 (landed via #33); in `flagd.json` with PR OTelFeature/poc#41 | OTelFeature/poc#10 |
+| `otelEnabled` | boolean | `on`=true, `off`=false | `on` | extension | released (otelfeature-instrument v0.3.0, otelfeature-java-extension v0.4.0): Python OTelFeature/otelfeature-instrument#10, Java OTelFeature/otelfeature-java-extension#24; in `flagd.json` with PR OTelFeature/poc#41 | OTelFeature/poc#8 |
+| `telemetryLevel` | string | `full`=FULL, `io`=IO, `off`=OFF | `full` | extension | FULL/IO/OFF released (OFF since otelfeature-instrument v0.3.0, otelfeature-java-extension v0.4.0: Python #10, Java #24) | OTelFeature/poc#8 |
+| `recordSpan` | boolean | `on`=true, `off`=false | `on` | extension | released (v0.3.0 / v0.4.0): Python OTelFeature/otelfeature-instrument#18, Java OTelFeature/otelfeature-java-extension#29 (landed via #33); carries the Demo 2 drop rules (OQ-8) | OTelFeature/otelfeature-instrument#14, OTelFeature/otelfeature-java-extension#27 |
+| `traceSampleRatio` | number | `all`=1.0, `half`=0.5 (PR OTelFeature/poc#56), `tenth`=0.1, `none`=0.0 | `all` | extension | released (v0.3.0 / v0.4.0): Python OTelFeature/otelfeature-instrument#13, Java OTelFeature/otelfeature-java-extension#30 (landed via #33); in `flagd.json` with PR OTelFeature/poc#41 | OTelFeature/poc#10 |
 | `weatherUpstreamFailure` | number | `none`=0.0, `incident`=0.3, `outage`=1.0 (e2e) | `none` | application (`weather`) | in PR OTelFeature/poc#42 | OTelFeature/poc#28 |
 | `signalsEnabled` | object | per signal | all on | extension | deferred, out of scope (P2) | OTelFeature/poc#11 |
 
@@ -299,11 +299,11 @@ OQ-2 resolved). Collision rules:
 
 | Name | Language | Decides at | Saves service CPU | Can drop | State |
 |---|---|---|---|---|---|
-| Tracer wrapper (`_VerbosityAwareTracer`) | python | before-create | yes | Non-root: suppresses just this span, children attach to the real parent. Root (incl. remote-parent `SERVER`/`CONSUMER`): returns a non-recording span with a valid, non-sampled context, so the request is dropped in this service and downstream gets `sampled=0` | INTERNAL under `IO` released; `OFF`, `recordSpan` on `main` (not released) |
-| Per-tracer decision (`_VerbosityAwareTracerProvider.get_tracer`) | python | before-create, once per tracer | yes | everything from one scope, when the rule is tracer-scoped (see TARGETING_RULE) | on `main` (OTelFeature/otelfeature-instrument#17, OTelFeature/poc#12) |
-| Python sampler (`ParentBased(root=flag ratio)`) | python | before-create | yes | trace roots by ratio; children parent-based | on `main` (OTelFeature/otelfeature-instrument#13, OTelFeature/poc#10) |
-| `FilteringSpanProcessor` + `ReparentingSpanExporter` | java | on-start (span already created) | no (saves batching, serialization, export) | any kind, suppressed at `onStart`; children re-parented | INTERNAL under `IO` released; `OFF`, `recordSpan` on `main` (not released) |
-| `FlagAwareSampler` | java | before-create | yes | `DROP` for roots (incl. remote-parent entry spans) and non-propagating leaves (DB client spans, `db.system.name`); ratio on trace roots | on `main` via landing PR OTelFeature/otelfeature-java-extension#33 (#26 for java#21, #29 for java#27, #30 for the ratio, OTelFeature/poc#10) |
+| Tracer wrapper (`_VerbosityAwareTracer`) | python | before-create | yes | Non-root: suppresses just this span, children attach to the real parent. Root (incl. remote-parent `SERVER`/`CONSUMER`): returns a non-recording span with a valid, non-sampled context, so the request is dropped in this service and downstream gets `sampled=0` | INTERNAL under `IO`, `OFF` and `recordSpan` released (v0.3.0 / v0.4.0) |
+| Per-tracer decision (`_VerbosityAwareTracerProvider.get_tracer`) | python | before-create, once per tracer | yes | everything from one scope, when the rule is tracer-scoped (see TARGETING_RULE) | released in v0.3.0 (OTelFeature/otelfeature-instrument#17, OTelFeature/poc#12) |
+| Python sampler (`ParentBased(root=flag ratio)`) | python | before-create | yes | trace roots by ratio; children parent-based | released in v0.3.0 (OTelFeature/otelfeature-instrument#13, OTelFeature/poc#10) |
+| `FilteringSpanProcessor` + `ReparentingSpanExporter` | java | on-start (span already created) | no (saves batching, serialization, export) | any kind, suppressed at `onStart`; children re-parented | INTERNAL under `IO`, `OFF` and `recordSpan` released (v0.3.0 / v0.4.0) |
+| `FlagAwareSampler` | java | before-create | yes | `DROP` for roots (incl. remote-parent entry spans) and non-propagating leaves (DB client spans, `db.system.name`); ratio on trace roots | released in v0.4.0, via landing PR OTelFeature/otelfeature-java-extension#33 (#26 for java#21, #29 for java#27, #30 for the ratio, OTelFeature/poc#10) |
 
 Java mode is chosen with `OTELFEATURE_ENFORCEMENT=processor|sampler`, default
 `processor` until OTelFeature/poc#27 decides (OQ-1). In sampler mode, the
@@ -361,7 +361,7 @@ Python's other flag keys (`telemetryLevel`, `otelEnabled`,
 `traceSampleRatio`) are fixed.
 
 Java's error-rate settings follow the Python names
-(OTelFeature/otelfeature-java-extension#22, on `main` via
+(OTelFeature/otelfeature-java-extension#22, released in v0.4.0 via
 OTelFeature/otelfeature-java-extension#31 and landing PR #33). Java has no
 tracing-hook setting: OTelFeature/otelfeature-java-extension#23 was closed as
 not planned (2026-10-16), since the extension writes nothing onto spans
