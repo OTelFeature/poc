@@ -95,7 +95,7 @@ issue is one PR, stacked on the previous one in its lane (see the
 - **People, not agents:** poc#33, poc#32
 
 Sync points: poc#22 finishes before instrument#7 / java#20 start. poc#27
-decides D3 once java#21 is released. poc#27's final numbers and poc#29 need
+decided D3 (`processor`, 2026-10-16). poc#27's final numbers and poc#29 need
 released versions of both extensions (C-006); both are released
 (otelfeature-instrument v0.3.0, otelfeature-java-extension v0.4.0) and pinned
 by poc#64, and poc#35 runs against those pins by default (C-013). The `traceSampleRatio` entry in
@@ -170,7 +170,7 @@ Every PR below is on `main`. The first stack (#36 ← #37 ← #40 ← #41 ← #4
 | OTelFeature/poc#71 | OTelFeature/poc#59 (closed) | FR-026 | UC-004, UC-005 (A7) | TC-004 |
 | OTelFeature/poc#77 | OTelFeature/poc#64 (closed) | C-006, C-013 | UC-008 | TC-006 |
 | OTelFeature/poc#78 | OTelFeature/poc#30 (closed, answers OQ-4) | FR-014, FR-015 | UC-007 | TC-005 |
-| OTelFeature/poc#79 | OTelFeature/poc#27 (open: the numbers and the OQ-1 decision follow) | FR-016, NFR-005, NFR-011 | UC-003 | TC-003 |
+| OTelFeature/poc#79 | OTelFeature/poc#27 (numbers posted; OQ-1 decided `processor`, OQ-3 deferred, OQ-15 answered in PR OTelFeature/poc#85) | FR-016, NFR-005, NFR-011 | UC-003 | TC-003 |
 | OTelFeature/poc#63 | none (spec loop for instrument#21 and #23) | NFR-016, NFR-001 | UC-004 (A1) | TC-004 |
 
 PR OTelFeature/poc#58 (stage stack from git refs, FR-027) was closed
@@ -178,7 +178,7 @@ unmerged, and OTelFeature/poc#61 as not planned: the stage runs released
 extensions only (C-006).
 
 Open `poc` items, in lane order: OTelFeature/poc#27 (measurements: harness
-merged with PR OTelFeature/poc#79, the numbers and OQ-1 follow), OTelFeature/poc#31 (public repo), OTelFeature/poc#14 (env-var tier
+merged with PR OTelFeature/poc#79, numbers posted, OQ-1 decided: `processor`), OTelFeature/poc#31 (public repo), OTelFeature/poc#14 (env-var tier
 docs), OTelFeature/poc#70 (faster builds and e2e), OTelFeature/poc#80 (Python
 parity in e2e), OTelFeature/poc#75 (unit test for the `FaultInjection` bounds),
 OTelFeature/poc#76 (`geocode` on Python 3.15), and OTelFeature/poc#35 until its nightly runs are green.

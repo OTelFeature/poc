@@ -32,7 +32,7 @@ in-process) at the point where spans are created:
 - `otelfeature-instrument`: a Python launcher that wraps the tracer.
 - `otelfeature-java-extension`: an OTel Java agent extension that enforces
   either in a span processor or in a sampler (`OTELFEATURE_ENFORCEMENT`,
-  default `processor` until D3 is decided).
+  default `processor`, the mode chosen for the talk, D3).
 
 The flags' evaluation context is built from OpenTelemetry semantic
 conventions (resource, instrumentation scope, span start attributes), so a
@@ -116,7 +116,7 @@ questions table in the [README](README.md#open-questions) points to them.
 |---|---|
 | D1 | OTel Demo footage for the hook, this POC for Demos 1 to 3 |
 | D2 | Demo 1 uses a boolean `otelEnabled` *and* a `telemetryLevel=OFF` variant; both map onto `enabled` in the policy |
-| D3 | Java: build the sampler path next to the processor path (`OTELFEATURE_ENFORCEMENT`, default `processor`), decide from measurements (open, see OQ-1) |
+| D3 | Java: build the sampler path next to the processor path (`OTELFEATURE_ENFORCEMENT`, default `processor`), decide from measurements: decided `processor` (Simon, 2026-10-16, OQ-1; to confirm with Juliano, OTelFeature/poc#84) |
 | D4 | Collector line softened to "you *could* point the collector at the same flags"; nothing to build |
 | D5 | Control loop = flagd targeting rule over the existing `http.server.request.duration` metric; no outside script, no new metric |
 | D6 | Target `url.path`, not `http.route` (not known at span start) |
