@@ -10,8 +10,9 @@ between beats, so each preset must work right after the one before it:
 Each beat is checked for the core effect STAGE.md promises. Ratios the
 stage presets set to 0.1 or 0.5 are checked with wide statistical bands,
 retried until they hold; exact ratio checks are in test_tc004 / test_tc005.
-These statistical checks run on every PR (not `slow`): TC-006 asks for the
-progression in CI.
+The run-through is marked `stage_run`: it runs on pushes to main, nightly
+and on manual runs, not on pull requests (NFR-015; every beat has its own
+per-PR test). test_tc006_rapid_flips runs on every pull request.
 
 Production geocode is counted on POST /geocode, because 02's rule drops its
 /health from 02 on.
@@ -21,6 +22,8 @@ from __future__ import annotations
 
 import time
 import uuid
+
+import pytest
 
 from conftest import FLIP_BUDGET_SECONDS, QUIET_SECONDS, URLS, Step
 from flags import Flags
@@ -79,6 +82,7 @@ def _geocode_production_low(step: Step, beat: str) -> None:
     assert 1 <= got <= 20, f"{beat}: production geocode {got}/{N} traced at 0.1"
 
 
+@pytest.mark.stage_run
 def test_stage_progression(step: Step, flags: Flags):
     # 00-baseline: everything traced (the fixture already applied it).
     _all_traced(step, {i: (_batch(step, i, 3), 3) for i in URLS})

@@ -12,7 +12,7 @@ import httpx
 import pytest
 
 from flags import Flags
-from spans import STEP_HEADER, MetricLog, SpanLog, wait_until
+from spans import STEP_HEADER, MetricLog, SpanLog, describe, wait_until
 
 GEOCODE_URL = os.environ.get("GEOCODE_URL", "http://geocode:8000")
 WEATHER_URL = os.environ.get("WEATHER_URL", "http://weather:8001")
@@ -173,6 +173,28 @@ class Step:
 @pytest.fixture(scope="session")
 def spans() -> SpanLog:
     return SpanLog(Path(os.environ.get("E2E_SPANS_FILE", "/out/spans.jsonl")))
+
+
+# Attributes only the extensions could write. They must not (FR-014,
+# UC-007 BR-001).
+EXTENSION_ATTRS = ("otelfeature.sample_ratio",)
+
+
+@pytest.fixture(scope="session", autouse=True)
+def no_extension_attributes(spans):
+    """FR-014 / UC-007 BR-001 over every span the session exported, checked
+    once the last test is done: no geocode or weather span carries attributes
+    the extensions would have written. Session-wide, so it covers every
+    test's spans (sampled down and up) whichever tests run, and no violating
+    trace can hide behind a barrier. flagd's own spans (flagSync) carry
+    feature_flag.* attributes of their own and are left out."""
+    yield
+    time.sleep(QUIET_SECONDS)  # let the last test's spans reach the file
+    spans.refresh()
+    written = [s for s in spans.spans
+               if s.service in ("geocode", "weather")
+               and any(k.startswith("feature_flag.") or k in EXTENSION_ATTRS for k in s.attrs)]
+    assert not written, f"span attributes the extensions must not write:\n{describe(written)}"
 
 
 @pytest.fixture(scope="session")
