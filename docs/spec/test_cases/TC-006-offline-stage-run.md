@@ -26,7 +26,7 @@
 | 3 | Verify healthy | End-to-end traces appear; client spans show the stub as `server.address` | - | - |
 | 4 | Demo 1 | Apply tracing-off preset, then baseline | `01-otel-off` | [UC-001](../use_cases/UC-001-switch-tracing-off-and-on.md) |
 | 5 | Demo 2 | Apply quiet-noise preset | `02-quiet-noise` | [UC-002](../use_cases/UC-002-drop-noisy-spans.md) |
-| 6 | Demo 3 | Apply semconv-rules preset, then weather-full, then incident | `03-semconv-rules`, `03a-weather-boost`, `03b-incident` | [UC-004](../use_cases/UC-004-target-trace-sampling.md) |
+| 6 | Demo 3 | Apply semconv-rules preset, then weather-boost, then incident | `03-semconv-rules`, `03a-weather-boost`, `03b-incident` | [UC-004](../use_cases/UC-004-target-trace-sampling.md) |
 | 7 | Reset | Restore baseline | `make demo-reset` | [UC-008](../use_cases/UC-008-run-demo-on-stage.md) |
 
 ## Validation
