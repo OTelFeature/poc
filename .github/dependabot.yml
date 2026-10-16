@@ -34,6 +34,12 @@ updates:
     directory: "/src/geocode"
     schedule:
       interval: "weekly"
+    ignore:
+      # geocode can't run on 3.15 yet: openfeature-provider-flagd requires
+      # cachebox<6, which has no 3.15 build (OTelFeature/poc#76). Remove
+      # this once that issue is resolved.
+      - dependency-name: "python"
+        versions: [">=3.15"]
 
   # Base images used in the weather Dockerfile
   - package-ecosystem: "docker"
