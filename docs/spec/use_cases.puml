@@ -1,0 +1,49 @@
+@startuml
+left to right direction
+
+actor "Operator" as operator
+actor "Speaker" as speaker
+actor "Adopter" as adopter
+actor "flagd" as flagd
+
+rectangle "OTelFeature demo" {
+  usecase "UC-001\nSwitch tracing off and on at runtime" as UC001
+  usecase "UC-002\nDrop noisy spans before they are created" as UC002
+  usecase "UC-003\nMeasure the savings of a drop rule" as UC003
+  usecase "UC-004\nTarget trace sampling by environment and service" as UC004
+  usecase "UC-005\nRaise sampling while a service is failing" as UC005
+  usecase "UC-006\nInject upstream failures" as UC006
+  usecase "UC-007\nExplain a telemetry decision from the trace" as UC007
+  usecase "UC-008\nRun the demo on stage" as UC008
+  usecase "UC-009\nTry the demo from the public repository" as UC009
+}
+
+operator --> UC001
+operator --> UC002
+operator --> UC004
+operator --> UC005
+operator --> UC007
+speaker --> UC003
+speaker --> UC006
+speaker --> UC008
+adopter --> UC009
+
+UC001 --> flagd
+UC002 --> flagd
+UC004 --> flagd
+UC005 --> flagd
+UC006 --> flagd
+
+UC005 ..> UC006 : <<include>>
+UC005 ..> UC004 : <<extend>>
+UC003 ..> UC002 : <<include>>
+UC008 ..> UC001 : <<include>>
+UC008 ..> UC002 : <<include>>
+UC008 ..> UC004 : <<include>>
+UC008 ..> UC005 : <<include>>
+
+note right of UC008
+  Speaker performs the Operator's
+  use cases on stage via presets.
+end note
+@enduml
