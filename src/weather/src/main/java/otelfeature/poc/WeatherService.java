@@ -50,8 +50,9 @@ public class WeatherService {
     private final JdbcTemplate jdbcTemplate;
     private final HttpClient httpClient;
     private final JsonMapper jsonMapper;
+    private final FaultInjection faultInjection;
 
-    public WeatherService(JdbcTemplate jdbcTemplate, JsonMapper jsonMapper,
+    public WeatherService(JdbcTemplate jdbcTemplate, JsonMapper jsonMapper, FaultInjection faultInjection,
                           @Value("${weather.open-meteo.geocoding-url}") String geocodingApi,
                           @Value("${weather.open-meteo.forecast-url}") String forecastApi) {
         this.geocodingApi = geocodingApi;
@@ -61,9 +62,14 @@ public class WeatherService {
                 .connectTimeout(Duration.ofSeconds(10))
                 .build();
         this.jsonMapper = jsonMapper;
+        this.faultInjection = faultInjection;
     }
 
     public WeatherResponse getWeather(String city, String country) {
+        // 0. Fault injection (weatherUpstreamFailure flag): before the cache,
+        //    so the injected error rate doesn't depend on cache hits.
+        faultInjection.maybeFail();
+
         // 1. Check weather cache
         WeatherResponse cached = checkWeatherCache(city, country);
         if (cached != null) {

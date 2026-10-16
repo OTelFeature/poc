@@ -22,4 +22,8 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-jdbc'
     implementation 'org.springframework.boot:spring-boot-starter-jackson'
     runtimeOnly 'org.postgresql:postgresql'
+    // Application-level feature flags (fault injection). Same versions as
+    // otelfeature-java-extension uses for its own, isolated client.
+    implementation 'dev.openfeature:sdk:1.23.0'
+    implementation 'dev.openfeature.contrib.providers:flagd:0.14.2'
 }

@@ -38,6 +38,7 @@ mounted into the container at `/etc/flagd` and passed via
 | `telemetryLevel` | string | `full`=FULL, `io`=IO, `off`=OFF | `full` | `IO` drops `INTERNAL` spans; `OFF` is the same as `otelEnabled=off` |
 | `recordSpan` | boolean | `on`, `off` | `on` | Evaluated per span against the semconv context; a targeting rule returning `off` drops that span (Demo 2) |
 | `traceSampleRatio` | number | `all`=1.0, `tenth`=0.1, `none`=0.0 | `all` | Sample ratio for root spans (Demo 3) |
+| `weatherUpstreamFailure` | number | `none`=0.0, `incident`=0.3, `outage`=1.0 | `none` | **Application flag**: share of `weather`'s `/weather` requests that fail with HTTP 503 (Demo 3 incident). Evaluated by weather's own OpenFeature client, not the extension |
 
 The committed `flagd.json` is the neutral baseline: every flag at its
 default, no targeting, so the services behave like stock OpenTelemetry. It is

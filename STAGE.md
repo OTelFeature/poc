@@ -6,7 +6,8 @@ pushes the change to both services and they apply it to the next span. Aspire
 (http://localhost:18888, **Traces** view) shows the effect within a second or two.
 
 > [!IMPORTANT]
-> Presets 01–03 need extension releases that understand `otelEnabled`,
+> `weatherUpstreamFailure` (03b) works with the stack as it is: weather's own
+> code evaluates it. Presets 01–03 need extension releases that understand `otelEnabled`,
 > `recordSpan`, `traceSampleRatio` and the semconv evaluation context
 > (otelfeature-instrument and otelfeature-java-extension, not released yet).
 > Until `src/geocode` and `src/weather` are bumped to those versions, the
@@ -35,7 +36,8 @@ because Demo 3 needs the staging twins.
 | Demo 1: and back on | `make flag PRESET=00-baseline` | Complete traces from both services again |
 | Demo 2: drop the noise | `make flag PRESET=02-quiet-noise` | No new `GET /health` traces from `geocode`, and new `/weather` traces with no `SELECT`/`INSERT` (JDBC) spans. `weather`'s own `/health` traces stay |
 | Demo 3: rules on semconv attributes | `make flag PRESET=03-semconv-rules` | About 1 in 10 production `geocode` traces; all production `weather` traces; all staging traces (filter by `deployment.environment.name`) |
-| Demo 3: incident | `03b-incident`, added with the fault-injection flag (OTelFeature/poc#28) | n/a |
+| Demo 3: incident | `make flag PRESET=03b-incident` | About 30% of `weather` `POST /weather` traces turn red (HTTP 503, span status ERROR, `error.type=503`); the span metrics show the error rate. Sampling rules as in `03-semconv-rules` |
+| Demo 3: incident over | `make flag PRESET=03-semconv-rules` | No new errors |
 | End | `make demo-reset` | Baseline, fresh k6 run |
 
 If a beat doesn't show its effect, switch to the fallback video for that demo
@@ -45,7 +47,7 @@ If a beat doesn't show its effect, switch to the fallback video for that demo
 
 Every preset is a full flag file. Anything not listed is at its baseline value
 (`otelEnabled=on`, `telemetryLevel=full`, `recordSpan=on`,
-`traceSampleRatio=all` = 1.0).
+`traceSampleRatio=all` = 1.0, `weatherUpstreamFailure=none` = 0.0).
 
 | Preset | Change from baseline |
 |---|---|
@@ -53,6 +55,7 @@ Every preset is a full flag file. Anything not listed is at its baseline value
 | `01-otel-off` | `otelEnabled` default `off` |
 | `02-quiet-noise` | `recordSpan` targeting → `off` for `service.name=geocode` + `span.kind=server` + `url.path=/health`, and for `service.name=weather` + `otel.scope.name=io.opentelemetry.jdbc` |
 | `03-semconv-rules` | `traceSampleRatio` targeting: production `weather` → 1.0, other production → 0.1, everything else (staging, or no environment) → 1.0 |
+| `03b-incident` | `03-semconv-rules` plus `weatherUpstreamFailure` default `incident` (0.3) |
 
 Rules read the evaluation context the extensions build from OTel semantic
 conventions, nested by dot segment, so `{"var": "service.name"}` works as
