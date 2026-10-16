@@ -17,7 +17,7 @@ response waits 20–120 ms, so the outgoing `CLIENT` spans look like real
 network calls (with `server.address` = `stub-apis`).
 
 [stub.py](stub.py) uses only the Python standard library. Compose runs it on
-the stock `python:3.14-slim-bookworm` image with the script mounted in, so
+the stock `python:3.15-slim-bookworm` image with the script mounted in, so
 there is no build step.
 
 If you add a location to `load-test.js`, add it to `LOCATIONS` in `stub.py`
