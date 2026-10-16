@@ -51,7 +51,7 @@ WORKDIR /app
 COPY build.gradle settings.gradle ./
 RUN gradle downloadDependencies --no-daemon -q
 COPY src ./src
-RUN gradle build -x test --no-daemon
+RUN gradle build -x test --no-daemon --offline
 
 # ── Runtime stage ───────────────────────────────────────────────────
 FROM eclipse-temurin:25-jre-alpine@sha256:3c0a9084927a221ccd1d007fcaf614465672c0af37aaa834c5184483afe56d61

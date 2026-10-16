@@ -25,7 +25,7 @@ Issue refs: `OTelFeature/poc#N` (poc), `OTelFeature/otelfeature-instrument#N`
 | "Why not the collector?" (could read the same flags) | C-010 | - | - | none (D4, script only) |
 | CTA: repo and demo on the slide | FR-020, FR-021 | UC-009 | TC-007 | OTelFeature/poc#31, OTelFeature/poc#14 |
 | Stage risk: live demo fails | C-008 | UC-008 | TC-006 | OTelFeature/poc#32 |
-| Stage risk: a beat broke since the last rehearsal | NFR-004, NFR-012, NFR-015, NFR-016, C-013, C-014 | UC-008 (BR-005) | TC-001, TC-002, TC-004, TC-005, TC-006 (Automation sections) | OTelFeature/poc#35, OTelFeature/otelfeature-instrument#20, OTelFeature/otelfeature-java-extension#32, OTelFeature/poc#67 |
+| Stage risk: a beat broke since the last rehearsal | NFR-004, NFR-012, NFR-015, NFR-016, C-013, C-014 | UC-008 (BR-005) | TC-001, TC-002, TC-004, TC-005, TC-006 (Automation sections) | OTelFeature/poc#35, OTelFeature/otelfeature-instrument#20, OTelFeature/otelfeature-java-extension#32, OTelFeature/poc#67, OTelFeature/poc#70 |
 | Q&A: what else can become a flag | FR-021 | UC-009 | TC-007 | OTelFeature/poc#14, OTelFeature/poc#15 |
 
 ## Issue → spec
@@ -54,7 +54,6 @@ the end-to-end suite and the toolchain images.
 | OTelFeature/poc#30 | OpenFeature OTel hooks in the apps | P1 | FR-015 | UC-007 | TC-005 |
 | OTelFeature/poc#31 | Public repo | P1 | FR-020 | UC-009 | TC-007 |
 | OTelFeature/poc#32 | Fallback video | P2 | C-008 | UC-008 | TC-006 |
-| OTelFeature/poc#70 | Faster builds and e2e suite | P2 | NFR-015, NFR-016 | none (tooling) | TC-001, TC-002, TC-004, TC-005, TC-006 (Automation sections) |
 | OTelFeature/poc#33 | OTel Demo footage | P1 | C-007 | UC-008 | TC-006 |
 | OTelFeature/poc#38 | k6 health-check scenario, split out of OTelFeature/poc#23 (answers OQ-5) | P0 | FR-006 (Demo 2 traffic) | UC-002 | TC-002 |
 | OTelFeature/poc#59 | Cross-service path: `geocode` calls `weather` | P1 | FR-026 | UC-004 | TC-004 |
@@ -74,6 +73,7 @@ the end-to-end suite and the toolchain images.
 | OTelFeature/otelfeature-java-extension#27 | `recordSpan` (Java) | P0 | FR-006, FR-007, FR-023, C-004 | UC-002 | TC-002 |
 | OTelFeature/otelfeature-java-extension#32 | Toolchain image `ci/Dockerfile` (Java), also the e2e build stage | P1 | NFR-016, C-013, C-014 | none (tooling) | none |
 | OTelFeature/poc#67 | Toolchain (`poc`): `make test`, `make shell`, base pinned by digest | P1 | NFR-016, C-014 | none (tooling) | none |
+| OTelFeature/poc#70 | Faster builds and e2e suite | P1 | NFR-015, NFR-016 | none (tooling) | TC-001, TC-002, TC-004, TC-005, TC-006 (Automation sections) |
 | OTelFeature/otelfeature-instrument#24 | Release v0.3.0 (release workflow, wheel + sdist); tagged and released 2026-10-16 | P0 | C-006 | UC-008 | TC-006 |
 | OTelFeature/otelfeature-java-extension#37 | Release v0.4.0; tagged and released 2026-10-16 | P0 | C-006 | UC-008 | TC-006 |
 

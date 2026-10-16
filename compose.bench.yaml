@@ -6,7 +6,8 @@
 #
 # Differences from e2e:
 # - the services run with the *stage* settings again, not e2e's fast
-#   export and short error-rate window, so the numbers are the stage's
+#   export, short error-rate window and faster-start JVM flags, so the
+#   numbers are the stage's
 # - the load generator runs (the stage's normal traffic; BENCH_RATE
 #   multiplies the business requests and the health checks)
 # - the extra instances (staging twins, hard floors) are off, so they
@@ -22,14 +23,16 @@ x-stage-settings: &stage-settings
   OTEL_METRIC_EXPORT_INTERVAL: "60000"
   OTELFEATURE_ERROR_RATE_INTERVAL: "10"
   OTELFEATURE_ERROR_RATE_MIN_REQUESTS: "10"
-  JAVA_TOOL_OPTIONS: ""
 
 services:
   geocode:
     environment: *stage-settings
 
   weather:
-    environment: *stage-settings
+    environment:
+      <<: *stage-settings
+      # e2e's faster-start JVM flags off: the stage JVM is what's measured.
+      JAVA_TOOL_OPTIONS: ""
 
   stub-apis:
     environment:

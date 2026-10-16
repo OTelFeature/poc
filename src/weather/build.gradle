@@ -43,9 +43,11 @@ dependencies {
 }
 
 // For the Docker dependency layer (Dockerfile): resolves, and so downloads,
-// everything the build below needs, before the sources are copied in.
+// every artifact the build needs, before the sources are copied in. The
+// Dockerfile then builds --offline, so anything missed here fails the build.
 tasks.register('downloadDependencies') {
-    inputs.files(configurations.compileClasspath, configurations.annotationProcessor,
-                 configurations.productionRuntimeClasspath)
-    doLast {}
+    def deps = files(configurations.compileClasspath, configurations.annotationProcessor,
+                     configurations.productionRuntimeClasspath)
+    inputs.files(deps)
+    doLast { deps.files.size() }
 }

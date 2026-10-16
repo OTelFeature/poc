@@ -162,7 +162,7 @@ requests until the new behaviour shows) before counting.
 
 | File | What |
 |---|---|
-| [conftest.py](conftest.py) | Fixtures: `spans`, `flags`, `step`, `baseline` |
+| [conftest.py](conftest.py) | Fixtures: `spans`, `flags`, `step`, `baseline`; `no_extension_attributes` checks at the end of the session that no span carries attributes the extensions must not write (FR-014, UC-007 BR-001) |
 | [spans.py](spans.py) | OTLP/JSON span parsing, `wait_until`, `tree_problem` |
 | [flags.py](flags.py) | Preset application with the mtime and revision barrier |
 | [collector.yaml](collector.yaml) | e2e collector: OTLP in, JSON file out |
