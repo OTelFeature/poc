@@ -26,28 +26,52 @@ const REQUEST_INTERVAL_SECONDS = Number(__ENV.REQUEST_INTERVAL_SECONDS) || 5;
 
 const DURATION = __ENV.DURATION || '1h';
 
-export const options = {
-  scenarios: {
-    geocode: {
-      exec: 'geocode',
-      executor: 'constant-arrival-rate',
-      rate: 1,
-      timeUnit: `${REQUEST_INTERVAL_SECONDS}s`,
-      duration: DURATION,
-      preAllocatedVUs: 2,
-      maxVUs: 5,
-    },
-    weather: {
-      exec: 'weather',
-      executor: 'constant-arrival-rate',
-      rate: 1,
-      timeUnit: `${REQUEST_INTERVAL_SECONDS}s`,
-      duration: DURATION,
-      preAllocatedVUs: 2,
-      maxVUs: 5,
-    },
+// Health checks: GET /health on both services, like a kubelet probe, so
+// Demo 2 has health-check spans to drop (OTelFeature/poc#38). Requests per
+// second, per service; 0 turns the scenario off. k6 sends no traceparent, so
+// every check is a root SERVER span. /health makes no outgoing calls, so the
+// rate is independent of the external-API limits above.
+const HEALTHCHECK_RATE = __ENV.HEALTHCHECK_RATE === undefined || __ENV.HEALTHCHECK_RATE === ''
+  ? 2
+  : Number(__ENV.HEALTHCHECK_RATE);
+if (!Number.isInteger(HEALTHCHECK_RATE) || HEALTHCHECK_RATE < 0) {
+  throw new Error(`HEALTHCHECK_RATE must be a whole number >= 0, got "${__ENV.HEALTHCHECK_RATE}"`);
+}
+
+const scenarios = {
+  geocode: {
+    exec: 'geocode',
+    executor: 'constant-arrival-rate',
+    rate: 1,
+    timeUnit: `${REQUEST_INTERVAL_SECONDS}s`,
+    duration: DURATION,
+    preAllocatedVUs: 2,
+    maxVUs: 5,
+  },
+  weather: {
+    exec: 'weather',
+    executor: 'constant-arrival-rate',
+    rate: 1,
+    timeUnit: `${REQUEST_INTERVAL_SECONDS}s`,
+    duration: DURATION,
+    preAllocatedVUs: 2,
+    maxVUs: 5,
   },
 };
+
+if (HEALTHCHECK_RATE > 0) {
+  scenarios.healthchecks = {
+    exec: 'healthchecks',
+    executor: 'constant-arrival-rate',
+    rate: HEALTHCHECK_RATE,
+    timeUnit: '1s',
+    duration: DURATION,
+    preAllocatedVUs: 2,
+    maxVUs: 10,
+  };
+}
+
+export const options = { scenarios };
 
 function randomLocation() {
   return LOCATIONS[Math.floor(Math.random() * LOCATIONS.length)];
@@ -71,4 +95,14 @@ export function weather() {
     { headers: HEADERS },
   );
   check(res, { 'status is 200': (r) => r.status === 200 });
+}
+
+// One iteration = one probe of each service, sent in parallel.
+export function healthchecks() {
+  const [geo, wea] = http.batch([
+    ['GET', `${GEOCODE_BASE_URL}/health`],
+    ['GET', `${WEATHER_BASE_URL}/health`],
+  ]);
+  check(geo, { 'geocode health is 200': (r) => r.status === 200 });
+  check(wea, { 'weather health is 200': (r) => r.status === 200 });
 }
