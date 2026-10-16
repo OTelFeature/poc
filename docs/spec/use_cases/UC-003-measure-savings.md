@@ -26,8 +26,8 @@
 2. The system runs the baseline preset for the configured duration and records, per service, CPU, resident memory, spans per second and export bytes per second, at the service, not at the backend.
 3. The system runs the Demo 2 preset with `weather` in processor mode (the default, `OTELFEATURE_ENFORCEMENT=processor`) and records the same values.
 4. The system runs the Demo 2 preset with `weather` in sampler mode and records the same values.
-5. The system measures the cost of one targeted span decision in each language.
-6. The system prints one table per service comparing the three runs and the decision cost.
+5. The system runs the baseline with a targeted rule that never matches, so every span is decided per span but none is dropped, and records the same values: the extra CPU over the baseline is the decision cost (BR-006).
+6. The system prints one table per service comparing the runs and the decision cost.
 7. The operator runs a second measurement with the same command and compares the two tables.
 8. The operator records the numbers for the script brackets and the D3 recommendation in OTelFeature/poc#27.
 
@@ -57,7 +57,7 @@
 
 **Flow:**
 
-1. The system shows the per-service spans per second and export bytes per second live, so the drop is visible within seconds of the flag flip.
+1. The dashboard shows the collector's span metrics per service (`traces.span.metrics.calls`, by `service.name`) live, so the drop is visible within seconds of the flag flip (BR-007).
 2. Use case ends.
 
 ## Postconditions
@@ -92,3 +92,15 @@ Until D3 is decided (OQ-1), the Demo 2 line covers both: sampler mode means "nev
 ### BR-005: Traffic source
 
 The measurement does not depend on OTelFeature/poc#23 (deferred). It uses the stack's normal traffic plus whatever health-check traffic OQ-5 settles on.
+
+### BR-006: Decision cost from a targeted no-op rule
+
+The decision cost is measured at the service like the savings: a run with a `recordSpan` rule that reads a span attribute but never matches makes both extensions decide every span with a built context, and drops nothing. Its CPU minus the baseline's CPU is the cost of the targeted path at that load; the per-span micro-benchmarks stay in the extension READMEs (NFR-005).
+
+### BR-007: What each number is
+
+- **CPU:** the container's CPU use in percent of one core, averaged over the measurement window (Docker stats).
+- **Memory:** the container's resident memory (usage minus page cache) at the end of the window, in MB.
+- **Spans per second:** spans with the service's `service.name` that reached the collector in the window.
+- **Export bytes per second:** the size of those spans as the OTLP protobuf the service sends (`ResourceSpans`, before compression).
+- Each run starts from a warm-up with the same traffic, so caches and JIT are settled. The traffic is the stack's normal load (TC-003 item 4) unless the operator raises it (`BENCH_RATE`).
