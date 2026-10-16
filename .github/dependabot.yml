@@ -1,9 +1,13 @@
 version: 2
 
 updates:
-  # Python dependencies for the geocode service (pyproject.toml + uv.lock)
+  # Python dependencies of geocode and of the toolchain image (tests/e2e).
+  # One entry, so a shared package (openfeature-provider-flagd, which both
+  # pin) is bumped in both lock files in the same PR.
   - package-ecosystem: "uv"
-    directory: "/src/geocode"
+    directories:
+      - "/src/geocode"
+      - "/tests/e2e"
     schedule:
       interval: "weekly"
     open-pull-requests-limit: 10
@@ -43,15 +47,9 @@ updates:
     schedule:
       interval: "weekly"
 
-  # e2e runner image (ci/Dockerfile)
+  # Toolchain image (ci/Dockerfile): make test, make shell, make e2e
   - package-ecosystem: "docker"
     directory: "/ci"
-    schedule:
-      interval: "weekly"
-
-  # e2e test dependencies (tests/e2e/pyproject.toml + uv.lock)
-  - package-ecosystem: "uv"
-    directory: "/tests/e2e"
     schedule:
       interval: "weekly"
 
