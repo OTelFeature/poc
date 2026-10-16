@@ -89,8 +89,7 @@ def _failing_and_traced(trace) -> str | None:
 
 def _flag_explains_failure(trace) -> str | None:
     """TC-005 steps 6-7 / UC-007: a span of the failed request carries the
-    hook's evaluation event for weatherUpstreamFailure, and no span carries
-    attributes the extensions would have written."""
+    hook's evaluation event for weatherUpstreamFailure."""
     if problem := _failing_and_traced(trace):
         return problem
     events = [(s, attrs) for s in trace for name, attrs in s.events
@@ -103,10 +102,6 @@ def _flag_explains_failure(trace) -> str | None:
         return f"hook event on a {span.service} span"
     if attrs.get(HOOK_VARIANT) != "outage" or not attrs.get(HOOK_PROVIDER):
         return f"hook event attributes {attrs}, want variant 'outage' and a provider name"
-    written = [(s, k) for s in trace for k in s.attrs
-               if k.startswith("feature_flag.") or k in EXTENSION_ATTRS]
-    if written:
-        return f"span attributes the extensions must not write: {[(str(s), k) for s, k in written]}"
     return None
 
 
@@ -133,6 +128,14 @@ def test_tc005_control_loop(step: Step, flags: Flags):
     # one-off): a fresh failing request is traced again, and the trace says
     # which flag failed it (steps 6-7, UC-007).
     step.wait_for_trace(traffic, _flag_explains_failure, timeout=LOOP_TIMEOUT)
+
+    # FR-014 / UC-007 BR-001, over every span exported so far in the session (both
+    # services, sampled down and up): no span carries attributes the
+    # extensions would have written. Outside the barrier, so one violating
+    # trace can't be skipped.
+    written = [s for s in step.spans.spans
+               if any(k.startswith("feature_flag.") or k in EXTENSION_ATTRS for k in s.attrs)]
+    assert not written, f"span attributes the extensions must not write:\n{describe(written)}"
 
     # geocode had error-free traffic all along (rate 0.0): none of it traced.
     leaked = [s for s in step.spans.for_step(traffic.geocode_tag)]

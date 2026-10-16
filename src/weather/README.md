@@ -153,7 +153,9 @@ with `feature_flag.key`, `feature_flag.variant` and
 `feature_flag.provider_name` (not yet `feature_flag.evaluation` /
 `feature_flag.result.variant` / `feature_flag.provider.name`). The hook is on
 the app's client only; the agent extension's own evaluations run in its
-isolated OpenFeature API and are not recorded.
+isolated OpenFeature API and are not recorded. If an evaluation fails (for
+example while flagd isn't reachable yet at startup), the hook adds an
+exception event to the current span; the span's status is unchanged.
 
 ## Running locally
 
