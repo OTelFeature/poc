@@ -13,7 +13,7 @@
 
 ## Preconditions
 
-- Extension releases containing OTelFeature/otelfeature-instrument#7 and OTelFeature/otelfeature-java-extension#20 (context), OTelFeature/otelfeature-instrument#14 and OTelFeature/otelfeature-java-extension#27 (`recordSpan`) and, for sampler mode, OTelFeature/otelfeature-java-extension#21.
+- Extension code in the pinned released versions (C-006: otelfeature-instrument v0.3.0, otelfeature-java-extension v0.4.0; a git ref only when passed explicitly to the e2e suite, C-013) containing OTelFeature/otelfeature-instrument#7 and OTelFeature/otelfeature-java-extension#20 (context), OTelFeature/otelfeature-instrument#14 and OTelFeature/otelfeature-java-extension#27 (`recordSpan`) and, for sampler mode, OTelFeature/otelfeature-java-extension#21.
 - Context shape fixed by OTelFeature/poc#22.
 - Health-check traffic reaches `geocode` (source: OQ-5).
 

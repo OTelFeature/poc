@@ -3,13 +3,13 @@
 ## Overview
 
 - **ID:** TC-006
-- **Goal:** The speaker runs all demo beats with the network disconnected, one command per beat, and ends at baseline.
+- **Goal:** The operator runs all demo beats with the network disconnected, one command per beat, and ends at baseline.
 - **Priority:** Critical
 - **Status:** Draft
 
 ## Roles
 
-- Speaker: runs every command from `STAGE.md`.
+- Operator: runs every command from `STAGE.md`.
 
 ## Preconditions
 
