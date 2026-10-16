@@ -9,13 +9,15 @@ Runs via the official `grafana/k6` image in [compose.yaml](../../compose.yaml)
 
 ## Behavior
 
-The script defines three k6 scenarios that run **concurrently**:
+The script defines four k6 scenarios that run **concurrently**:
 
 | Scenario | Target | Endpoint | Rate |
 |----------|--------|----------|------|
 | `geocode` | `geocode` service | `POST /geocode` | 1 request / N seconds |
 | `weather` | `weather` service | `POST /weather` | 1 request / N seconds |
-| `healthchecks` | both services | `GET /health` | `HEALTHCHECK_RATE` requests / second, per service |
+| `healthchecks` | both services | `GET /health` | `FORECAST_INTERVAL_SECONDS`      | `10`                  | Seconds between `POST /forecast` requests (`0` = off) |
+| `HEALTHCHECK_RATE` requests / second, per service |
+| `forecast` | `geocode`, which calls `weather` | `POST /forecast` | 1 request / `FORECAST_INTERVAL_SECONDS` (10) |
 
 `healthchecks` stands in for a kubelet probe, so Demo 2 has health-check
 spans to drop (OTelFeature/poc#38, open question OQ-5). k6 sends no trace
@@ -54,6 +56,12 @@ response latency.
 With the `staging` compose profile (`make start-staging`), a second
 instance, `load-generator-staging`, runs the same script against
 `geocode-staging` and `weather-staging`.
+
+`forecast` is the cross-service path (FR-026): its traces span both
+services, with `geocode` deciding their sampling. It is deliberately rare:
+one request per 10 s interval keeps a `weather` incident (whose failures make
+`/forecast` fail too) from pushing `geocode`'s own error rate over the 5%
+control-loop threshold (UC-005 A7). `FORECAST_INTERVAL_SECONDS=0` turns it off.
 
 ## Configuration
 

@@ -11,6 +11,7 @@ from db import get_coordinates_from_db, insert_coordinates_into_db
 
 NOMINATIM_URL = os.environ.get("NOMINATIM_URL", "https://nominatim.openstreetmap.org/search")
 USER_AGENT = os.environ.get("NOMINATIM_USER_AGENT", "poc-otelfeature-geocode/1.0")
+WEATHER_URL = os.environ.get("WEATHER_URL", "http://weather:8001")
 
 tracer = trace.get_tracer(__name__)
 
@@ -25,6 +26,12 @@ class GeocodeRequest(BaseModel):
 class GeocodeResponse(BaseModel):
     latitude: float
     longitude: float
+
+
+class ForecastResponse(BaseModel):
+    latitude: float
+    longitude: float
+    weather: dict
 
 
 @app.post("/geocode", response_model=GeocodeResponse)
@@ -64,3 +71,20 @@ async def geocode(request: GeocodeRequest) -> GeocodeResponse:
 @app.get("/health")
 async def health() -> dict:
     return {"status": "ok"}
+
+
+@app.post("/forecast", response_model=ForecastResponse)
+async def forecast(request: GeocodeRequest) -> ForecastResponse:
+    """The cross-service path (FR-026): resolve the coordinates, then ask
+    `weather` for the current weather over HTTP. The httpx instrumentation
+    propagates the trace context, so `geocode` is the trace's entry point and
+    `weather` follows its sampling decision. A failing `weather` call fails
+    this request too (502)."""
+    coordinates = await geocode(request)
+    async with httpx.AsyncClient(timeout=10.0) as client:
+        response = await client.post(f"{WEATHER_URL}/weather", json=request.model_dump())
+    if response.status_code != 200:
+        raise HTTPException(status_code=502, detail=f"weather answered HTTP {response.status_code}")
+    return ForecastResponse(
+        latitude=coordinates.latitude, longitude=coordinates.longitude, weather=response.json()
+    )

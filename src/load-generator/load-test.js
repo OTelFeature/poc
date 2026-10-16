@@ -37,6 +37,14 @@ if (HEALTHCHECK_RATE_RAW !== '' && !/^\d+$/.test(HEALTHCHECK_RATE_RAW)) {
 }
 const HEALTHCHECK_RATE = HEALTHCHECK_RATE_RAW === '' ? 2 : Number(HEALTHCHECK_RATE_RAW);
 
+// The cross-service path (FR-026): geocode's POST /forecast calls weather,
+// so these traces span both services and geocode decides their sampling.
+// Deliberately rare: one request per interval keeps a weather incident from
+// pushing geocode's own error rate over 5% (UC-005 A7). 0 turns it off.
+const FORECAST_INTERVAL_SECONDS = __ENV.FORECAST_INTERVAL_SECONDS === undefined || __ENV.FORECAST_INTERVAL_SECONDS === ''
+  ? 10
+  : Number(__ENV.FORECAST_INTERVAL_SECONDS);
+
 const scenarios = {
   geocode: {
     exec: 'geocode',
@@ -67,6 +75,18 @@ if (HEALTHCHECK_RATE > 0) {
     duration: DURATION,
     preAllocatedVUs: 2,
     maxVUs: 10,
+  };
+}
+
+if (FORECAST_INTERVAL_SECONDS > 0) {
+  scenarios.forecast = {
+    exec: 'forecast',
+    executor: 'constant-arrival-rate',
+    rate: 1,
+    timeUnit: `${FORECAST_INTERVAL_SECONDS}s`,
+    duration: DURATION,
+    preAllocatedVUs: 1,
+    maxVUs: 3,
   };
 }
 
@@ -104,4 +124,13 @@ export function healthchecks() {
   ]);
   check(geo, { 'geocode health is 200': (r) => r.status === 200 });
   check(wea, { 'weather health is 200': (r) => r.status === 200 });
+}
+
+export function forecast() {
+  const res = http.post(
+    `${GEOCODE_BASE_URL}/forecast`,
+    JSON.stringify(randomLocation()),
+    { headers: HEADERS },
+  );
+  check(res, { 'forecast status is 200': (r) => r.status === 200 });
 }

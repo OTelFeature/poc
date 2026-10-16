@@ -34,6 +34,25 @@ Response body:
 
 Returns `404` if no location matches the given city/country.
 
+### `POST /forecast`
+
+The cross-service path (FR-026): same request body as `POST /geocode`. It
+resolves the coordinates, then calls `weather`'s `POST /weather` (at
+`WEATHER_URL`) and returns both:
+
+```json
+{
+  "latitude": 48.3059,
+  "longitude": 14.2862,
+  "weather": { "temperature": 21.4, "windspeed": 12.0, "weatherCode": 1, "weatherDescription": "Partly cloudy", "latitude": 48.3059, "longitude": 14.2862 }
+}
+```
+
+The httpx instrumentation propagates the trace context, so these traces span
+both services, with `geocode` as the entry point that decides their sampling
+(`weather` follows the parent). If `weather` fails, this request fails with
+`502`.
+
 ### `GET /health`
 
 Liveness check, returns `{"status": "ok"}`.
@@ -52,6 +71,7 @@ curl -s -X POST http://localhost:8000/geocode \
 |-------------------------------|-------------------------------|-------------------------------------------------------------------------------------|
 | `GEOCODE_PORT`                | `8000`                        | Port uvicorn listens on                                                             |
 | `NOMINATIM_URL`               | `https://nominatim.openstreetmap.org/search` | Nominatim search endpoint. Compose points it at [stub-apis](../stub-apis) unless started with `make start-live` |
+| `WEATHER_URL` | `http://weather:8001` | `weather` base URL for `POST /forecast` (compose: the instance of the same environment) |
 | `NOMINATIM_USER_AGENT`        | `poc-otelfeature-geocode/1.0` | `User-Agent` header sent to Nominatim                                               |
 | `OTEL_SERVICE_NAME`           | -                             | Service name reported in telemetry                                                  |
 | `OTEL_SEMCONV_STABILITY_OPT_IN` | - | Compose sets `http`: stable HTTP semconv, so the server span has `url.path` at start (flag rules on the path need it) and the duration metric is `http.server.request.duration` |
