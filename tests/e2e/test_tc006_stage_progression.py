@@ -146,8 +146,7 @@ def test_stage_progression(step: Step, flags: Flags):
     _geocode_production_low(step, "03a")
 
     # 03b-incident: weather fails ~50% (UC-006 BR-003); its error rate
-    # passes 5% and the loop
-    # samples production weather fully. The error rate needs continuous
+    # passes 5% and the loop samples production weather fully. The error rate needs continuous
     # traffic (min 5 requests per 2 s interval; below it the key is absent
     # and weather falls back to 0.5), so there is no settle pause between
     # batches here: each poll sends 20 requests and waits only until they're
