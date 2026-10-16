@@ -228,7 +228,8 @@ Every writer of a watched flag file therefore:
    to the old mtime + 10 ms.
 2. **Confirms the new value** before it counts spans: it polls flagd over
    OFREP (port 8016) until flagd serves the new value (the e2e suite adds a
-   per-write revision flag for this), with a timeout that fails the run.
+   per-write revision flag for this), with a timeout that fails the run. OFREP
+   only verifies the served value; the services evaluate in process (C-002).
 
 This applies to the preset scripts, `make demo-reset`, the extension tests
 that rewrite flag files, and the e2e flag-flip helper (NFR-004, TC-006).

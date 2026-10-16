@@ -30,7 +30,7 @@
 | 6 | Read the trace | Open a failed `/weather` trace | - | [UC-007](../use_cases/UC-007-see-flag-evaluations-in-trace.md) |
 | 7 | Verify explanation | Span event for `weatherUpstreamFailure` on the `/weather` span; no span carries attributes written by the extensions | - | - |
 | 8 | Revert | Apply the weather-boost preset again: no fault, no loop rule | `03a-weather-boost`, `weatherUpstreamFailure` → 0.0 | [UC-006](../use_cases/UC-006-inject-upstream-failures.md) |
-| 9 | Verify recovery | Traces that start in `weather` back at about 50% within 2 s: the fault and the rule leave with the preset (UC-005 A6, OQ-14) | - | - |
+| 9 | Verify recovery | Traces that start in `weather` back at about 50% within 2 s: the fault and the rule leave with the preset (UC-005 A6, OQ-14). The main scenario's self-release, with the rule kept, is check 13 | - | - |
 
 ## Validation
 
@@ -43,7 +43,7 @@
 7. **Fault injection (OTelFeature/poc#28):** errors visible in spanmetrics with `status.code=ERROR`; reverting stops them. Values outside 0.0 to 1.0, NaN and non-numbers behave as UC-006 BR-002 and A2 (code review of `FaultInjection`; no test yet).
 8. **Hooks (OTelFeature/poc#30):** exact attribute names per pinned SDK version recorded in the issue.
 9. **No decision attributes (OTelFeature/otelfeature-instrument#9, OTelFeature/otelfeature-java-extension#23):** under any flag state, including a sampled root under `traceSampleRatio=0.1`, the extensions write no `feature_flag.*` attribute, no `otelfeature.sample_ratio` and no tracestate `ot=th`.
-10. **Opt-in hook, Python only (OTelFeature/otelfeature-instrument#9):** on `geocode`, with `OTELFEATURE_OPENFEATURE_TRACING_HOOK=true`, a targeted evaluation for a child span adds a `feature_flag.evaluation` event to its parent; an evaluation for a new root adds nothing; evaluation errors add no exception event. Without the variable, no event is added. The README states the caveat. On `weather` (Java) the variable adds no event (UC-007 A3).
+10. **Opt-in hook, Python only (OTelFeature/otelfeature-instrument#9):** on `geocode`, with `OTELFEATURE_OPENFEATURE_TRACING_HOOK=true`, a targeted evaluation for a child span adds a `feature_flag.evaluation` event to its parent; an evaluation for a new root adds nothing; evaluation errors add no exception event. Without the variable, no event is added. The README states the caveat. On `weather` (Java) the variable adds no event (UC-007 BR-002).
 11. **Repeatable (OTelFeature/poc#29):** steps 1 to 9 pass three times in a row.
 12. **Metrics export off (OTelFeature/otelfeature-instrument#15, OTelFeature/otelfeature-java-extension#31):** with `OTEL_METRICS_EXPORTER=none`, no error-rate reader is registered, the context never contains `otelfeature.http.server.error_rate` and the control-loop rule never matches; `none` mixed with another exporter logs a warning and keeps exporting (FR-024).
 13. **Loop end to end (OTelFeature/poc#35):** with `weatherUpstreamFailure=1.0`, `weather` samples at 1.0 within a bounded number of error-rate intervals; `geocode` sampling does not change; after reverting only `weatherUpstreamFailure` (the rule stays), `weather` returns to its ratio before the incident after an error-free interval (UC-005 steps 6 to 8, the loop letting go on its own). [e2e: `test_tc005_control_loop`]
