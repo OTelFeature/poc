@@ -80,7 +80,7 @@ The failure flag is evaluated by the application, not by the telemetry extension
 
 ### BR-002: Value range
 
-The value is the share of `/weather` requests (for `geocodeUpstreamFailure`: `POST /geocode` requests) that fail, from 0.0 (none) to 1.0 (all), both bounds inclusive. Values outside the range act as the nearest bound; NaN and non-numbers act as 0.0 (A2). This is the behaviour of `FaultInjection` today; it is documented, not changed. `geocode` applies the same rules (A3).
+The value is the share of `/weather` requests (for `geocodeUpstreamFailure`: `POST /geocode` requests) that fail, from 0.0 (none) to 1.0 (all), both bounds inclusive. Values outside the range act as the nearest bound; NaN and non-numbers act as 0.0 (A2). This is the behaviour of `FaultInjection` today; it is documented, not changed. `geocode` applies the same rules (A3). Unit tests in both services check the bounds (TC-005 item 7, OTelFeature/poc#75).
 
 ### BR-003: The incident fails half of `/weather`
 

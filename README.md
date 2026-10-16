@@ -140,6 +140,7 @@ make stop             # docker compose down (staging included)
 make flag PRESET=02-quiet-noise  # apply a flag preset (see STAGE.md)
 make demo-reset                  # baseline flags, restart k6
 make test                        # preset checks (schema + evaluation), in the toolchain image
+make unit-test                   # geocode and weather unit tests, in each Dockerfile's test stage
 make shell                       # shell in the toolchain image (ci/Dockerfile), repo at /workspace
 make e2e                         # end-to-end suite against the real stack (tests/e2e)
 ```
