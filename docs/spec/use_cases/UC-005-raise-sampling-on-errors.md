@@ -72,7 +72,7 @@
 
 ### A5: Metrics export is switched off
 
-**Trigger:** The service runs with `OTEL_METRICS_EXPORTER=none` (step 3).
+**Trigger:** `weather` runs with `OTEL_METRICS_EXPORTER=none` (step 3).
 
 **Flow:**
 

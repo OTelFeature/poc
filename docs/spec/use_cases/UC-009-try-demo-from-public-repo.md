@@ -15,7 +15,7 @@
 
 ## Preconditions
 
-- The owner has made the repository public (OTelFeature/poc#31); its history is free of secrets.
+- The owner, not an agent, has made the repository public (OTelFeature/poc#31); its history is free of secrets.
 - The README has a "Try it in 5 minutes" section and links both extensions.
 
 ## Main Success Scenario
