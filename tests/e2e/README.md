@@ -137,5 +137,6 @@ requests until the new behaviour shows) before counting.
 | [test_baseline.py](test_baseline.py) | Baseline: complete traces from both services |
 | [test_tc001_kill_switch.py](test_tc001_kill_switch.py) | TC-001: `otelEnabled=false` and `telemetryLevel=OFF` stop all spans in both services; baseline brings complete traces back |
 | [test_hard_floors.py](test_hard_floors.py) | TC-001 V6 (spans only) / V7, TC-004 V8 (`always_off` half): `OTEL_SDK_DISABLED=true` and `OTEL_TRACES_SAMPLER=always_off` instances export nothing, even with flags on and a sampled `traceparent` |
+| [test_tc002_drop_noisy_spans.py](test_tc002_drop_noisy_spans.py) | TC-002: `02-quiet-noise` drops geocode `/health` (also a proxied one with a sampled `traceparent`) and weather's JDBC spans; everything else stays, trees connected; baseline restores both |
 | [checks.py](checks.py) | Shared trace-shape checks (complete request trace, DB and stub client spans) |
 | [../../ci/Dockerfile](../../ci/Dockerfile) | Runner image: Python, uv, locked test deps |
