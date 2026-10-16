@@ -9,7 +9,8 @@
 #   the stage (C-006, C-013). `make e2e OTELFEATURE_INSTRUMENT_REF=<ref>` /
 #   `OTELFEATURE_EXTENSION_REF=<ref>` builds an extension from a git ref
 #   instead (the Makefile sets the matching *_SOURCE), to test unreleased
-#   extension code
+#   extension code. Without make, set OTELFEATURE_*_SOURCE=git too, or the
+#   ref is ignored and the pinned release is built
 # - no fixed container names or host ports, own network
 # - the collector writes every span to a JSON file on the e2e-out volume
 #   (tests/e2e/collector.yaml); no Aspire, no Datadog, no docker_stats

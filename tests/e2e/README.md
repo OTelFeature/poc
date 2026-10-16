@@ -36,7 +36,9 @@ pinned versions.
 
 In CI, [e2e.yml](../../.github/workflows/e2e.yml) runs `make e2e` for both
 Java enforcement modes on PRs, on `main` and nightly, against the pinned
-releases. The refs are `workflow_dispatch` inputs, default `release`. Artifacts are uploaded on every run. The images
+releases. The refs are `workflow_dispatch` inputs, default `release` (exactly
+that word; anything else is a git ref). Artifacts are uploaded on every run.
+The images
 are built first by `docker/bake-action` with the GitHub Actions layer cache
 (one cache scope per image; `make e2e E2E_SKIP_BUILD=1` then uses them). The nightly run also includes
 the `slow` statistical tests and runs everything three times in a row

@@ -13,6 +13,8 @@ pushes the change to both services and they apply it to the next span. Aspire
 > understand `otelEnabled`, `telemetryLevel` (including `OFF`), `recordSpan`,
 > `traceSampleRatio` and the semconv evaluation context. The stage never builds
 > an extension from a git ref; unreleased code needs a pre-release (`v…-rc.N`).
+> `make start` doesn't rebuild: after pulling a version bump, run
+> `make prepare-offline` once, or the old images keep the old extensions.
 > `geocode` runs with `OTEL_SEMCONV_STABILITY_OPT_IN=http`, so its server
 > spans carry `url.path` at start (the old conventions only set `http.target`).
 

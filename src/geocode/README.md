@@ -105,9 +105,12 @@ locally first if the build complains about a stale lock file.
 > pulled straight from its GitHub repo (`[tool.uv.sources]` in
 > [pyproject.toml](pyproject.toml)). That's why the Dockerfile's builder
 > stage installs `git` before running `uv sync`: without it, resolving that
-> dependency fails with "Git executable not found." `uv lock` re-pins it to
-> the repo's current `HEAD` commit; if you've pushed new commits there and
-> want geocode to pick them up, re-run `uv lock`.
+> dependency fails with "Git executable not found." The source is pinned to
+> a release tag (`tag = "v0.3.0"`, C-006). To bump it, change `tag` in
+> `pyproject.toml` and run `uv lock --upgrade-package otelfeature-instrument`.
+> Unreleased extension code goes through
+> `make e2e OTELFEATURE_INSTRUMENT_REF=<ref>` or a `v…-rc.N` pre-release
+> (C-013), never through the stage's pin.
 
 ## Running via Docker Compose
 
@@ -120,9 +123,8 @@ docker compose up --build geocode
 
 > [!TIP]
 > The `--build` matters: `compose.yaml` doesn't rebuild on its own when
-> `src/geocode`'s code changes, or when `otelfeature-instrument`'s repo gets
-> new commits (only `uv lock` re-pins to them — see
-> [Dependencies](#dependencies)). Running `docker compose up -d` (no
+> `src/geocode`'s code changes, or when the pinned `otelfeature-instrument`
+> tag changes (see [Dependencies](#dependencies)). Running `docker compose up -d` (no
 > `--build`) silently keeps serving the old image — symptoms look like a
 > flagd/config problem (e.g. flipping `telemetryLevel` in
 > [flagd.json](../flagd/flagd.json) appears to do nothing) when it's

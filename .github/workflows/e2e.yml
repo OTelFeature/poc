@@ -19,10 +19,10 @@ on:
   workflow_dispatch:
     inputs:
       instrument_ref:
-        description: "otelfeature-instrument: release (the pinned version) or a git ref (branch, tag or commit) to build from"
+        description: "otelfeature-instrument: exactly `release` (the pinned version), or a git ref (branch, tag or commit) to build from"
         default: release
       extension_ref:
-        description: "otelfeature-java-extension: release (the pinned version) or a git ref (branch, tag or commit) to build from"
+        description: "otelfeature-java-extension: exactly `release` (the pinned version), or a git ref (branch, tag or commit) to build from"
         default: release
 
 permissions:
