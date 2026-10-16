@@ -31,7 +31,7 @@
 ## Validation
 
 1. **Secrets (OTelFeature/poc#31):** `gitleaks` is clean on the full history.
-2. **Docs:** README has "Try it locally" and links both extensions; env-var tiers documented (OTelFeature/poc#14).
+2. **Docs:** README has "Try it locally" and links both extensions; env-var tiers documented (OTelFeature/poc#14): the README section matches the [entity model](../entity_model.md#otel_-env-vars-and-live-flags) table, links both extension READMEs, and states the governing rule with its two hard floors and the security reason for excluding the OTLP endpoint.
 3. **Nothing is built (NFR-017, OTelFeature/poc#91):** steps 2 and 3 print no build step, and afterwards `docker image ls` lists `ghcr.io/otelfeature/poc-geocode`, `poc-weather` and `poc-stub-apis` with tag `main` and no locally built image of the stack.
 4. **Multi-arch:** `docker buildx imagetools inspect ghcr.io/otelfeature/poc-<service>:main` lists `linux/amd64` and `linux/arm64` for all three images.
 5. **Labels:** `org.opencontainers.image.revision` of each image is a commit on `main`, and the pinned-version labels equal C-006's pins (`io.github.otelfeature.instrument.version` on `geocode`, `io.github.otelfeature.java-extension.version` on `weather`).

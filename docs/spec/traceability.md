@@ -21,7 +21,7 @@ Issue refs: `OTelFeature/poc#N` (poc), `OTelFeature/otelfeature-instrument#N`
 | Demo 3: rules on `service.name`, `deployment.environment.name` | FR-005, FR-010, FR-026 | UC-004 | TC-004 | OTelFeature/poc#25, OTelFeature/otelfeature-instrument#7, OTelFeature/otelfeature-java-extension#20, OTelFeature/poc#59 |
 | Demo 3: sample rate as a number flag | FR-009, NFR-001, NFR-007, C-011, C-012 | UC-004 | TC-004 | OTelFeature/poc#10, OTelFeature/otelfeature-instrument#22 |
 | Demo 3: errors rise, a rule turns sampling up for that service | FR-011, FR-012, FR-013, NFR-013, NFR-014, C-005 | UC-005, UC-006 | TC-005 | OTelFeature/poc#28, OTelFeature/otelfeature-instrument#8, OTelFeature/otelfeature-java-extension#22, OTelFeature/poc#29 |
-| Demo 3: the flag explains itself (wording open, OQ-9) | FR-014, FR-015 | UC-007 | TC-005 | OTelFeature/poc#30, OTelFeature/otelfeature-instrument#9, OTelFeature/otelfeature-java-extension#23 |
+| Demo 3: the flag explains itself (wording open, OQ-9) | FR-014, FR-015 | UC-007 | TC-005 | OTelFeature/poc#30, OTelFeature/otelfeature-instrument#9, OTelFeature/otelfeature-java-extension#23, OTelFeature/otelfeature-java-extension#39 |
 | "Why not the collector?" (could read the same flags) | C-010 | - | - | none (D4, script only) |
 | CTA: repo and demo on the slide | FR-020, FR-021, NFR-017 | UC-009 | TC-007 | OTelFeature/poc#31, OTelFeature/poc#14, OTelFeature/poc#91 |
 | Stage risk: live demo fails | C-008 | UC-008 | TC-006 | OTelFeature/poc#32 |
@@ -71,6 +71,7 @@ the end-to-end suite and the toolchain images.
 | OTelFeature/otelfeature-java-extension#21 | `FlagAwareSampler`, switchable | P0 | FR-006, FR-008, C-004 | UC-001, UC-002, UC-003 | TC-001, TC-002, TC-003 |
 | OTelFeature/otelfeature-java-extension#22 | Error rate into context (Java); also `OTEL_METRICS_EXPORTER=none` | P1 | FR-011, FR-024, NFR-013, NFR-014 | UC-005 | TC-005 |
 | OTelFeature/otelfeature-java-extension#23 | Decision attributes (Java); closed as not planned 2026-10-16, the extension writes none (FR-014) | P1 | FR-014 | UC-007 | TC-005 |
+| OTelFeature/otelfeature-java-extension#39 | Opt-in tracing hook for the extension's own evaluations (Java, parity with Python); `main` only, no release before the talk | P2 | FR-014, NFR-006 | UC-007 (BR-002) | TC-005 (item 10, unit tests) |
 | OTelFeature/otelfeature-java-extension#27 | `recordSpan` (Java) | P0 | FR-006, FR-007, FR-023, C-004 | UC-002 | TC-002 |
 | OTelFeature/otelfeature-java-extension#32 | Toolchain image `ci/Dockerfile` (Java), also the e2e build stage | P1 | NFR-016, C-013, C-014 | none (tooling) | none |
 | OTelFeature/poc#67 | Toolchain (`poc`): `make test`, `make shell`, base pinned by digest | P1 | NFR-016, C-014 | none (tooling) | none |
@@ -89,7 +90,7 @@ issue is one PR, stacked on the previous one in its lane (see the
 [agent workflow](README.md#workflow-for-implementation-simon-2026-10-16)).
 
 - **Python** (`otelfeature-instrument`, merged): poc#8 → poc#9 → instrument#7 → instrument#14 → poc#10 (py) → instrument#8 → instrument#9 → poc#12
-- **Java** (`otelfeature-java-extension`, merged): poc#8 → poc#9 → java#21 → java#20 → java#27 → poc#10 (java) → java#22 (java#23 closed as not planned)
+- **Java** (`otelfeature-java-extension`, merged): poc#8 → poc#9 → java#21 → java#20 → java#27 → poc#10 (java) → java#22 (java#23 closed as not planned); post-talk: java#39 (opt-in tracing hook, `main` only)
 - **POC** (`poc`): poc#22 → poc#24 → poc#25 → poc#38 → poc#26 → poc#28 → poc#30 → poc#29 → poc#59 (all done) → poc#27 → poc#31
 - **E2E** (`poc`): poc#35 in its five phases (harness, TC-001 and hard floors, TC-002, TC-004 and TC-005, matrix and nightly), all merged; the issue stays open until the nightly runs are green. Follow-ups: poc#70, poc#80.
 - **Toolchain** (not stacked, each its own PR from `main`): instrument#20 (PR #21), java#32 (PR #35), poc#67 (PR #69). They depend on nothing in the feature stacks; once merged, a rebased stacked PR gets a CI run.
@@ -150,7 +151,9 @@ already honours it.
 
 OTelFeature/otelfeature-java-extension#23 was closed as not planned
 (2026-10-16): the extension writes no decision attributes (FR-014), so
-nothing was left in scope. A Java opt-in tracing hook would be a new issue.
+nothing was left in scope. The Java opt-in tracing hook is OTelFeature/otelfeature-java-extension#39
+(P2, open): it lands on `main` only, after v0.4.0, so the pinned stage does
+not have it.
 
 ### POC (`OTelFeature/poc`): merged
 
@@ -175,15 +178,16 @@ Every PR below is on `main`. The first stack (#36 ← #37 ← #40 ← #41 ← #4
 | OTelFeature/poc#63 | none (spec loop for instrument#21 and #23) | NFR-016, NFR-001 | UC-004 (A1) | TC-004 |
 | OTelFeature/poc#82 | OTelFeature/poc#80 | FR-012 | UC-005, UC-006 | TC-005 |
 | OTelFeature/poc#88 | OTelFeature/poc#75 | FR-012 | UC-006 (BR-002, A1 to A3) | TC-005 (item 7) |
+| OTelFeature/poc#89 | OTelFeature/poc#14 | FR-021 | UC-009 (BR-003) | TC-007 (item 2) |
 
 PR OTelFeature/poc#58 (stage stack from git refs, FR-027) was closed
 unmerged, and OTelFeature/poc#61 as not planned: the stage runs released
 extensions only (C-006).
 
 Open `poc` items, in lane order: OTelFeature/poc#27 (measurements: harness
-merged with PR OTelFeature/poc#79, numbers posted, OQ-1 decided: `processor`), OTelFeature/poc#31 (public repo), OTelFeature/poc#14 (env-var tier
-docs), OTelFeature/poc#70 (faster builds and e2e), OTelFeature/poc#80 (Python
-parity in e2e), OTelFeature/poc#75 (unit test for the `FaultInjection` bounds),
+merged with PR OTelFeature/poc#79, numbers posted, OQ-1 decided: `processor`), OTelFeature/poc#31 (public repo),
+OTelFeature/poc#70 (faster builds and e2e), OTelFeature/poc#80 (Python
+parity in e2e),
 OTelFeature/poc#76 (`geocode` on Python 3.15: blocked, because
 `openfeature-provider-flagd` requires `cachebox<6` and cachebox 5 has no
 3.15 build; `geocode` stays on 3.14 and Dependabot ignores 3.15 until then,
