@@ -98,6 +98,7 @@
       "defaultVariant": "all",
       "variants": {
         "all": 1.0,
+        "half": 0.5,
         "tenth": 0.1,
         "none": 0.0
       },
@@ -106,6 +107,36 @@
       },
       "targeting": {
         "if": [
+          {
+            ">": [
+              {
+                "var": "otelfeature.http.server.error_rate"
+              },
+              0.05
+            ]
+          },
+          "all",
+          {
+            "and": [
+              {
+                "==": [
+                  {
+                    "var": "deployment.environment.name"
+                  },
+                  "production"
+                ]
+              },
+              {
+                "==": [
+                  {
+                    "var": "service.name"
+                  },
+                  "weather"
+                ]
+              }
+            ]
+          },
+          "half",
           {
             "==": [
               {

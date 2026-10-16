@@ -45,6 +45,16 @@ SPANS = {
     "weather staging": {"service.name": "weather", "deployment.environment.name": "staging",
                         "span.kind": "server", "url.path": "/weather"},
     "geocode, no env": {"service.name": "geocode", "span.kind": "server", "url.path": "/geocode"},
+    # With the extension-owned error rate in the context (UC-005).
+    "weather /weather failing": {"service.name": "weather", "deployment.environment.name": "production",
+                                 "span.kind": "server", "url.path": "/weather",
+                                 "otelfeature.http.server.error_rate": 0.3},
+    "weather /weather at threshold": {"service.name": "weather", "deployment.environment.name": "production",
+                                      "span.kind": "server", "url.path": "/weather",
+                                      "otelfeature.http.server.error_rate": 0.05},
+    "geocode /geocode failing": {"service.name": "geocode", "deployment.environment.name": "production",
+                                 "span.kind": "server", "url.path": "/geocode",
+                                 "otelfeature.http.server.error_rate": 0.3},
 }
 
 DEFAULTS = {"otelEnabled": True, "telemetryLevel": "FULL", "recordSpan": True, "traceSampleRatio": 1.0,
@@ -75,16 +85,21 @@ EXPECTED = {
         **QUIET_NOISE,
         **{(span, "traceSampleRatio"): 0.1 for span in _production()},
     },
-    "03a-weather-full": {
+    "03a-weather-boost": {
         **QUIET_NOISE,
         **{(span, "traceSampleRatio"): 0.1 for span in _production("geocode")},
+        **{(span, "traceSampleRatio"): 0.5 for span in _production("weather")},
     },
-    # 03 plus fault injection. The flag is the application's own (weather
-    # evaluates it without span context), so it is the same for every span.
+    # 03a plus fault injection plus the error-rate loop: above 5% (strictly)
+    # a service is sampled fully, whatever its environment rule says; without
+    # the key, or at exactly 5%, the 03a rules apply.
     "03b-incident": {
         **QUIET_NOISE,
-        **{(span, "traceSampleRatio"): 0.1 for span in _production()},
+        **{(span, "traceSampleRatio"): 0.1 for span in _production("geocode")},
+        **{(span, "traceSampleRatio"): 0.5 for span in _production("weather")},
         **{(span, "weatherUpstreamFailure"): 0.3 for span in SPANS},
+        ("weather /weather failing", "traceSampleRatio"): 1.0,
+        ("geocode /geocode failing", "traceSampleRatio"): 1.0,
     },
 }
 
