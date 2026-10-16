@@ -58,12 +58,14 @@ services:
 
   stub-apis:
     container_name: !reset null
+    ports: !reset []
     environment:
       STUB_LATENCY_MIN_MS: "1"
       STUB_LATENCY_MAX_MS: "5"
 
   coordinates-db:
     container_name: !reset null
+    ports: !reset []
 
   # Seeds the flags volume with the baseline preset before flagd starts.
   flags-init:
@@ -75,6 +77,7 @@ services:
 
   flagd:
     container_name: !reset null
+    ports: !reset []
     volumes: !override
       - e2e-flags:/etc/flagd
     depends_on:
@@ -83,6 +86,10 @@ services:
 
   otel-collector:
     container_name: !reset null
+    # Root to write spans into the fresh, root-owned e2e-out volume (the base
+    # file also runs it as root, for docker_stats; don't depend on that).
+    user: "0:0"
+    ports: !reset []
     volumes: !override
       - ./tests/e2e/collector.yaml:/etc/otel-collector-config.yaml:ro
       - e2e-out:/out

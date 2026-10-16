@@ -3,15 +3,22 @@
 A preset is copied over the flag file flagd watches (like `make flag`).
 Two details make that reliable under test:
 
-- flagd v0.17's file sync polls the file's mtime and reloads only when it
-  *increases*. Two writes in one timestamp tick keep the same mtime and the
-  second one is ignored. So every write gets an mtime strictly newer than
-  the previous one, and goes through a temp file + rename (atomic).
+- flagd v0.17 (`--uri file:`) logs `"sync": "fileinfo"`: it polls the
+  file's mtime and reloads only when it *increases*. The Python provider's
+  file watcher does the same. Two writes in one timestamp tick keep the same
+  mtime and the second one is ignored. So every write gets an mtime at
+  least 1 s newer than the previous one (some filesystems keep whole
+  seconds), and goes through a temp file + rename (atomic).
 - Every write adds a throwaway flag `e2eRevision` with a fresh value. The
   barrier polls flagd's OFREP endpoint until it serves that value, so a test
   knows flagd has loaded *this* write before it starts counting spans.
-  (The services get the same push over the sync stream; tests that depend on
-  a behaviour change still probe for it, see conftest.Stack.)
+  (The services get the same push over the sync stream, on their own
+  schedule; tests that depend on a behaviour change still probe for it.)
+
+This re-implements src/flagd/apply-preset.sh (same mtime rule) instead of
+calling it, because of the extra revision flag: the file flagd reads is the
+preset plus `e2eRevision`. Extensions ignore change events for flags they
+don't read.
 """
 
 from __future__ import annotations

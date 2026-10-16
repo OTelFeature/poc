@@ -2,8 +2,9 @@
 
 The e2e collector (collector.yaml) appends every export request it receives
 as one JSON line (OTLP/JSON) to a file. SpanLog tails that file, so a test
-sees every span that reached the collector: "no span of this kind" is an
-exact statement, not a sampling of a backend's search results.
+sees every span that reached the collector: "no span of this kind since
+mark M" is an exact statement, not a sampling of a backend's search results.
+Take M after the flag flip has taken effect (Step.remark()), not before.
 """
 
 from __future__ import annotations
@@ -88,6 +89,9 @@ class SpanLog:
     def refresh(self) -> None:
         if not self.path.exists():
             return
+        if self.path.stat().st_size < self._offset:
+            # The file exporter truncates on start: the collector restarted.
+            self._offset, self._partial = 0, b""
         with self.path.open("rb") as f:
             f.seek(self._offset)
             data = f.read()
@@ -161,11 +165,16 @@ def wait_until(check: Callable[[], str | None], timeout: float = 5.0, interval: 
         time.sleep(interval)
 
 
-def tree_problem(trace: list[Span]) -> str | None:
-    """None if every span's parent is in the trace and there is one root."""
+def tree_problem(trace: list[Span], remote_parents: Iterable[str] = ()) -> str | None:
+    """None if every span's parent is in the trace and there is one root.
+
+    `remote_parents`: span ids of a caller outside the stack (a traceparent
+    the test sent); a span whose parent is one of them counts as the root.
+    """
     ids = {s.span_id for s in trace}
-    roots = [s for s in trace if s.is_root]
-    orphans = [s for s in trace if s.parent_id and s.parent_id not in ids]
+    remote = set(remote_parents)
+    roots = [s for s in trace if s.is_root or s.parent_id in remote]
+    orphans = [s for s in trace if s.parent_id and s.parent_id not in ids and s.parent_id not in remote]
     if orphans:
         return f"orphans {[str(s) for s in orphans]}"
     if len(roots) != 1:

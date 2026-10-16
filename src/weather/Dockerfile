@@ -29,11 +29,13 @@ ARG OTELFEATURE_EXTENSION_VERSION=v0.3.1
 RUN wget -q -O /otelfeature-java-extension.jar \
     https://github.com/OTelFeature/otelfeature-java-extension/releases/download/${OTELFEATURE_EXTENSION_VERSION}/otelfeature-java-extension.jar
 
-FROM gradle:9.7.1-jdk21 AS extension-git
+FROM gradle:9.7.1-jdk21@sha256:3695cd3c4b617ccb7b351ff1481c0f141c5e87a89872dc8ca1e5a8eeac6a85e3 AS extension-git
 ARG OTELFEATURE_EXTENSION_REF=main
 ADD https://github.com/OTelFeature/otelfeature-java-extension.git#${OTELFEATURE_EXTENSION_REF} /src
 WORKDIR /src
-RUN gradle shadowJar -x test --no-daemon -q \
+# The cache mount keeps downloaded dependencies across refs (local builds).
+RUN --mount=type=cache,target=/home/gradle/.gradle \
+    gradle shadowJar --no-daemon -q \
     && cp build/libs/otelfeature-java-extension.jar /otelfeature-java-extension.jar
 
 FROM extension-${OTELFEATURE_EXTENSION_SOURCE} AS otelfeature-agent

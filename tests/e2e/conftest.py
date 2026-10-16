@@ -36,6 +36,17 @@ class Step:
     def health(self, base_url: str) -> httpx.Response:
         return self.http.get(f"{base_url}/health")
 
+    def remark(self) -> int:
+        """Start a new absence window: call after a flag flip *and* a probe
+        showing it took effect, so spans still queued from before the flip
+        (100 ms batches) don't leak in. Docker's healthchecks keep calling
+        /health every 2 s in every state: filter by service and path."""
+        self.mark = self.spans.mark()
+        return self.mark
+
+    def since_mark(self) -> list:
+        return self.spans.since(self.mark)
+
     def traces(self) -> dict[str, list]:
         """This step's traces so far, by trace id."""
         by_trace: dict[str, list] = {}
@@ -82,5 +93,7 @@ def baseline(flags):
 
 
 @pytest.fixture
-def step(spans, baseline) -> Step:
-    return Step(spans)
+def step(spans, baseline):
+    s = Step(spans)
+    yield s
+    s.http.close()

@@ -129,7 +129,7 @@ export OTELFEATURE_INSTRUMENT_REF OTELFEATURE_EXTENSION_REF OTELFEATURE_ENFORCEM
 .PHONY: e2e e2e-build e2e-up e2e-test e2e-artifacts e2e-down
 
 e2e: e2e-build
-	@$(MAKE) --no-print-directory e2e-up || { $(MAKE) --no-print-directory e2e-artifacts e2e-down; exit 1; }
+	@$(MAKE) --no-print-directory e2e-up || { $(MAKE) --no-print-directory e2e-artifacts; [ -n "$(E2E_KEEP)" ] || $(MAKE) --no-print-directory e2e-down; exit 1; }
 	@rc=0; $(MAKE) --no-print-directory e2e-test || rc=$$?; $(MAKE) --no-print-directory e2e-artifacts; [ -n "$(E2E_KEEP)" ] || $(MAKE) --no-print-directory e2e-down; exit $$rc
 
 e2e-build:
@@ -143,6 +143,7 @@ e2e-test:
 
 e2e-artifacts:
 	@mkdir -p $(E2E_ARTIFACTS)
+	@rm -f $(E2E_ARTIFACTS)/compose.log $(E2E_ARTIFACTS)/spans.jsonl
 	-@$(E2E) logs --no-color --timestamps > $(E2E_ARTIFACTS)/compose.log 2>&1
 	-@$(E2E) cp otel-collector:/out/spans.jsonl $(E2E_ARTIFACTS)/spans.jsonl 2>/dev/null
 	@echo "e2e artifacts in $(E2E_ARTIFACTS)/"

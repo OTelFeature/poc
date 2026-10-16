@@ -10,6 +10,7 @@ on:
       - "src/**"
       - "tests/e2e/**"
       - "ci/**"
+      - ".dockerignore"
       - ".github/workflows/e2e.yml"
   push:
     branches: [main]
@@ -28,8 +29,10 @@ permissions:
   contents: read
 
 concurrency:
-  group: e2e-${{ github.ref }}
-  cancel-in-progress: true
+  # Per event, so a nightly run and a push to main don't cancel each other;
+  # only superseded PR runs are cancelled.
+  group: e2e-${{ github.event_name }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   e2e:

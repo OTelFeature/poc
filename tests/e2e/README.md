@@ -14,8 +14,8 @@ make e2e
 ```
 
 This builds the images, starts the stack as its own compose project
-(`otelfeature-e2e`, no fixed container names or host ports, so it can run
-next to a demo stack), runs pytest in the runner container, saves logs and
+(`otelfeature-e2e`: own network, volumes and images, no fixed container
+names and no published ports, so it can run next to a demo stack), runs pytest in the runner container, saves logs and
 spans to `tests/e2e/.artifacts/`, and tears everything down.
 
 | Variable | Default | Meaning |
@@ -24,7 +24,7 @@ spans to `tests/e2e/.artifacts/`, and tears everything down.
 | `OTELFEATURE_EXTENSION_REF` | `main` | Git ref of otelfeature-java-extension that weather's agent extension is built from |
 | `OTELFEATURE_ENFORCEMENT` | `processor` | Java enforcement mode, `processor` or `sampler` |
 | `PYTEST_ARGS` | `-m "not slow"` | Passed to pytest, e.g. `-k baseline -x` |
-| `E2E_KEEP` | unset | Set to keep the stack running afterwards; `make e2e-down` removes it |
+| `E2E_KEEP` | unset | Set to keep the stack running afterwards (also when startup fails); `make e2e-down` removes it. Run `make e2e-down` before the next `make e2e` |
 
 The extension refs exist so unreleased extension code can be checked with
 the demo before it's merged or released. Once releases exist, the defaults
@@ -43,10 +43,11 @@ Java enforcement modes on PRs, on `main` and nightly. The refs are
 - **Spans to a file.** The collector ([collector.yaml](collector.yaml))
   writes every export request it receives, unprocessed, as one JSON line to
   `/out/spans.jsonl`. [spans.py](spans.py) tails that file. A test sees every
-  span that reached the collector, so "no `/health` span" is an exact
-  assertion. No Aspire, no Datadog.
-- **No background traffic.** The load generator is off; the tests send
-  every request themselves.
+  span that reached the collector, so "no `/health` span since the flip took
+  effect" is an exact assertion. No Aspire, no Datadog.
+- **Almost no background traffic.** The load generator is off; the tests
+  send the requests. The one exception is Docker's healthchecks: they call
+  `/health` on geocode and weather every 2 s, in every flag state.
 - **Fast export.** `OTEL_BSP_SCHEDULE_DELAY=100` in both services, and the
   collector's file exporter flushes every 100 ms.
 - **Flags on a volume.** flagd reads `/etc/flagd/flagd.json` from the
@@ -60,9 +61,15 @@ carries the header `x-e2e-step: <id>`. Both services record that header on
 their server span (`OTEL_INSTRUMENTATION_HTTP_CAPTURE_HEADERS_SERVER_REQUEST`
 for Python, `OTEL_INSTRUMENTATION_HTTP_SERVER_CAPTURE_REQUEST_HEADERS` for
 Java). `step.traces()` returns every span of every trace whose server span
-carries the id, and `spans.since(step.mark)` returns everything exported
-after the step started (for absence checks: a dropped request has no server
-span to carry the header).
+carries the id.
+
+Absence checks ("no span like this any more") can't use the header: a
+dropped request has no server span to carry it. They use a window instead.
+After the flip, and after a probe shows the new behaviour, call
+`step.remark()`; `step.since_mark()` then returns everything exported after
+that point. Filter it by service and path, because Docker's healthchecks keep
+running. Taking the mark before the flip would let spans still in the 100 ms
+export queue leak into the window.
 
 ### Barriers instead of sleeps
 
@@ -73,9 +80,10 @@ when the timeout passes.
 Flag flips (`flags.apply("02-quiet-noise")`) go through [flags.py](flags.py):
 
 1. Copy the preset with an extra throwaway flag `e2eRevision` = a fresh id.
-2. Write it to a temp file with an mtime strictly newer than the old file,
-   then rename it over the old file. flagd v0.17 polls the mtime and ignores
-   a rewrite within the same timestamp tick.
+2. Write it to a temp file with an mtime at least 1 s newer than the old
+   file, then rename it over the old file. flagd v0.17 with `--uri file:`
+   uses its polling (`fileinfo`) watcher, which reloads only when the mtime
+   increases, so a rewrite within the same timestamp tick would be ignored.
 3. Poll flagd's OFREP endpoint until it serves the new `e2eRevision`.
 
 The services receive the same push over the sync stream, but on their own
@@ -90,7 +98,9 @@ requests until the new behaviour shows) before counting.
 3. Flip flags with `flags.apply("<preset>")`, or `flags.write(config)` for a
    variation that isn't a stage preset.
 4. Wait with `wait_until`. Assert presence through `step.traces()`, absence
-   through `spans.since(step.mark)`, and tree shape with `tree_problem`.
+   through `step.remark()` + `step.since_mark()` (after the flip has taken
+   effect), and tree shape with `tree_problem` (pass `remote_parents` for a
+   request the test sent with a `traceparent`).
 5. Mark statistical or long tests `@pytest.mark.slow` (nightly only).
 6. In the TC's **Validation** list (spec), mark which checks are now
    automated.
