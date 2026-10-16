@@ -51,7 +51,7 @@
 
 ### A3: Rehearsing with unreleased extension code
 
-**Trigger:** The extensions with the demo's features are not released yet (FR-027), before step 1.
+**Trigger:** The extensions with the demo's features are not released yet (FR-027); this happens while still online, before the speaker disconnects (step 1).
 
 **Flow:**
 
