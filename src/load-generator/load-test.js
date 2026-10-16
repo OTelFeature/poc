@@ -69,7 +69,7 @@ const scenarios = {
     timeUnit: `${REQUEST_INTERVAL_SECONDS}s`,
     duration: DURATION,
     preAllocatedVUs: 2,
-    maxVUs: 5,
+    maxVUs: 20,
   },
 };
 

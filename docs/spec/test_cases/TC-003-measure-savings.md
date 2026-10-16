@@ -22,7 +22,7 @@
 | Step | Name | Description | Test Data | Use Case |
 |---|---|---|---|---|
 | 1 | Run harness | Run the benchmark command | `make bench`, default duration | [UC-003](../use_cases/UC-003-measure-savings.md) |
-| 2 | Verify table | One table per service with four runs (baseline, targeted no-op, Demo 2 processor, Demo 2 sampler) and the decision cost (UC-003 BR-006) | - | - |
+| 2 | Verify table | One table per service with six runs (baseline, targeted no-op and Demo 2, each in processor and sampler mode), the decision cost per mode (UC-003 BR-006) and no load warning | - | - |
 | 3 | Repeat | Run the harness again | same | [UC-003](../use_cases/UC-003-measure-savings.md) |
 | 4 | Verify reproducibility | Every metric within ±10% of the first run | - | - |
 
@@ -41,5 +41,5 @@
 
 Not part of the end-to-end suite (OTelFeature/poc#35): this is a measurement, not a pass/fail check.
 
-- **Harness:** `make bench` runs its own compose project (`otelfeature-bench`) on the pinned releases, with the load generator on and the collector writing spans to a file. Per run it applies the preset (the e2e flag helper), switches `weather`'s `OTELFEATURE_ENFORCEMENT` when needed, warms up for `BENCH_WARMUP` seconds and measures for `BENCH_SECONDS`, then prints and saves the tables (`bench/.results/`).
+- **Harness:** `make bench` runs its own compose project (`otelfeature-bench`) on the pinned releases, with the load generator on and the collector writing spans to a file. Per run it recreates `geocode`, `weather` (with the run's `OTELFEATURE_ENFORCEMENT`) and the load generator, applies the preset (the e2e flag helper), warms up for `BENCH_WARMUP` seconds and measures for `BENCH_SECONDS`, then prints and saves the tables and raw results (`bench/.results/`).
 - **Live view (item 3):** the dashboard's span-metrics chart per service; no extra component.

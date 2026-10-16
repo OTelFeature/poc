@@ -57,7 +57,7 @@
 
 **Flow:**
 
-1. The dashboard shows the collector's span metrics per service (`traces.span.metrics.calls`, by `service.name`) live, so the drop is visible within seconds of the flag flip (BR-007).
+1. The dashboard shows the collector's span metrics per service (`traces.span.metrics.calls`, by `service.name`) live, so the drop is visible within seconds of the flag flip.
 2. Use case ends.
 
 ## Postconditions
@@ -95,12 +95,13 @@ The measurement does not depend on OTelFeature/poc#23 (deferred). It uses the st
 
 ### BR-006: Decision cost from a targeted no-op rule
 
-The decision cost is measured at the service like the savings: a run with a `recordSpan` rule that reads a span attribute but never matches makes both extensions decide every span with a built context, and drops nothing. Its CPU minus the baseline's CPU is the cost of the targeted path at that load; the per-span micro-benchmarks stay in the extension READMEs (NFR-005).
+The decision cost is measured at the service like the savings: a run with a `recordSpan` rule that reads a span attribute but never matches makes both extensions decide every span with a built context, and drops nothing. Its CPU minus the baseline's CPU in the same Java mode is the cost of the targeted path, reported as % of one core and as µs per span (that CPU difference divided by the spans decided), so it compares with the extensions' micro-benchmarks (NFR-005).
 
 ### BR-007: What each number is
 
-- **CPU:** the container's CPU use in percent of one core, averaged over the measurement window (Docker stats).
-- **Memory:** the container's resident memory (usage minus page cache) at the end of the window, in MB.
-- **Spans per second:** spans with the service's `service.name` that reached the collector in the window.
+- **CPU:** the container's CPU time in percent of one core over the measurement window, with the standard deviation of 5 s samples (Docker stats).
+- **Memory:** the container's memory usage minus inactive file cache, averaged over the window, in MB (what `docker stats` shows; not the process RSS).
+- **Requests per second:** the service's business requests (server spans not on `/health`, which no rule drops). Every run must show the same load; the report warns when it differs by more than 5%.
+- **Spans per second:** spans of the service instance (`service.instance.id`) that reached the collector in the window.
 - **Export bytes per second:** the size of those spans as the OTLP protobuf the service sends (`ResourceSpans`, before compression).
-- Each run starts from a warm-up with the same traffic, so caches and JIT are settled. The traffic is the stack's normal load (TC-003 item 4) unless the operator raises it (`BENCH_RATE`).
+- Each run starts from freshly created `geocode`, `weather` and load generator, and warms up with the same traffic, so caches and JIT are settled the same way in every run. The services run with the stage's settings (export batching, error-rate window, stub latency). The traffic is the stage's normal load (BR-005) unless the operator raises it (`BENCH_RATE`).

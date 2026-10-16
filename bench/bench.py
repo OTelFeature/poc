@@ -8,14 +8,20 @@ Runs inside the e2e runner image as the `bench` compose service
     bench.py report
 
 What each number is (UC-003 BR-007), per service, at the service:
-- CPU: container CPU time over the window / window length, % of one core
-- RSS: container memory usage minus page cache at the end of the window, MB
-- spans/s: spans with that service.name the collector received in the window
-- export KB/s: those spans as OTLP protobuf (ResourceSpans) bytes, uncompressed
+- CPU: container CPU time per 5 s sample / 5 s, % of one core; mean and sd
+  over the window
+- Memory: container memory usage minus inactive file cache, mean over the
+  window, MB (what `docker stats` shows; not the process RSS)
+- req/s: the service's business requests (SERVER spans not on /health; no
+  rule drops them), the check that every run got the same load
+- spans/s: spans of that service instance the collector received
+- export KB/s: those spans as OTLP protobuf (ResourceSpans), uncompressed
 
-The decision cost (UC-003 BR-006) is the `noop` run's CPU minus the
-baseline's: a recordSpan rule that reads a span attribute but never matches,
-so every span is decided with a built context and none is dropped.
+The decision cost (UC-003 BR-006) is a `noop` run's CPU minus the baseline's
+in the same Java mode: a recordSpan rule that reads a span attribute but never
+matches, so every span is decided with a built context and none is dropped.
+Reported per span (µs, comparable with the extensions' micro-benchmarks,
+NFR-005) and as % of one core.
 """
 
 from __future__ import annotations
@@ -26,6 +32,7 @@ import http.client
 import json
 import os
 import socket
+import statistics
 import sys
 import time
 import urllib.parse
@@ -41,7 +48,10 @@ SERVICES = ("geocode", "weather")
 PROJECT = os.environ.get("BENCH_PROJECT", "otelfeature-bench")
 RESULTS = Path("/results")
 SPANS_FILE = Path(os.environ.get("E2E_SPANS_FILE", "/out/spans.jsonl"))
-RUN_ORDER = ["baseline", "noop", "quiet-noise-processor", "quiet-noise-sampler"]
+SAMPLE_SECONDS = 5.0
+RUN_ORDER = ["baseline", "noop", "quiet-noise-processor",
+             "baseline-sampler", "noop-sampler", "quiet-noise-sampler"]
+SERVER_KIND = 2
 
 
 # ── Docker API over the unix socket ───────────────────────────────────
@@ -74,14 +84,14 @@ def _container(service: str) -> str:
     return found[0]["Id"]
 
 
-def _stats(container: str) -> dict:
-    return _docker(f"/containers/{container}/stats?stream=false&one-shot=true")
-
-
-def _rss_mb(stats: dict) -> float:
+def _sample(container: str) -> tuple[int, float]:
+    """(CPU time in ns, memory usage minus inactive file cache in MB)."""
+    stats = _docker(f"/containers/{container}/stats?stream=false&one-shot=true")
     memory = stats["memory_stats"]
-    cache = memory.get("stats", {}).get("inactive_file", memory.get("stats", {}).get("total_inactive_file", 0))
-    return (memory["usage"] - cache) / 1024 / 1024
+    detail = memory.get("stats", {})
+    cache = detail.get("total_inactive_file", detail.get("inactive_file", 0))
+    usage = memory["usage"]
+    return stats["cpu_stats"]["cpu_usage"]["total_usage"], (usage - cache if cache < usage else usage) / 1024 / 1024
 
 
 # ── Spans from the collector file ─────────────────────────────────────
@@ -98,9 +108,17 @@ def _ids_to_base64(node):
             _ids_to_base64(item)
 
 
+def _url_path(span: dict) -> str | None:
+    for a in span.get("attributes", []):
+        if a["key"] in ("url.path", "http.target"):
+            return a.get("value", {}).get("stringValue")
+    return None
+
+
 def _span_totals(start: int, end: int) -> dict[str, dict[str, int]]:
-    """Spans and protobuf bytes per service.name in [start, end) of the file."""
-    totals = {service: {"spans": 0, "bytes": 0} for service in SERVICES}
+    """Per service instance in [start, end) of the file: spans, protobuf
+    bytes, and business requests (SERVER spans not on /health)."""
+    totals = {service: {"spans": 0, "bytes": 0, "requests": 0} for service in SERVICES}
     with SPANS_FILE.open("rb") as f:
         f.seek(start)
         data = f.read(end - start)
@@ -112,11 +130,16 @@ def _span_totals(start: int, end: int) -> dict[str, dict[str, int]]:
         except json.JSONDecodeError:
             continue  # a line cut at the window edge
         for rs in request.get("resourceSpans", []):
-            attrs = {a["key"]: a.get("value", {}).get("stringValue") for a in rs.get("resource", {}).get("attributes", [])}
+            attrs = {a["key"]: a.get("value", {}).get("stringValue")
+                     for a in rs.get("resource", {}).get("attributes", [])}
             service = attrs.get("service.name")
             if service not in totals or attrs.get("service.instance.id") != service:
                 continue
-            totals[service]["spans"] += sum(len(ss.get("spans", [])) for ss in rs.get("scopeSpans", []))
+            for ss in rs.get("scopeSpans", []):
+                for span in ss.get("spans", []):
+                    totals[service]["spans"] += 1
+                    if span.get("kind") == SERVER_KIND and _url_path(span) not in (None, "/health"):
+                        totals[service]["requests"] += 1
             _ids_to_base64(rs)
             totals[service]["bytes"] += json_format.ParseDict(rs, ResourceSpans(), ignore_unknown_fields=True).ByteSize()
     return totals
@@ -149,22 +172,34 @@ def measure(label: str, mode: str, warmup: float, seconds: float) -> None:
     print(f"{label}: warming up {warmup:.0f} s", flush=True)
     time.sleep(warmup)
     containers = {s: _container(s) for s in SERVICES}
-    cpu0 = {s: _stats(c)["cpu_stats"]["cpu_usage"]["total_usage"] for s, c in containers.items()}
+    previous = {s: _sample(c) for s, c in containers.items()}
+    first_cpu = {s: previous[s][0] for s in SERVICES}
+    cpu_samples = {s: [] for s in SERVICES}
+    mem_samples = {s: [] for s in SERVICES}
     file0, t0 = _file_size(), time.monotonic()
     print(f"{label}: measuring {seconds:.0f} s", flush=True)
-    time.sleep(seconds)
-    end_stats = {s: _stats(c) for s, c in containers.items()}
-    file1, t1 = _file_size(), time.monotonic()
-    elapsed = t1 - t0
+    last = t0
+    while time.monotonic() - t0 < seconds:
+        time.sleep(min(SAMPLE_SECONDS, seconds - (time.monotonic() - t0)))
+        now = time.monotonic()
+        for service, container in containers.items():
+            cpu_ns, mem_mb = _sample(container)
+            cpu_samples[service].append((cpu_ns - previous[service][0]) / 1e9 / (now - last) * 100)
+            mem_samples[service].append(mem_mb)
+            previous[service] = (cpu_ns, mem_mb)
+        last = now
+    file1, elapsed = _file_size(), time.monotonic() - t0
     spans = _span_totals(file0, file1)
     result = {"label": label, "mode": mode, "seconds": round(elapsed, 1), "services": {}}
     for service in SERVICES:
-        cpu_ns = end_stats[service]["cpu_stats"]["cpu_usage"]["total_usage"] - cpu0[service]
+        cpu = cpu_samples[service]
         result["services"][service] = {
-            "cpu_pct": round(cpu_ns / 1e9 / elapsed * 100, 2),
-            "rss_mb": round(_rss_mb(end_stats[service]), 1),
-            "spans_per_s": round(spans[service]["spans"] / elapsed, 2),
-            "export_kb_per_s": round(spans[service]["bytes"] / 1024 / elapsed, 2),
+            "cpu_pct": round((previous[service][0] - first_cpu[service]) / 1e9 / elapsed * 100, 3),
+            "cpu_sd": round(statistics.stdev(cpu), 3) if len(cpu) > 1 else 0.0,
+            "mem_mb": round(statistics.mean(mem_samples[service]), 1),
+            "req_per_s": round(spans[service]["requests"] / elapsed, 3),
+            "spans_per_s": round(spans[service]["spans"] / elapsed, 3),
+            "export_kb_per_s": round(spans[service]["bytes"] / 1024 / elapsed, 3),
         }
     RESULTS.mkdir(exist_ok=True)
     (RESULTS / f"{label}.json").write_text(json.dumps(result, indent=2))
@@ -182,22 +217,44 @@ def report() -> None:
     runs = [r for r in RUN_ORDER if r in results]
     if "baseline" not in results:
         raise SystemExit("no baseline result")
+    warnings = []
     print(f"# Measurement (OTelFeature/poc#27), {time.strftime('%Y-%m-%d %H:%M UTC', time.gmtime())}\n")
-    print(f"Window {results['baseline']['seconds']:.0f} s per run. Deltas against the baseline.\n")
+    print(f"{results['baseline']['seconds']:.0f} s per run, {os.environ.get('BENCH_SETTINGS', '')}. "
+          "Deltas against `baseline` in the same Java mode. CPU: % of one core, mean ± sd of 5 s samples.\n")
     for service in SERVICES:
-        base = results["baseline"]["services"][service]
         print(f"## {service}\n")
-        print("| Run | Java mode | CPU % | RSS MB | spans/s | export KB/s |")
-        print("|---|---|---|---|---|---|")
+        print("| Run | Java mode | CPU % | Memory MB | req/s | spans/s | export KB/s |")
+        print("|---|---|---|---|---|---|---|")
         for run in runs:
             r = results[run]
+            base_run = "baseline-sampler" if r["mode"] == "sampler" and "baseline-sampler" in results else "baseline"
+            base = results[base_run]["services"][service]
             v = r["services"][service]
-            cells = [f"{v[k]}{_delta(v[k], base[k]) if run != 'baseline' else ''}"
-                     for k in ("cpu_pct", "rss_mb", "spans_per_s", "export_kb_per_s")]
-            print(f"| {run} | {r['mode']} | " + " | ".join(cells) + " |")
-        if "noop" in results:
-            cost = results["noop"]["services"][service]["cpu_pct"] - base["cpu_pct"]
-            print(f"\nDecision cost (targeted no-op − baseline, UC-003 BR-006): {cost:+.2f} % of one core\n")
+            own = run == base_run
+
+            def cell(key):
+                return f"{v[key]}{'' if own else _delta(v[key], base[key])}"
+            print(f"| {run} | {r['mode']} | {v['cpu_pct']} ± {v['cpu_sd']}{'' if own else _delta(v['cpu_pct'], base['cpu_pct'])}"
+                  f" | {cell('mem_mb')} | {v['req_per_s']} | {cell('spans_per_s')} | {cell('export_kb_per_s')} |")
+            if base["req_per_s"] and abs(v["req_per_s"] - base["req_per_s"]) / base["req_per_s"] > 0.05:
+                warnings.append(f"{service} {run}: {v['req_per_s']} req/s vs {base['req_per_s']} in {base_run}: "
+                                "the runs did not get the same load")
+        print()
+        for noop, base_run in (("noop", "baseline"), ("noop-sampler", "baseline-sampler")):
+            if noop in results and base_run in results:
+                n, b = results[noop]["services"][service], results[base_run]["services"][service]
+                delta_pct = n["cpu_pct"] - b["cpu_pct"]
+                per_span_us = (delta_pct / 100 * 1e6 / n["spans_per_s"]) if n["spans_per_s"] else float("nan")
+                print(f"Decision cost, {results[noop]['mode']} mode ({noop} − {base_run}, UC-003 BR-006): "
+                      f"{delta_pct:+.3f} % of one core, {per_span_us:+.1f} µs per span "
+                      f"(noise: sd {n['cpu_sd']} / {b['cpu_sd']})\n")
+        if service == "geocode" and {"quiet-noise-processor", "quiet-noise-sampler"} <= results.keys():
+            p = results["quiet-noise-processor"]["services"][service]["cpu_pct"]
+            s = results["quiet-noise-sampler"]["services"][service]["cpu_pct"]
+            print(f"Run-to-run noise: geocode's two 02-quiet-noise runs have the same configuration "
+                  f"(the mode is Java-only) and differ by {s - p:+.3f} % of one core{_delta(s, p)}.\n")
+    for w in warnings:
+        print(f"> **Warning:** {w}")
 
 
 def main() -> None:
@@ -208,8 +265,8 @@ def main() -> None:
     m = sub.add_parser("measure")
     m.add_argument("label")
     m.add_argument("--mode", default="processor")
-    m.add_argument("--warmup", type=float, default=45)
-    m.add_argument("--seconds", type=float, default=120)
+    m.add_argument("--warmup", type=float, default=120)
+    m.add_argument("--seconds", type=float, default=300)
     sub.add_parser("report")
     args = parser.parse_args()
     if args.command == "apply":

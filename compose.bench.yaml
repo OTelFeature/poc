@@ -4,21 +4,48 @@
 #
 #   docker compose -p otelfeature-bench -f compose.yaml -f compose.e2e.yaml -f compose.bench.yaml
 #
-# Differences from e2e: the load generator runs (the stage's normal traffic,
-# `BENCH_RATE` raises it), the extra instances (staging twins, hard floors)
-# are off so they don't share the CPU, and a `bench` service measures.
+# Differences from e2e:
+# - the services run with the *stage* settings again, not e2e's fast
+#   export and short error-rate window, so the numbers are the stage's
+# - the load generator runs (the stage's normal traffic; BENCH_RATE
+#   multiplies the business requests and the health checks)
+# - the extra instances (staging twins, hard floors) are off, so they
+#   don't share the CPU
+# - a `bench` service measures
 
 networks:
   default:
     name: otelfeature-bench
 
+x-stage-settings: &stage-settings
+  OTEL_BSP_SCHEDULE_DELAY: "5000"
+  OTEL_METRIC_EXPORT_INTERVAL: "60000"
+  OTELFEATURE_ERROR_RATE_INTERVAL: "10"
+  OTELFEATURE_ERROR_RATE_MIN_REQUESTS: "10"
+
 services:
+  geocode:
+    environment: *stage-settings
+
+  weather:
+    environment: *stage-settings
+
+  stub-apis:
+    environment:
+      STUB_LATENCY_MIN_MS: "20"
+      STUB_LATENCY_MAX_MS: "120"
+
   load-generator:
     profiles: !reset []
     container_name: !reset null
     environment:
       - REQUEST_RATE=${BENCH_RATE:-1}
-      - DURATION=120m
+      - HEALTHCHECK_RATE=${BENCH_HEALTHCHECK_RATE:-2}
+      - DURATION=24h
+      # Re-resolve service names: geocode and weather get new addresses
+      # when a run recreates them, and k6 would otherwise cache the old
+      # ones for minutes.
+      - K6_DNS=ttl=0
 
   geocode-staging:
     profiles: [never]
@@ -35,7 +62,8 @@ services:
 
   # bench/bench.py on the e2e runner image: applies presets (the e2e flag
   # helper), reads container stats from the Docker API (socket, read-only)
-  # and the collector's span file, and keeps its results in a volume.
+  # and the collector's span file, and writes its results to
+  # bench/.results/ (owned by root on a native Docker engine).
   bench:
     profiles: [bench]
     image: otelfeature-e2e-runner
@@ -45,11 +73,11 @@ services:
     entrypoint: ["python", "/bench/bench.py"]
     volumes:
       - ./bench:/bench:ro
+      - ./bench/.results:/results
       - ./tests/e2e:/e2e/tests:ro
       - ./src/flagd/presets:/presets:ro
       - e2e-flags:/flags
       - e2e-out:/out:ro
-      - bench-results:/results
       - /var/run/docker.sock:/var/run/docker.sock:ro
     environment:
       BENCH_PROJECT: otelfeature-bench
@@ -57,6 +85,3 @@ services:
       E2E_FLAGS_FILE: /flags/flagd.json
       E2E_PRESETS_DIR: /presets
       E2E_SPANS_FILE: /out/spans.jsonl
-
-volumes:
-  bench-results:

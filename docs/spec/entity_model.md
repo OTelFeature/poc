@@ -366,9 +366,9 @@ Measurement harness (`make bench`, UC-003, TC-003):
 
 | Variable | Default | Meaning |
 |---|---|---|
-| `BENCH_WARMUP` | `45` | Seconds of traffic before each measured window |
-| `BENCH_SECONDS` | `120` | Length of each measured window |
-| `BENCH_RATE` | `1` | Requests per second per service and endpoint from the load generator (`1` = the stage load) |
+| `BENCH_WARMUP` | `120` | Seconds of traffic before each measured window, after the run recreated `geocode`, `weather` and the load generator |
+| `BENCH_SECONDS` | `240` | Length of each measured window |
+| `BENCH_RATE` | `1` | Multiplies the load generator's business requests (`POST /geocode`, `POST /weather`) and health checks (`1` = the stage load); the `/forecast` path stays at one per 15 s. Demo 2 savings are quoted at `1`, because the share of health checks decides them |
 
 Exporter values: only an exact `none` switches export off (case and
 surrounding whitespace ignored). `none` mixed with other values logs a warning
