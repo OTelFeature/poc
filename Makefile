@@ -115,6 +115,7 @@ validate-flags:
 #   make e2e OTELFEATURE_INSTRUMENT_REF=feat/x OTELFEATURE_EXTENSION_REF=v0.4.0
 #   make e2e OTELFEATURE_ENFORCEMENT=sampler PYTEST_ARGS="-k baseline -x"
 #   make e2e E2E_KEEP=1      # leave the stack up afterwards (make e2e-down)
+#   make e2e E2E_SKIP_BUILD=1  # images already built (CI builds them with a layer cache)
 #
 # Logs and the collected spans land in tests/e2e/.artifacts/.
 E2E_PROJECT := otelfeature-e2e
@@ -128,7 +129,7 @@ export OTELFEATURE_INSTRUMENT_REF OTELFEATURE_EXTENSION_REF OTELFEATURE_ENFORCEM
 
 .PHONY: e2e e2e-build e2e-up e2e-test e2e-artifacts e2e-down
 
-e2e: e2e-build
+e2e: $(if $(filter 1,$(E2E_SKIP_BUILD)),,e2e-build)
 	@$(MAKE) --no-print-directory e2e-up || { $(MAKE) --no-print-directory e2e-artifacts; [ -n "$(E2E_KEEP)" ] || $(MAKE) --no-print-directory e2e-down; exit 1; }
 	@rc=0; $(MAKE) --no-print-directory e2e-test || rc=$$?; $(MAKE) --no-print-directory e2e-artifacts; [ -n "$(E2E_KEEP)" ] || $(MAKE) --no-print-directory e2e-down; exit $$rc
 
@@ -143,10 +144,22 @@ e2e-test:
 
 e2e-artifacts:
 	@mkdir -p $(E2E_ARTIFACTS)
-	@rm -f $(E2E_ARTIFACTS)/compose.log $(E2E_ARTIFACTS)/spans.jsonl
+	@rm -f $(E2E_ARTIFACTS)/compose.log $(E2E_ARTIFACTS)/spans.jsonl $(E2E_ARTIFACTS)/metrics.jsonl
 	-@$(E2E) logs --no-color --timestamps > $(E2E_ARTIFACTS)/compose.log 2>&1
 	-@$(E2E) cp otel-collector:/out/spans.jsonl $(E2E_ARTIFACTS)/spans.jsonl 2>/dev/null
+	-@$(E2E) cp otel-collector:/out/metrics.jsonl $(E2E_ARTIFACTS)/metrics.jsonl 2>/dev/null
 	@echo "e2e artifacts in $(E2E_ARTIFACTS)/"
 
 e2e-down:
 	$(E2E) --profile runner down -v --remove-orphans
+
+# ── Spec lint (docs/spec, AIUP /spec-review part A) ─────────────────────
+# Same command as .github/workflows/spec-lint.yml; needs only Docker.
+#   make spec-lint                                    # --strict, as in CI
+#   make spec-lint SPEC_LINT_ARGS=--update-baseline   # accept current findings
+SPEC_LINT_IMAGE := python:3.12-slim@sha256:a6e34c598f2467ed0e9a8d349809fcd8b5c603269512df273a0bb1784edc11b1
+SPEC_LINT_ARGS ?= --strict
+
+.PHONY: spec-lint
+spec-lint:
+	docker run --rm -u "$$(id -u):$$(id -g)" -v "$(CURDIR)":/w -w /w $(SPEC_LINT_IMAGE) sh ci/spec-lint.sh $(SPEC_LINT_ARGS)

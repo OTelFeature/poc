@@ -1,5 +1,6 @@
-# Collector config for the e2e suite (compose.e2e.yaml). Every span the
-# services export goes, unchanged, into one JSON-lines file the tests read.
+# Collector config for the e2e suite (compose.e2e.yaml). Every span and
+# every metric export the services send goes, unchanged, into a JSON-lines
+# file the tests read (spans.jsonl, metrics.jsonl).
 # No processors: the tests must see exactly what the SDKs sent (for example
 # that deployment.environment.name comes from the service, not from here).
 receivers:
@@ -15,6 +16,10 @@ exporters:
     path: /out/spans.jsonl
     format: json
     flush_interval: 100ms
+  file/metrics:
+    path: /out/metrics.jsonl
+    format: json
+    flush_interval: 100ms
   nop: {}
 
 service:
@@ -22,10 +27,11 @@ service:
     traces:
       receivers: [otlp]
       exporters: [file/spans]
-    # Accepted and dropped, so the services' metric/log exports don't fail.
+    # Metrics: kept, so tests can check they keep flowing while tracing is
+    # off (TC-001 step 2). Logs: accepted and dropped.
     metrics:
       receivers: [otlp]
-      exporters: [nop]
+      exporters: [file/metrics]
     logs:
       receivers: [otlp]
       exporters: [nop]
