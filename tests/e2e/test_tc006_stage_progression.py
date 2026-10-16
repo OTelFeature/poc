@@ -103,15 +103,17 @@ def test_stage_progression(step: Step, flags: Flags):
     wait_until(geocode_back, timeout=3 * FLIP_BUDGET_SECONDS, interval=0)
     step.wait_tracing("geocode", traced=False, path="/health")
 
-    def no_jdbc() -> str | None:
-        tag = _batch(step, "weather", 1, "weather")
-        spans = step.spans.for_step(tag)
+    def send_weather(headers: dict) -> None:
+        r = step.http.post(f"{URLS['weather']}/weather", json=KNOWN, headers=headers)
+        assert r.status_code == 200, f"/weather: HTTP {r.status_code}"
+
+    def no_jdbc(spans) -> str | None:
         if not any(s.kind == "server" for s in spans):
-            return "weather /weather not traced yet"
+            return "weather /weather server span not exported yet"
         jdbc = [s for s in spans if s.scope == "io.opentelemetry.jdbc"]
         return f"02: JDBC spans still exported:\n{describe(jdbc)}" if jdbc else None
 
-    wait_until(no_jdbc, timeout=FLIP_BUDGET_SECONDS)
+    step.wait_for_trace(send_weather, no_jdbc)
 
     # 03-semconv-rules: production at 0.1, staging at 1.0; 02's drops stay.
     flags.apply("03-semconv-rules")
