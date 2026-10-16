@@ -7,7 +7,7 @@
 **Primary Actor:** Operator  
 **Secondary Actors:** flagd, geocode, weather, their staging instances, Aspire dashboard  
 **Goal:** The operator sets the trace sample ratio as a number flag with rules on `deployment.environment.name` and `service.name`, so that sampling changes live per environment and service and every sampled trace stays complete across services.  
-**Status:** Draft  
+**Status:** Implemented  
 **Requirements:** FR-004, FR-005, FR-009, FR-010, FR-026, NFR-001, NFR-003, NFR-007, C-003, C-011, C-012  
 **Work Items:** OTelFeature/poc#10, OTelFeature/poc#25, OTelFeature/poc#22, OTelFeature/otelfeature-instrument#7, OTelFeature/otelfeature-java-extension#20, OTelFeature/otelfeature-java-extension#21, OTelFeature/otelfeature-instrument#22, OTelFeature/poc#59  
 **Test Cases:** TC-004  

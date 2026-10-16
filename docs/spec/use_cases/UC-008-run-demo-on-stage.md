@@ -8,15 +8,15 @@
 **Secondary Actors:** flagd, demo stack, Aspire dashboard  
 **Goal:** The operator runs Demos 1 to 3 from a laptop without network access, moving between states with one command per script beat and resetting between rehearsals, so that the live demo cannot be broken by venue Wi-Fi or a typo in a JSON file.  
 **Status:** Draft  
-**Requirements:** FR-018, FR-019, FR-010, NFR-004, NFR-012, NFR-015, C-007, C-008, C-009  
-**Work Items:** OTelFeature/poc#24, OTelFeature/poc#26, OTelFeature/poc#25, OTelFeature/poc#32, OTelFeature/poc#33, OTelFeature/poc#35, OTelFeature/poc#64  
+**Requirements:** FR-018, FR-019, FR-010, NFR-004, NFR-012, NFR-015, C-006, C-007, C-008, C-009  
+**Work Items:** OTelFeature/poc#24, OTelFeature/poc#26, OTelFeature/poc#25, OTelFeature/poc#32, OTelFeature/poc#33, OTelFeature/poc#35, OTelFeature/poc#64, OTelFeature/poc#74  
 **Test Cases:** TC-006  
 **Script Beat:** all demos; cold open uses OTel Demo footage (D1)  
 **Open Questions:** none (OQ-10 resolved)  
 
 ## Preconditions
 
-- The operator has pulled and built all images while online.
+- The operator has pulled and built all images while online, with the pinned extension releases (C-006).
 - Presets exist for each demo state: baseline, tracing off, quiet noise, semconv rules, weather boost, incident (BR-006).
 - A fallback video exists for each demo.
 
@@ -83,7 +83,7 @@ Each demo beat runs as an automated end-to-end test in CI, with the same presets
 
 ### BR-006: Presets are cumulative, in a fixed order
 
-Decided by Simon, 2026-10-16 (OTelFeature/poc#26, PR OTelFeature/poc#41). Each preset keeps the rules of the preset before it, so a later beat never brings back spans an earlier beat dropped: `03-semconv-rules`, `03a-weather-boost` and `03b-incident` keep `02-quiet-noise`'s drop rules. `01-otel-off` is the baseline with tracing off. Demo 3 has three presets: `03-semconv-rules` (production `traceSampleRatio` 0.1, UC-004 step 6), `03a-weather-boost` (adds `weather` at 0.5, UC-004 step 7) and `03b-incident` (the fault and the control-loop rule, UC-005). The stage order is `00-baseline` → `01-otel-off` → `02-quiet-noise` → `03-semconv-rules` → `03a-weather-boost` → `03b-incident` → back to `03a-weather-boost` (incident over). The demo is a **progression**: the operator never resets on stage. `03b-incident` builds on `03a-weather-boost`, which sets `weather` to 0.5, so the error-rate rule visibly raises it from 0.5 to 1.0 when the fault is injected (OQ-10 resolved, Simon, 2026-10-16). Going back to `03a-weather-boost` removes the fault and the rule together, so `weather` is back at 0.5 at once (UC-005 A6); OQ-14 asks whether the talk shows the loop letting go on its own instead. The e2e suite runs the same progression in order without resets (`test_stage_progression`, OTelFeature/poc#35). See the [entity model](../entity_model.md#flag_preset).
+Decided by Simon, 2026-10-16 (OTelFeature/poc#26, PR OTelFeature/poc#41). Each preset keeps the rules of the preset before it, so a later beat never brings back spans an earlier beat dropped: `03-semconv-rules`, `03a-weather-boost` and `03b-incident` keep `02-quiet-noise`'s drop rules. `01-otel-off` is the baseline with tracing off. Demo 3 has three presets: `03-semconv-rules` (production `traceSampleRatio` 0.1, UC-004 step 6), `03a-weather-boost` (adds `weather` at 0.5, UC-004 step 7) and `03b-incident` (the fault and the control-loop rule, UC-005). The stage order is `00-baseline` → `01-otel-off` → `02-quiet-noise` → `03-semconv-rules` → `03a-weather-boost` → `03b-incident` → back to `03a-weather-boost` (incident over). The demo is a **progression**: the operator never resets on stage. `03b-incident` builds on `03a-weather-boost`, which sets `weather` to 0.5, so the error-rate rule visibly raises it from 0.5 to 1.0 when the fault is injected (OQ-10 resolved, Simon, 2026-10-16). Going back to `03a-weather-boost` removes the fault and the rule together, so `weather` is back at 0.5 at once (UC-005 A6; OQ-14 resolved, Simon, 2026-10-16). The e2e suite runs the same progression in order without resets (`test_stage_progression`, OTelFeature/poc#35). See the [entity model](../entity_model.md#flag_preset).
 
 ### BR-007: A flip counts only once flagd serves it
 

@@ -5,7 +5,7 @@
 - **ID:** TC-001
 - **Goal:** The operator turns tracing off with `otelEnabled`, confirms zero span ingest from both services while metrics keep flowing, turns it back on and gets complete traces, all without a restart.
 - **Priority:** Critical
-- **Status:** Draft
+- **Status:** Passed
 
 ## Roles
 
