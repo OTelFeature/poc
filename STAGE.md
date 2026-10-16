@@ -7,7 +7,8 @@ pushes the change to both services and they apply it to the next span. Aspire
 
 > [!IMPORTANT]
 > The `weatherUpstreamFailure` part of 03b works with the stack as it is:
-> weather's own code evaluates it. Presets 01–03 need extension releases that understand `otelEnabled`,
+> weather's own code evaluates it. Presets 01–03b otherwise need extension
+> releases that understand `otelEnabled`,
 > `recordSpan`, `traceSampleRatio` and the semconv evaluation context
 > (otelfeature-instrument and otelfeature-java-extension, not released yet).
 > Until `src/geocode` and `src/weather` are bumped to those versions, the
