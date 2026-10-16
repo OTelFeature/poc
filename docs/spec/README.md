@@ -208,13 +208,18 @@ The talk script's demo beats run as an automated suite in GitHub Actions.
 
 ### The suite is the safety net before merging
 
-The suite runs against **extension git refs**: Python installed from
-`git+https://…@ref`, the Java JAR built from the ref in a Docker stage. Both
-extension chains are merged, so until releases exist the default ref is each
-extension's `main` (the old stack-top branches are deleted); after that
-the defaults switch back to pinned versions (C-006, C-013). Merge order:
-extension stacks bottom-up (done) → releases → `poc` version bump → `poc`
-stack (see [traceability.md](traceability.md#merge-order)).
+The suite runs against the **pinned released versions** of both extensions,
+the same as the stage (C-006, C-013). Building the extensions from a git ref
+remains as an explicit workflow input / `make e2e` variable, to check an
+extension change with the demo before it is released. Release order:
+extension PRs merged → `v*` tag and GitHub Release → `poc` version bump →
+e2e green (see [traceability.md](traceability.md#merge-order)).
+
+**Releases** (Simon, 2026-10-16): GitHub Releases created by a `v*` tag in
+each extension repo. The first releases with the talk's features are
+otelfeature-instrument v0.3.0 and otelfeature-java-extension v0.4.0. The
+stage never builds from git refs; unreleased code gets a pre-release
+(`v…-rc.N`).
 
 ### Stage tooling: presets and flag flips (OTelFeature/poc#26)
 
