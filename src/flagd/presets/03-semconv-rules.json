@@ -118,6 +118,18 @@
           "all"
         ]
       }
+    },
+    "weatherUpstreamFailure": {
+      "state": "ENABLED",
+      "defaultVariant": "none",
+      "variants": {
+        "none": 0.0,
+        "incident": 0.3,
+        "outage": 1.0
+      },
+      "metadata": {
+        "description": "Fault injection in weather (application flag): share of /weather requests that fail with HTTP 503"
+      }
     }
   }
 }

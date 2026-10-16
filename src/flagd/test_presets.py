@@ -47,7 +47,8 @@ SPANS = {
     "geocode, no env": {"service.name": "geocode", "span.kind": "server", "url.path": "/geocode"},
 }
 
-DEFAULTS = {"otelEnabled": True, "telemetryLevel": "FULL", "recordSpan": True, "traceSampleRatio": 1.0}
+DEFAULTS = {"otelEnabled": True, "telemetryLevel": "FULL", "recordSpan": True, "traceSampleRatio": 1.0,
+            "weatherUpstreamFailure": 0.0}
 
 def _production(service: str | None = None) -> list[str]:
     return [
@@ -77,6 +78,13 @@ EXPECTED = {
     "03a-weather-full": {
         **QUIET_NOISE,
         **{(span, "traceSampleRatio"): 0.1 for span in _production("geocode")},
+    },
+    # 03 plus fault injection. The flag is the application's own (weather
+    # evaluates it without span context), so it is the same for every span.
+    "03b-incident": {
+        **QUIET_NOISE,
+        **{(span, "traceSampleRatio"): 0.1 for span in _production()},
+        **{(span, "weatherUpstreamFailure"): 0.3 for span in SPANS},
     },
 }
 
