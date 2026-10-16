@@ -9,13 +9,14 @@ Runs via the official `grafana/k6` image in [compose.yaml](../../compose.yaml)
 
 ## Behavior
 
-The script defines three k6 scenarios that run **concurrently**:
+The script defines four k6 scenarios that run **concurrently**:
 
 | Scenario | Target | Endpoint | Rate |
 |----------|--------|----------|------|
 | `geocode` | `geocode` service | `POST /geocode` | 1 request / N seconds |
 | `weather` | `weather` service | `POST /weather` | 1 request / N seconds |
 | `healthchecks` | both services | `GET /health` | `HEALTHCHECK_RATE` requests / second, per service |
+| `forecast` | `geocode`, which calls `weather` | `POST /forecast` | 1 request / `FORECAST_INTERVAL_SECONDS` (15) |
 
 `healthchecks` stands in for a kubelet probe, so Demo 2 has health-check
 spans to drop (OTelFeature/poc#38, open question OQ-5). k6 sends no trace
@@ -55,6 +56,13 @@ With the `staging` compose profile (`make start-staging`), a second
 instance, `load-generator-staging`, runs the same script against
 `geocode-staging` and `weather-staging`.
 
+`forecast` is the cross-service path (FR-026): its traces span both
+services, with `geocode` deciding their sampling. It is deliberately rare:
+at most one request per 10 s error-rate interval (it runs every 15 s, so
+latency jitter can't put two into one interval) keeps a `weather` incident,
+whose failures make `/forecast` fail too, from pushing `geocode`'s own error
+rate over the 5% control-loop threshold (UC-005 A7). `FORECAST_INTERVAL_SECONDS=0` turns it off.
+
 ## Configuration
 
 | Environment variable             | Default               | Description                                       |
@@ -63,6 +71,7 @@ instance, `load-generator-staging`, runs the same script against
 | `WEATHER_BASE_URL`               | `http://weather:8001` | Base URL of the `weather` service                 |
 | `REQUEST_INTERVAL_SECONDS`       | `5`                   | Seconds between requests per scenario (1 / N s)   |
 | `DURATION`                       | `1h`                  | How long the test runs                            |
+| `FORECAST_INTERVAL_SECONDS`      | `15`                  | Seconds between `POST /forecast` requests (whole number, `0` = off; anything else makes k6 exit at startup) |
 | `HEALTHCHECK_RATE`               | `2`                   | `GET /health` per second, per service (whole number, `0` = off; anything else makes k6 exit at startup) |
 | `K6_OTEL_GRPC_EXPORTER_ENDPOINT` | -                     | Collector endpoint for k6's own OTLP/gRPC metrics |
 | `K6_OTEL_GRPC_EXPORTER_INSECURE` | -                     | Disable TLS for the gRPC exporter                 |

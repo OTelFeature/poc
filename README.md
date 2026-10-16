@@ -40,6 +40,7 @@ flowchart LR
         geocode --->|"telemetryLevel<br/>(gRPC sync)"| flagd
 
         geocode -->|SQL| coordinates
+        geocode -->|"POST /weather<br/>(from /forecast)"| weather
         weather -->|SQL| coordinates
         weather --->|"telemetryLevel<br/>(gRPC sync)"| flagd
         weather --->|OTLP/HTTP| otelcol
