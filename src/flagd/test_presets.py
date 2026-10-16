@@ -9,8 +9,9 @@ proves two more things the schema can't:
   the evaluation context the extensions build: semconv attributes nested by
   dot segment, trace id as targetingKey (OTelFeature/poc#22).
 
-Run: uv run --no-project --with openfeature-provider-flagd==0.5.2 python src/flagd/test_presets.py
-(keep the version in step with src/geocode/uv.lock)
+Run: make test (in the ci/Dockerfile image, with the schema check)
+(keep openfeature-provider-flagd in tests/e2e/pyproject.toml in step with
+src/geocode/uv.lock)
 """
 
 import json

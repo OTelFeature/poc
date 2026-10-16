@@ -1,14 +1,26 @@
+# Preset checks in the toolchain image (ci/Dockerfile): the same image and the
+# same command as `make test` locally. No setup-uv on the runner (NFR-016).
 name: flags
 
 on:
   pull_request:
     paths:
       - "src/flagd/**"
+      - "ci/**"
+      - ".dockerignore"
+      - "tests/e2e/pyproject.toml"
+      - "tests/e2e/uv.lock"
+      - "Makefile"
       - ".github/workflows/flags.yml"
   push:
     branches: [main]
     paths:
       - "src/flagd/**"
+      - "ci/**"
+      - ".dockerignore"
+      - "tests/e2e/pyproject.toml"
+      - "tests/e2e/uv.lock"
+      - "Makefile"
       - ".github/workflows/flags.yml"
 
 permissions:
@@ -20,17 +32,21 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      - uses: astral-sh/setup-uv@v10.3.0
+      - uses: docker/setup-buildx-action@v4.4.1
 
-      - name: Presets and flagd.json match the flagd schema
-        run: >
-          uvx check-jsonschema
-          --schemafile https://flagd.dev/schema/v0/flags.json
-          src/flagd/flagd.json src/flagd/presets/*.json
+      # Same image and cache scope as the e2e runner in e2e.yml: the
+      # dependency layer is rebuilt only when the base image or the lock
+      # files change.
+      - name: Build the toolchain image (layer cache)
+        uses: docker/build-push-action@v7.4.0
+        with:
+          context: .
+          file: ci/Dockerfile
+          tags: otelfeature-e2e-runner
+          load: true
+          cache-from: type=gha,scope=e2e-runner
+          cache-to: type=gha,scope=e2e-runner,mode=max
 
-      - name: Committed flagd.json is the baseline preset
-        run: cmp src/flagd/flagd.json src/flagd/presets/00-baseline.json
-
-      # Version in step with src/geocode/uv.lock.
-      - name: Presets parse and evaluate as intended (Python flagd provider)
-        run: uv run --no-project --with openfeature-provider-flagd==0.5.2 python src/flagd/test_presets.py
+      # Schema, flagd.json = 00-baseline, test_presets.py.
+      - name: Preset checks
+        run: make test-only

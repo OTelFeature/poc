@@ -1,8 +1,12 @@
-# Runner image for the end-to-end suite (tests/e2e). Used by `make e2e` and by
-# .github/workflows/e2e.yml, so local runs and CI run the same toolchain:
-# Python, uv and the locked test dependencies, nothing else. The tests
-# themselves are mounted at /e2e/tests at run time (compose.e2e.yaml).
-FROM ghcr.io/astral-sh/uv:0.13.1-python3.14-trixie-slim
+# Toolchain image for this repo: Python, uv and the locked dependencies of
+# tests/e2e (the e2e suite and the preset checks), nothing else. Used by
+# `make e2e`, `make test` and `make shell`, and by .github/workflows/e2e.yml
+# and flags.yml, so local runs and CI run the same toolchain. Nothing of the
+# repo is baked in: `make e2e` mounts the tests at /e2e/tests
+# (compose.e2e.yaml), `make test` / `make shell` the whole repo at /workspace.
+#
+# Base image pinned by tag and digest; Dependabot (docker, /ci) bumps both.
+FROM ghcr.io/astral-sh/uv:0.13.1-python3.14-trixie-slim@sha256:112f89760bd54b63c84d140151ea5f3d849278e54f6f939f2c40a57f3e33d895
 
 ENV UV_PROJECT_ENVIRONMENT=/opt/e2e-venv \
     UV_COMPILE_BYTECODE=1 \

@@ -58,6 +58,7 @@ the end-to-end suite and the toolchain images.
 | OTelFeature/poc#38 | k6 health-check scenario, split out of OTelFeature/poc#23 (answers OQ-5) | P0 | FR-006 (Demo 2 traffic) | UC-002 | TC-002 |
 | OTelFeature/poc#59 | Cross-service path: `geocode` calls `weather` | P1 | FR-026 | UC-004 | TC-004 |
 | OTelFeature/poc#35 | End-to-end suite in CI, safety net before merging | P1 | NFR-015, C-013 (verifies NFR-004, NFR-012) | UC-008 (BR-005) | TC-001, TC-002, TC-004, TC-005, TC-006 |
+| OTelFeature/poc#64 | Pin released extensions (v0.3.0 / v0.4.0) for stage and e2e | P0 | C-006, C-013 | UC-008 | TC-006 |
 | OTelFeature/otelfeature-instrument#7 | Eval context from semconv (Python) | P0 | FR-005, NFR-003 | UC-002, UC-004 | TC-002, TC-004 |
 | OTelFeature/otelfeature-instrument#8 | Error rate into context (Python); also `OTEL_METRICS_EXPORTER=none` | P1 | FR-011, FR-024, NFR-013, NFR-014, C-005 | UC-005 | TC-005 |
 | OTelFeature/otelfeature-instrument#9 | No decision attributes; opt-in tracing hook (Python) | P1 | FR-014, NFR-006 | UC-007 | TC-005 |
@@ -71,6 +72,8 @@ the end-to-end suite and the toolchain images.
 | OTelFeature/otelfeature-java-extension#23 | Decision attributes (Java); closed as not planned 2026-10-16, the extension writes none (FR-014) | P1 | FR-014 | UC-007 | TC-005 |
 | OTelFeature/otelfeature-java-extension#27 | `recordSpan` (Java) | P0 | FR-006, FR-007, FR-023, C-004 | UC-002 | TC-002 |
 | OTelFeature/otelfeature-java-extension#32 | Toolchain image `ci/Dockerfile` (Java), also the e2e build stage | P1 | NFR-016, C-013, C-014 | none (tooling) | none |
+| OTelFeature/otelfeature-instrument#24 | Release v0.3.0 (release workflow, wheel + sdist) | P0 | C-006 | UC-008 | TC-006 |
+| OTelFeature/otelfeature-java-extension#37 | Release v0.4.0 | P0 | C-006 | UC-008 | TC-006 |
 
 ## Execution lanes
 
@@ -216,11 +219,15 @@ flowchart LR
    merge.
 2. The suite is green against the extension `main` branches, in both Java
    enforcement modes.
-3. Both extensions are released.
-4. `poc` bumps the extension versions (C-006); the e2e default refs switch
-   back to the pinned released versions.
-5. The `poc` stack (#36 ← #37 ← #40 ← #41 ← #42 ← #43) merges, with the suite
-   green on the pinned versions.
+3. Both extensions are released (Simon, 2026-10-16): otelfeature-instrument
+   v0.3.0 (OTelFeature/otelfeature-instrument#24, adds a release workflow) and
+   otelfeature-java-extension v0.4.0 (OTelFeature/otelfeature-java-extension#37),
+   as GitHub Releases created by a `v*` tag.
+4. `poc` pins the released versions for the stage and the e2e defaults
+   (C-006, C-013, OTelFeature/poc#64). Git refs stay only as an explicit e2e
+   input; the stage never builds from git (OTelFeature/poc#58 closed).
+5. The `poc` stack (#36 ← … ← #44) already merged, before the releases, with
+   the suite green against the extension `main` branches.
 
 The toolchain PRs (OTelFeature/otelfeature-instrument#21,
 OTelFeature/otelfeature-java-extension#35) are independent of this order.

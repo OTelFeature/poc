@@ -4,9 +4,9 @@
 
 **Use Case ID:** UC-003  
 **Use Case Name:** Measure the savings of a drop rule  
-**Primary Actor:** Speaker  
+**Primary Actor:** Operator  
 **Secondary Actors:** OTel Collector, geocode, weather  
-**Goal:** The speaker gets per-service numbers for CPU, memory, spans per second and export bytes per second, before and after the Demo 2 rules, for both Java enforcement modes, so that the slide brackets are filled with measured values and the sampler-versus-processor decision is made on data.  
+**Goal:** The operator gets per-service numbers for CPU, memory, spans per second and export bytes per second, before and after the Demo 2 rules, for both Java enforcement modes, so that the slide brackets are filled with measured values and the sampler-versus-processor decision is made on data.  
 **Status:** Draft  
 **Requirements:** FR-016, FR-008, NFR-005, NFR-006, NFR-011, C-006  
 **Work Items:** OTelFeature/poc#27, OTelFeature/otelfeature-java-extension#21  
@@ -22,14 +22,14 @@
 
 ## Main Success Scenario
 
-1. The speaker starts the measurement with one command.
+1. The operator starts the measurement with one command.
 2. The system runs the baseline preset for the configured duration and records, per service, CPU, resident memory, spans per second and export bytes per second, at the service, not at the backend.
 3. The system runs the Demo 2 preset with `weather` in processor mode (the default, `OTELFEATURE_ENFORCEMENT=processor`) and records the same values.
 4. The system runs the Demo 2 preset with `weather` in sampler mode and records the same values.
 5. The system measures the cost of one targeted span decision in each language.
 6. The system prints one table per service comparing the three runs and the decision cost.
-7. The speaker runs a second measurement with the same command and compares the two tables.
-8. The speaker records the numbers for the script brackets and the D3 recommendation in OTelFeature/poc#27.
+7. The operator runs a second measurement with the same command and compares the two tables.
+8. The operator records the numbers for the script brackets and the D3 recommendation in OTelFeature/poc#27.
 
 ## Alternative Flows
 
@@ -39,7 +39,7 @@
 
 **Flow:**
 
-1. The speaker extends the run duration or removes the source of variance and repeats the measurement.
+1. The operator extends the run duration or removes the source of variance and repeats the measurement.
 2. Use case continues at step 1.
 
 ### A2: Savings are smaller than the decision cost
@@ -48,12 +48,12 @@
 
 **Flow:**
 
-1. The speaker records the result in OTelFeature/poc#27 and the script claim is changed to match the numbers.
+1. The operator records the result in OTelFeature/poc#27 and the script claim is changed to match the numbers.
 2. Use case ends.
 
 ### A3: Live view on stage
 
-**Trigger:** The speaker needs the drop visible during the talk rather than as a table (step 1).
+**Trigger:** The operator needs the drop visible during the talk rather than as a table (step 1).
 
 **Flow:**
 
