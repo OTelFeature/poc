@@ -97,7 +97,7 @@ EXPECTED = {
         **QUIET_NOISE,
         **{(span, "traceSampleRatio"): 0.1 for span in _production("geocode")},
         **{(span, "traceSampleRatio"): 0.5 for span in _production("weather")},
-        **{(span, "weatherUpstreamFailure"): 0.3 for span in SPANS},
+        **{(span, "weatherUpstreamFailure"): 0.5 for span in SPANS},
         ("weather /weather failing", "traceSampleRatio"): 1.0,
         ("geocode /geocode failing", "traceSampleRatio"): 1.0,
     },

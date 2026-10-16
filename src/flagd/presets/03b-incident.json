@@ -155,7 +155,7 @@
       "defaultVariant": "incident",
       "variants": {
         "none": 0.0,
-        "incident": 0.3,
+        "incident": 0.5,
         "outage": 1.0
       },
       "metadata": {
