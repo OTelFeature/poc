@@ -177,15 +177,16 @@ Every PR below is on `main`. The first stack (#36 ← #37 ← #40 ← #41 ← #4
 | OTelFeature/poc#63 | none (spec loop for instrument#21 and #23) | NFR-016, NFR-001 | UC-004 (A1) | TC-004 |
 | OTelFeature/poc#82 | OTelFeature/poc#80 | FR-012 | UC-005, UC-006 | TC-005 |
 | OTelFeature/poc#88 | OTelFeature/poc#75 | FR-012 | UC-006 (BR-002, A1 to A3) | TC-005 (item 7) |
+| OTelFeature/poc#89 | OTelFeature/poc#14 | FR-021 | UC-009 (BR-003) | TC-007 (item 2) |
 
 PR OTelFeature/poc#58 (stage stack from git refs, FR-027) was closed
 unmerged, and OTelFeature/poc#61 as not planned: the stage runs released
 extensions only (C-006).
 
 Open `poc` items, in lane order: OTelFeature/poc#27 (measurements: harness
-merged with PR OTelFeature/poc#79, numbers posted, OQ-1 decided: `processor`), OTelFeature/poc#31 (public repo), OTelFeature/poc#14 (env-var tier
-docs), OTelFeature/poc#70 (faster builds and e2e), OTelFeature/poc#80 (Python
-parity in e2e), OTelFeature/poc#75 (unit test for the `FaultInjection` bounds),
+merged with PR OTelFeature/poc#79, numbers posted, OQ-1 decided: `processor`), OTelFeature/poc#31 (public repo),
+OTelFeature/poc#70 (faster builds and e2e), OTelFeature/poc#80 (Python
+parity in e2e),
 OTelFeature/poc#76 (`geocode` on Python 3.15: blocked, because
 `openfeature-provider-flagd` requires `cachebox<6` and cachebox 5 has no
 3.15 build; `geocode` stays on 3.14 and Dependabot ignores 3.15 until then,
