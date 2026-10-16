@@ -23,9 +23,9 @@
 ## Main Success Scenario
 
 1. The operator sets a rule on `traceSampleRatio`: 0.1 where `deployment.environment.name` is `production`, 1.0 otherwise.
-2. flagd pushes the ruleset; all four instances switch to a decision per root span.
-3. For each new root span, the service builds the evaluation context, with the trace id as targeting key, and resolves the sample ratio.
-4. The service samples the root span by bucketing the trace id against the ratio.
+2. flagd pushes the ruleset; all four instances switch to a decision per trace root.
+3. For each new trace root, the service builds the evaluation context, with the trace id as targeting key, and resolves the sample ratio.
+4. The service samples the trace root by bucketing the trace id against the ratio.
 5. A trace that enters `weather` from `geocode` falls in the same bucket in both services, so it is either complete or absent.
 6. The dashboard shows about one in ten production traces and all staging traces.
 7. The operator adds a second rule that sets 0.5 for `service.name` = `weather` in production, so `weather` is sampled more than the rest but not fully (it leaves room for the error-rate rule in UC-005 to raise it to 1.0).
@@ -59,7 +59,7 @@
 
 **Flow:**
 
-1. No root spans of that service are sampled, equivalent to an always-off sampler.
+1. No trace roots of that service are sampled, equivalent to an always-off sampler.
 2. Use case continues at step 6.
 
 ### A4: Service does not declare its environment
@@ -108,9 +108,9 @@
 
 The targeting key is the trace id in hex, so flagd's `fractional` puts a trace in the same bucket in every service.
 
-### BR-002: Root spans only
+### BR-002: Trace roots only
 
-Only root spans evaluate the ratio. Non-root spans follow the parent's decision (always parent-based), so a flip mid-trace never splits a trace.
+Only trace roots evaluate the ratio. All other spans follow the parent's decision (always parent-based), so a flip mid-trace never splits a trace.
 
 ### BR-003: Entry point decides
 

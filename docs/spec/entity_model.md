@@ -107,7 +107,7 @@ floors (C-011) cap every field: a flag can only reduce telemetry.
 | enabled | Spans are created at all. `false` when `OTEL_SDK_DISABLED=true` (hard floor), `otelEnabled=false` or `telemetryLevel=OFF` (D2) | Boolean | 1 | Not Null |
 | suppressInternal | `INTERNAL` spans are dropped. `true` when `telemetryLevel=IO` | Boolean | 1 | Not Null |
 | recordSpan | This span is recorded. From the per-span flag `recordSpan`; not evaluated while `enabled=false` | Boolean | 1 | Not Null |
-| sampleRatio | Root-span sample ratio from `traceSampleRatio`; read for root spans only | Decimal | 5,4 | Not Null, Min: 0.0, Max: 1.0 |
+| sampleRatio | Trace-root sample ratio from `traceSampleRatio`; read for trace roots only | Decimal | 5,4 | Not Null, Min: 0.0, Max: 1.0 |
 | static | All flags read resolved with reason `STATIC` (or are missing), so the policy is cached for the process | Boolean | 1 | Not Null |
 
 ### SERVICE
@@ -232,7 +232,7 @@ that rewrite flag files, and the e2e flag-flip helper (NFR-004, TC-006).
 | `enabled` | `otelEnabled != false` and `telemetryLevel != OFF`, unless the hard floor applies | `true`; `false` when `OTEL_SDK_DISABLED=true`, and then no flag can make it `true` |
 | `suppressInternal` | `telemetryLevel == IO` | `false` |
 | `recordSpan` | `recordSpan` flag, per span; only read while `enabled` | `true` |
-| `sampleRatio` | `traceSampleRatio`, clamped to 0.0..1.0; non-numeric falls back; root spans only | From `OTEL_TRACES_SAMPLER` / `OTEL_TRACES_SAMPLER_ARG`, parsed like the SDK: the ratio for `traceidratio`/`parentbased_traceidratio`, 0.0 for `always_off`/`parentbased_always_off`, else 1.0. Python: an unknown name falls back to 1.0 with a warning (C-012) |
+| `sampleRatio` | `traceSampleRatio`, clamped to 0.0..1.0; non-numeric falls back; trace roots only | From `OTEL_TRACES_SAMPLER` / `OTEL_TRACES_SAMPLER_ARG`, parsed like the SDK: the ratio for `traceidratio`/`parentbased_traceidratio`, 0.0 for `always_off`/`parentbased_always_off`, else 1.0. Python: an unknown name falls back to 1.0 with a warning (C-012) |
 
 Precedence: hard floors > `otelEnabled`/`telemetryLevel=OFF` > `recordSpan` >
 `traceSampleRatio`. A lower level never re-enables what a higher one turned
@@ -292,7 +292,7 @@ OQ-2 resolved). Collision rules:
 |---|---|---|---|---|---|
 | Tracer wrapper (`_VerbosityAwareTracer`) | python | before-create | yes | Non-root: suppresses just this span, children attach to the real parent. Root (incl. remote-parent `SERVER`/`CONSUMER`): returns a non-recording span with a valid, non-sampled context, so the request is dropped in this service and downstream gets `sampled=0` | INTERNAL under `IO` released; `OFF`, `recordSpan` on `main` (not released) |
 | Per-tracer decision (`_VerbosityAwareTracerProvider.get_tracer`) | python | before-create, once per tracer | yes | everything from one scope, when the rule is tracer-scoped (see TARGETING_RULE) | on `main` (OTelFeature/otelfeature-instrument#17, OTelFeature/poc#12) |
-| Python sampler (`ParentBased(root=flag ratio)`) | python | before-create | yes | root spans by ratio; children parent-based | on `main` (OTelFeature/otelfeature-instrument#13, OTelFeature/poc#10) |
+| Python sampler (`ParentBased(root=flag ratio)`) | python | before-create | yes | trace roots by ratio; children parent-based | on `main` (OTelFeature/otelfeature-instrument#13, OTelFeature/poc#10) |
 | `FilteringSpanProcessor` + `ReparentingSpanExporter` | java | on-start (span already created) | no (saves batching, serialization, export) | any kind, suppressed at `onStart`; children re-parented | INTERNAL under `IO` released; `OFF`, `recordSpan` on `main` (not released) |
 | `FlagAwareSampler` | java | before-create | yes | `DROP` for roots (incl. remote-parent entry spans) and non-propagating leaves (DB client spans, `db.system.name`); ratio on trace roots | on `main` via landing PR OTelFeature/otelfeature-java-extension#33 (#26 for java#21, #29 for java#27, #30 for the ratio, OTelFeature/poc#10) |
 

@@ -28,11 +28,12 @@ here.
 | Span decision | The outcome for one span start: record, drop, suppress, or delegate. Taken once, at start. | |
 | Enforcement point | Where an extension applies the telemetry policy to a span: in Java the sampler or the span processor, in Python the tracer wrapper, the per-tracer decision or the sampler. | |
 | Enforcement mode | The Java choice between sampler and processor enforcement, set by `OTELFEATURE_ENFORCEMENT` (default `processor`). | |
-| Root span | For drop rules: a span with no valid parent, or an incoming request span (`SERVER`/`CONSUMER`) with a remote parent; dropping it drops the whole request in that service. Not the same as the span that starts a trace, which is the only one that evaluates the trace sample ratio (OQ-11). | |
+| Root span | For drop rules: a span with no valid parent, or an incoming request span (`SERVER`/`CONSUMER`) with a remote parent; dropping it drops the whole request in that service. Not the same as a trace root (OQ-11). | |
+| Trace root | The span that starts a trace: it has no parent at all, local or remote. Only trace roots evaluate the trace sample ratio (FR-009, UC-004 BR-002). | |
 | Leaf span | A span with no children of its own, such as a DB client span. | |
 | Drop | A span decision that leaves out the span and its whole subtree; downstream services receive `sampled=0`. | |
 | Suppress | A span decision that leaves out only this span; its children attach to the real parent and the trace stays sampled. | |
-| Trace sample ratio | The fraction of new traces that are sampled, from the `traceSampleRatio` flag (0.0 to 1.0). Only the span that starts a trace (no parent at all) evaluates it; every span with a parent, local or remote, follows the parent's decision. | |
+| Trace sample ratio | The fraction of new traces that are sampled, from the `traceSampleRatio` flag (0.0 to 1.0). Only trace roots evaluate it; every span with a parent, local or remote, follows the parent's decision. | |
 | Error rate | A service's current HTTP server error rate, computed in process from `http.server.request.duration` (stable HTTP conventions) and offered to rules as `otelfeature.http.server.error_rate`. | |
 | Control loop | The error-driven targeting rule that raises a failing service's trace sample ratio to 1.0 and lowers it once errors stop. | |
 | Hard floor | An env var setting no flag can override: `OTEL_SDK_DISABLED=true` and `OTEL_TRACES_SAMPLER=always_off`. Flags only reduce telemetry. | |
