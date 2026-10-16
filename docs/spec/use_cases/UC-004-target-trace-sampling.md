@@ -9,7 +9,7 @@
 **Goal:** The operator sets the trace sample ratio as a number flag with rules on `deployment.environment.name` and `service.name`, so that sampling changes live per environment and service and every sampled trace stays complete across services.  
 **Status:** Draft  
 **Requirements:** FR-004, FR-005, FR-009, FR-010, FR-026, NFR-001, NFR-003, NFR-007, C-003, C-011, C-012  
-**Work Items:** OTelFeature/poc#10, OTelFeature/poc#25, OTelFeature/poc#22, OTelFeature/otelfeature-instrument#7, OTelFeature/otelfeature-java-extension#20, OTelFeature/otelfeature-java-extension#21, OTelFeature/poc#59  
+**Work Items:** OTelFeature/poc#10, OTelFeature/poc#25, OTelFeature/poc#22, OTelFeature/otelfeature-instrument#7, OTelFeature/otelfeature-java-extension#20, OTelFeature/otelfeature-java-extension#21, OTelFeature/otelfeature-instrument#22, OTelFeature/poc#59  
 **Test Cases:** TC-004  
 **Script Beat:** Demo 3 ("your evaluation context is just my resource attributes", "sample rate as a number flag")  
 **Open Questions:** none (OQ-2 resolved)  
@@ -41,7 +41,7 @@
 
 **Flow:**
 
-1. A value above 1.0 is clamped to 1.0. A negative value, NaN, infinity or a non-number falls back to the startup ratio (NFR-001), logged once. Decided by Simon, 2026-10-16: a negative ratio is far more likely a typo than "drop every trace".
+1. A value above 1.0 is clamped to 1.0. A negative value, NaN, infinity or a non-number falls back to the startup ratio (NFR-001), logged once per state change. Decided by Simon, 2026-10-16: a negative ratio is far more likely a typo than "drop every trace".
 2. No exception reaches the application.
 3. Use case continues at step 4.
 

@@ -242,8 +242,10 @@ stage never builds from git refs; unreleased code gets a pre-release
 
 ### Toolchain images (OTelFeature/otelfeature-instrument#20, OTelFeature/otelfeature-java-extension#32)
 
-Open: OTelFeature/otelfeature-instrument#21 (CI green three runs in a row)
-and OTelFeature/otelfeature-java-extension#35, neither merged yet.
+Merged 2026-10-16: OTelFeature/otelfeature-instrument#21,
+OTelFeature/otelfeature-java-extension#35 and
+OTelFeature/poc#69 (OTelFeature/poc#67), see
+[traceability.md](traceability.md#toolchain).
 
 - Each repo has a `ci/Dockerfile`: base image pinned by tag and digest,
   dependencies preinstalled in a layer keyed on the lock files.
@@ -253,9 +255,12 @@ and OTelFeature/otelfeature-java-extension#35, neither merged yet.
 - Python: `otelfeature-instrument` had no test CI at all until
   OTelFeature/otelfeature-instrument#20.
 - Java: `ci.yml` keeps its shaded service-files check and the JAR upload. Its
-  `ci/Dockerfile` doubles as the build stage of the `poc` e2e suite.
-- `poc`: the e2e runner image is `ci/Dockerfile` in this repo (uv and the
-  pytest dependencies preinstalled).
+  `ci/Dockerfile` is meant to double as the build stage of the `poc` e2e
+  suite; that stage still builds with its own Gradle image (C-013).
+- `poc`: `ci/Dockerfile` is the toolchain image (uv, the e2e suite's pytest
+  dependencies and the preset-check dependencies preinstalled). `make e2e`
+  runs the suite in it; `make test` runs the stack-free preset checks, the
+  same as `flags.yml`.
 
 ### Spec lint (AIUP `/spec-review`, part A)
 
