@@ -97,7 +97,7 @@
 **Flow:**
 
 1. The control-loop rule matches for `geocode` too, and `geocode` samples at 1.0 while it fails (BR-003: each service reacts to its own rate).
-2. At stage load this is not expected: the cross-service path carries a small share of `geocode`'s requests (FR-026).
+2. At stage load this is not expected: the cross-service path carries one `geocode` request per 10 s, about one in 36 per interval, so even a failing call leaves `geocode` near 3% (FR-026, entity model "Request paths").
 3. Use case continues at step 5, with `geocode` raised as well.
 
 ## Postconditions

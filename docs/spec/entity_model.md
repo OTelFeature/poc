@@ -127,10 +127,17 @@ An instrumented process, identified by its OTel resource.
 **Request paths in the demo stack.** The load generator calls `POST /geocode`
 and `POST /weather` directly, so each service is the entry point (trace root)
 of those traces and decides their sampling itself. The cross-service path
-(FR-026, OTelFeature/poc#59, not built yet) adds a `geocode` endpoint that
-calls `weather` over HTTP: there `geocode` is the entry point and `weather`
-follows the parent's decision (UC-004 BR-003). Until then no trace spans both
-services.
+(FR-026, OTelFeature/poc#59) is `geocode`'s `POST /forecast` (same body as
+`POST /geocode`): it resolves the coordinates, then calls `weather`'s
+`POST /weather` over HTTP with the trace context propagated, and answers
+with both results. There `geocode` is the entry point and `weather` follows
+the parent's decision (UC-004 BR-003). A failing `weather` call makes the
+`/forecast` request fail too (HTTP 502), so it counts as a `geocode` error.
+The load generator calls `/forecast` once every 10 s per k6 instance
+(`FORECAST_INTERVAL_SECONDS`): at stage load that is one request in about 36
+per 10 s error-rate interval, so even when it fails `geocode`'s error rate
+stays near 3%, under the 5% threshold (UC-005 A7). Each `geocode` instance
+calls its own environment's `weather` (`WEATHER_URL`).
 
 ### ENFORCEMENT_POINT
 

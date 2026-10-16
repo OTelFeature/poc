@@ -53,4 +53,5 @@
 - **How:** CI asserts only deterministic ratios (0.0 and 1.0); the 0.1 and 0.5 volumes of steps 3 and 5 are not asserted. The statistical case at 0.5 runs nightly.
 - **Matrix:** runs in both Java enforcement modes (`processor`, `sampler`).
 - **Extension code:** the pinned released versions (C-006): otelfeature-instrument v0.3.0, otelfeature-java-extension v0.4.0. A git ref can be passed explicitly to check unreleased extension code (C-013).
-- **Not automated:** items 1 to 3, 5 to 7 and 9 are extension unit tests or docs checks. Step 6 waits for the cross-service path (OTelFeature/poc#59); once it exists, the e2e test asserts completeness only, not the 10% volume.
+- **Step 6:** `test_tc004_cross_service` (OTelFeature/poc#59) asserts completeness, not the 10% volume. At baseline a `/forecast` trace has spans from both services, `weather`'s server span is a child of `geocode`'s HTTP client span, and the tree is connected. With `geocode` at 0.0 and `weather` at 1.0 in production, `/forecast` traces are absent from both services while direct `POST /weather` traces are sampled: the entry point decides (UC-004 BR-003, A2).
+- **Not automated:** items 1 to 3, 5 to 7 and 9 are extension unit tests or docs checks.
