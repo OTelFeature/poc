@@ -1,10 +1,14 @@
 # Selects where otelfeature's extension comes from; see the stages below.
 ARG OTELFEATURE_EXTENSION_SOURCE=release
 
+# Multi-arch (NFR-017): every stage but the runtime one produces
+# architecture-independent files (JARs), so it runs on the build platform.
+# An arm64 image built on an amd64 runner then needs no Gradle under QEMU.
+
 # ── OTel agent download ─────────────────────────────────────────────
 # Separate stage so the runtime image doesn't need wget/curl installed.
 # Alpine ships wget in its BusyBox base — no package install needed.
-FROM alpine:3.24 AS otel-agent
+FROM --platform=$BUILDPLATFORM alpine:3.24 AS otel-agent
 
 # Pinned for reproducibility — update as new versions are released.
 # See https://github.com/open-telemetry/opentelemetry-java-instrumentation/releases
@@ -25,12 +29,12 @@ RUN wget -q -O /opentelemetry-javaagent.jar \
 #                       branch is rebuilt.
 # (declared at the top: an ARG used in FROM must come before the first FROM)
 
-FROM alpine:3.24 AS extension-release
+FROM --platform=$BUILDPLATFORM alpine:3.24 AS extension-release
 ARG OTELFEATURE_EXTENSION_VERSION=v0.4.0
 RUN wget -q -O /otelfeature-java-extension.jar \
     https://github.com/OTelFeature/otelfeature-java-extension/releases/download/${OTELFEATURE_EXTENSION_VERSION}/otelfeature-java-extension.jar
 
-FROM gradle:9.8.1-jdk21@sha256:d5c815d1281e3edc7e986ca573b1b309639747fa0d91a2199adadf327cfdf634 AS extension-git
+FROM --platform=$BUILDPLATFORM gradle:9.8.1-jdk21@sha256:d5c815d1281e3edc7e986ca573b1b309639747fa0d91a2199adadf327cfdf634 AS extension-git
 ARG OTELFEATURE_EXTENSION_REF=main
 ADD https://github.com/OTelFeature/otelfeature-java-extension.git#${OTELFEATURE_EXTENSION_REF} /src
 WORKDIR /src
@@ -42,7 +46,7 @@ RUN --mount=type=cache,target=/home/gradle/.gradle \
 FROM extension-${OTELFEATURE_EXTENSION_SOURCE} AS otelfeature-agent
 
 # ── Build stage ─────────────────────────────────────────────────────
-FROM gradle:9-jdk25@sha256:e4f9e3d037cc0c7d8fc42cd97edb976dfd19a5b7314212b88b6de3807d13cd47 AS builder
+FROM --platform=$BUILDPLATFORM gradle:9-jdk25@sha256:e4f9e3d037cc0c7d8fc42cd97edb976dfd19a5b7314212b88b6de3807d13cd47 AS builder
 
 WORKDIR /app
 

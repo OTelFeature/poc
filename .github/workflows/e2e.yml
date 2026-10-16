@@ -65,8 +65,9 @@ jobs:
       - uses: docker/setup-buildx-action@v4.4.1
 
       # Builds geocode, weather (pinned extension releases, or the git refs
-      # passed as inputs) and the runner
-      # image with the GitHub Actions layer cache, then `make e2e` uses them.
+      # passed as inputs), stub-apis and the runner image with the GitHub
+      # Actions layer cache, then `make e2e` uses them. Always from this
+      # checkout, never the published GHCR images (images.yml).
       - name: Build images (layer cache)
         uses: docker/bake-action@v7.5.0
         with:
@@ -74,7 +75,7 @@ jobs:
           files: |
             compose.yaml
             compose.e2e.yaml
-          targets: geocode,weather,e2e
+          targets: geocode,weather,stub-apis,e2e
           load: true
           # One cache scope per image: an export replaces its scope, so a
           # shared scope would keep only the last target's layers.
@@ -83,6 +84,8 @@ jobs:
             geocode.cache-to=type=gha,scope=e2e-geocode,mode=max
             weather.cache-from=type=gha,scope=e2e-weather
             weather.cache-to=type=gha,scope=e2e-weather,mode=max
+            stub-apis.cache-from=type=gha,scope=e2e-stub-apis
+            stub-apis.cache-to=type=gha,scope=e2e-stub-apis,mode=max
             e2e.cache-from=type=gha,scope=e2e-runner
             e2e.cache-to=type=gha,scope=e2e-runner,mode=max
 

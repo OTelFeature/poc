@@ -13,7 +13,7 @@
 
 ## Preconditions
 
-- `make prepare-offline` was run while online (OTelFeature/poc#24).
+- `make prepare-offline` (or `docker compose --profile staging --profile tools pull`) was run while online (OTelFeature/poc#24): it pulls the prebuilt images of `main` (NFR-017, OTelFeature/poc#91).
 - Presets and `STAGE.md` exist (OTelFeature/poc#26). Presets are cumulative and applied in the order of UC-008 BR-006.
 - Fallback videos recorded (OTelFeature/poc#32); OTel Demo footage in the slides (OTelFeature/poc#33).
 

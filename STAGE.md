@@ -1,9 +1,13 @@
 # Stage runbook
 
-One command per script beat. Each `make flag` copies a complete preset from
-[src/flagd/presets](src/flagd/presets) over `src/flagd/flagd.json`. flagd
-pushes the change to both services and they apply it to the next span. Aspire
-(http://localhost:18888, **Traces** view) shows the effect within a second or two.
+One command per script beat. Each `docker compose run --rm flag <preset>`
+copies a complete preset from [src/flagd/presets](src/flagd/presets) over
+`src/flagd/flagd.json` and waits until flagd serves it (it prints
+`flagd serves <preset>`, or fails after 10 s). flagd pushes the change to both
+services and they apply it to the next span. Aspire (http://localhost:18888,
+**Traces** view) shows the effect within a second or two. Only Docker is
+needed; `make flag PRESET=<preset>` does the same write without the
+confirmation.
 
 > [!NOTE]
 > The stage runs the pinned extension releases: otelfeature-instrument
@@ -13,8 +17,16 @@ pushes the change to both services and they apply it to the next span. Aspire
 > understand `otelEnabled`, `telemetryLevel` (including `OFF`), `recordSpan`,
 > `traceSampleRatio` and the semconv evaluation context. The stage never builds
 > an extension from a git ref; unreleased code needs a pre-release (`v…-rc.N`).
-> `make start` doesn't rebuild: after pulling a version bump, run
-> `make prepare-offline` once, or the old images keep the old extensions.
+> The stage **pulls** these images prebuilt from `main`
+> (`ghcr.io/otelfeature/poc-geocode`, `poc-weather`, `poc-stub-apis`; their
+> labels name the extension versions) instead of building them (UC-008
+> BR-008). `docker compose up` doesn't refresh images that are present:
+> after a version bump lands on `main`, pull again, or the old images keep
+> the old extensions. The start command below adds `--pull never --no-build`,
+> so a missing image fails loudly instead of being pulled or quietly built
+> from source. To
+> run exactly the images you rehearsed, pin their tag:
+> `export POC_IMAGE_TAG=sha-<short commit>` before pulling and starting.
 > `geocode` runs with `OTEL_SEMCONV_STABILITY_OPT_IN=http`, so its server
 > spans carry `url.path` at start (the old conventions only set `http.target`).
 
@@ -22,26 +34,32 @@ pushes the change to both services and they apply it to the next span. Aspire
 
 | Step | Command | Expect |
 |---|---|---|
-| Pull and build everything | `make prepare-offline` | No errors |
-| Start empty, with staging | `docker compose --profile staging down -v` then `make start-staging` | 4 app containers + 2 k6 |
-| Baseline flags, fresh traffic | `make demo-reset` | `flagd.json is now 00-baseline` |
+| Log in to GHCR (until the repo is public, OTelFeature/poc#31) | `docker login ghcr.io` with a token that has `read:packages` (or `gh auth token \| docker login ghcr.io -u <github-user> --password-stdin`) | `Login Succeeded` |
+| Pull everything, nothing built | `docker compose --profile staging --profile tools pull` (or `make prepare-offline`) | No errors |
+| Check the images are the published ones | `docker image inspect ghcr.io/otelfeature/poc-weather:${POC_IMAGE_TAG:-main} --format '{{index .Config.Labels "org.opencontainers.image.revision"}}'` (same for `poc-geocode`, `poc-stub-apis`) | A commit id; empty means a local build |
+| Start empty, with staging | `docker compose --profile staging down -v` then `docker compose --profile staging up -d --pull never --no-build` | 4 app containers + 2 k6 |
+| Baseline flags, fresh traffic | `docker compose run --rm flag 00-baseline` then `docker compose --profile staging restart load-generator load-generator-staging` (or `make demo-reset`) | `flagd serves 00-baseline` |
+
+If the pull fails (not logged in, or a local code change to show), build
+from source while still online: `docker compose --profile staging build`
+(UC-008 A3).
 
 Then go offline. From here nothing needs the network (see "Running on stage"
-in the [README](README.md)). Use `make start-staging` rather than `make start`,
-because Demo 3 needs the staging twins.
+in the [README](README.md)). Start with the `staging` profile, because Demo 3
+needs the staging twins.
 
 ## During the talk
 
 | Beat | Command | Aspire shows |
 |---|---|---|
 | Cold open: wall of spans | none (OTel Demo footage, D1) | n/a |
-| Demo 1: one flag turns tracing off | `make flag PRESET=01-otel-off` | No new traces from `geocode` or `weather`; their metrics, and flagd's own traces, keep flowing |
-| Demo 2: tracing back, noise dropped | `make flag PRESET=02-quiet-noise` | Traces again, but no `GET /health` traces from `geocode`, and `/weather` traces with no `SELECT`/`INSERT` (JDBC) spans. `weather`'s own `/health` traces stay |
-| Demo 3: rules on semconv attributes | `make flag PRESET=03-semconv-rules` | About 1 in 10 production traces from both services; all staging traces (filter by `deployment.environment.name`). Demo 2's drops stay on |
-| Demo 3: boost one service | `make flag PRESET=03a-weather-boost` | Production `weather` at about half its traces; production `geocode` stays at about 1 in 10 |
-| Demo 3: incident | `make flag PRESET=03b-incident` | About half of the `POST /weather` requests fail (HTTP 503, span status ERROR, `error.type=503`), in `weather` and `weather-staging` (the fault flag has no targeting). Within one or two error-rate intervals (10 s), weather's error rate passes 5% and the loop rule samples it fully: production `weather` goes from about half to all traces; `geocode` stays at 1 in 10. See the note below on the margin |
-| Demo 3: incident over | `make flag PRESET=03a-weather-boost` | No new errors; production `weather` is back at about half right away, because the loop rule goes with the fault (OQ-14). Not a reset |
-| End | `make demo-reset` | Baseline, fresh k6 run |
+| Demo 1: one flag turns tracing off | `docker compose run --rm flag 01-otel-off` | No new traces from `geocode` or `weather`; their metrics, and flagd's own traces, keep flowing |
+| Demo 2: tracing back, noise dropped | `docker compose run --rm flag 02-quiet-noise` | Traces again, but no `GET /health` traces from `geocode`, and `/weather` traces with no `SELECT`/`INSERT` (JDBC) spans. `weather`'s own `/health` traces stay |
+| Demo 3: rules on semconv attributes | `docker compose run --rm flag 03-semconv-rules` | About 1 in 10 production traces from both services; all staging traces (filter by `deployment.environment.name`). Demo 2's drops stay on |
+| Demo 3: boost one service | `docker compose run --rm flag 03a-weather-boost` | Production `weather` at about half its traces; production `geocode` stays at about 1 in 10 |
+| Demo 3: incident | `docker compose run --rm flag 03b-incident` | About half of the `POST /weather` requests fail (HTTP 503, span status ERROR, `error.type=503`), in `weather` and `weather-staging` (the fault flag has no targeting). Within one or two error-rate intervals (10 s), weather's error rate passes 5% and the loop rule samples it fully: production `weather` goes from about half to all traces; `geocode` stays at 1 in 10. See the note below on the margin |
+| Demo 3: incident over | `docker compose run --rm flag 03a-weather-boost` | No new errors; production `weather` is back at about half right away, because the loop rule goes with the fault (OQ-14). Not a reset |
+| End | `docker compose run --rm flag 00-baseline` (or `make demo-reset`, which also restarts k6) | Baseline |
 
 **Incident margin.** The loop reads weather's error rate over *all* its
 requests in a 10 s interval, and only `POST /weather` fails. With the stage
@@ -90,14 +108,19 @@ starts are available, so rules use `url.path`, never `http.route`.
 
 ## Rehearsal tips
 
-- `make flags` lists the presets; `make flag` with no argument prints usage.
-- `make flag` leaves `src/flagd/flagd.json` modified in git. `make demo-reset`
-  restores it.
+- `docker compose run --rm flag` (no preset) and `make flags` list the
+  presets.
+- Every flip leaves `src/flagd/flagd.json` modified in git; applying
+  `00-baseline` (or `make demo-reset`) restores it.
+- A flip that fails with "flagd did not answer" means the stack isn't up;
+  "does not serve" means flagd rejected the file (see
+  `docker compose logs flagd`).
 - Run `make test` after editing a preset. It runs the CI checks:
   the flagd schema, baseline = `flagd.json`, and an evaluation of every rule
   with the Python flagd provider (`src/flagd/test_presets.py`).
-- `make flag` swaps `flagd.json` atomically (temp file + rename) and always
-  gives it a newer mtime, so flags flipped in quick succession all arrive.
+- The `flag` service and `make flag` swap `flagd.json` atomically (temp
+  file + rename) and always give it a newer mtime, so flags flipped in quick
+  succession all arrive.
 - A flip that does nothing usually means a stale image (see
   [flagd's README](src/flagd/README.md#flag-changes-with-no-effect)) or
   extension versions that predate the flag (see the note at the top).

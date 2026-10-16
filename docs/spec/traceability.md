@@ -12,7 +12,7 @@ Issue refs: `OTelFeature/poc#N` (poc), `OTelFeature/otelfeature-instrument#N`
 | Script beat | Requirements | Use case | Test case | Issues |
 |---|---|---|---|---|
 | Cold open: wall of spans (OTel Demo) | C-007 | UC-008 | TC-006 | OTelFeature/poc#33 |
-| "Let me show you on something smaller" (transition to POC) | FR-018, FR-019 | UC-008 | TC-006 | OTelFeature/poc#24, OTelFeature/poc#26 |
+| "Let me show you on something smaller" (transition to POC) | FR-018, FR-019, NFR-017 | UC-008 | TC-006 | OTelFeature/poc#24, OTelFeature/poc#26, OTelFeature/poc#91 |
 | Demo 1: one flag turns OTel off, zero span ingest | FR-001, FR-002, FR-004, NFR-001, NFR-003, NFR-004, C-011 | UC-001 | TC-001 | OTelFeature/poc#8, OTelFeature/poc#9, OTelFeature/otelfeature-java-extension#21 |
 | Demo 2: the SDK asks OpenFeature before the span exists | FR-006, FR-008, FR-023, C-004 | UC-002 | TC-002 | OTelFeature/otelfeature-java-extension#21, OTelFeature/otelfeature-instrument#14, OTelFeature/otelfeature-java-extension#27 |
 | Demo 2: context = service name, instrumentation scope, the path | FR-005, C-003 | UC-002 | TC-002 | OTelFeature/poc#22, OTelFeature/otelfeature-instrument#7, OTelFeature/otelfeature-java-extension#20 |
@@ -23,7 +23,7 @@ Issue refs: `OTelFeature/poc#N` (poc), `OTelFeature/otelfeature-instrument#N`
 | Demo 3: errors rise, a rule turns sampling up for that service | FR-011, FR-012, FR-013, NFR-013, NFR-014, C-005 | UC-005, UC-006 | TC-005 | OTelFeature/poc#28, OTelFeature/otelfeature-instrument#8, OTelFeature/otelfeature-java-extension#22, OTelFeature/poc#29 |
 | Demo 3: the flag explains itself (wording open, OQ-9) | FR-014, FR-015 | UC-007 | TC-005 | OTelFeature/poc#30, OTelFeature/otelfeature-instrument#9, OTelFeature/otelfeature-java-extension#23, OTelFeature/otelfeature-java-extension#39 |
 | "Why not the collector?" (could read the same flags) | C-010 | - | - | none (D4, script only) |
-| CTA: repo and demo on the slide | FR-020, FR-021 | UC-009 | TC-007 | OTelFeature/poc#31, OTelFeature/poc#14 |
+| CTA: repo and demo on the slide | FR-020, FR-021, NFR-017 | UC-009 | TC-007 | OTelFeature/poc#31, OTelFeature/poc#14, OTelFeature/poc#91 |
 | Stage risk: live demo fails | C-008 | UC-008 | TC-006 | OTelFeature/poc#32 |
 | Stage risk: a beat broke since the last rehearsal | NFR-004, NFR-012, NFR-015, NFR-016, C-013, C-014 | UC-008 (BR-005) | TC-001, TC-002, TC-004, TC-005, TC-006 (Automation sections) | OTelFeature/poc#35, OTelFeature/otelfeature-instrument#20, OTelFeature/otelfeature-java-extension#32, OTelFeature/poc#67, OTelFeature/poc#70 |
 | Q&A: what else can become a flag | FR-021 | UC-009 | TC-007 | OTelFeature/poc#14, OTelFeature/poc#15 |
@@ -78,6 +78,7 @@ the end-to-end suite and the toolchain images.
 | OTelFeature/poc#74 | Full stage rehearsal three times, offline, on the pinned releases (people: Simon and Juliano) | P1 | NFR-012, FR-018, C-006 | UC-008 | TC-006 |
 | OTelFeature/poc#75 | Unit test for the `FaultInjection` bounds | P2 | FR-012 | UC-006 (BR-002) | TC-005 (item 7) |
 | OTelFeature/poc#80 | Python parity in e2e: fault injection in `geocode`, clearer job names | P1 | FR-012, FR-013, FR-015, NFR-015 | UC-005, UC-006 (A3), UC-007 (A2) | TC-005 |
+| OTelFeature/poc#91 | Prebuilt multi-arch images from `main`; Docker is the only dependency (`flag` compose service) | P1 | NFR-017, FR-019, FR-020, C-006 | UC-008 (BR-007, BR-008, A3), UC-009 (BR-001, A1) | TC-006, TC-007 |
 | OTelFeature/poc#70 | Faster builds and e2e suite | P1 | NFR-015, NFR-016 | none (tooling) | TC-001, TC-002, TC-004, TC-005, TC-006 (Automation sections) |
 | OTelFeature/otelfeature-instrument#24 | Release v0.3.0 (release workflow, wheel + sdist); tagged and released 2026-10-16 | P0 | C-006 | UC-008 | TC-006 |
 | OTelFeature/otelfeature-java-extension#37 | Release v0.4.0; tagged and released 2026-10-16 | P0 | C-006 | UC-008 | TC-006 |
@@ -190,7 +191,8 @@ parity in e2e),
 OTelFeature/poc#76 (`geocode` on Python 3.15: blocked, because
 `openfeature-provider-flagd` requires `cachebox<6` and cachebox 5 has no
 3.15 build; `geocode` stays on 3.14 and Dependabot ignores 3.15 until then,
-decided by Simon, 2026-10-16), and OTelFeature/poc#35 until its nightly runs are green.
+decided by Simon, 2026-10-16), OTelFeature/poc#91 (prebuilt images, Docker
+only), and OTelFeature/poc#35 until its nightly runs are green.
 People, not agents: OTelFeature/poc#74 (full stage rehearsal three times,
 offline, NFR-012), OTelFeature/poc#32 (fallback videos),
 OTelFeature/poc#33 (OTel Demo footage).

@@ -5,6 +5,56 @@ a Python geocoding API, a Java weather API, an OpenTelemetry Collector,
 and an [Aspire Dashboard](https://learn.microsoft.com/en-us/dotnet/aspire/fundamentals/dashboard/overview)
 to visualize the resulting traces, metrics, and logs.
 
+## Try it locally
+
+All you need is Docker with Compose v2 (Docker Desktop, or Docker Engine on
+Linux or WSL2). No `make`, no Python, no Java: `main` publishes prebuilt
+images for `linux/amd64` and `linux/arm64` (Apple Silicon included), so
+nothing is built on your machine.
+
+```sh
+git clone https://github.com/OTelFeature/poc.git && cd poc
+
+# While this repository is private (OTelFeature/poc#31), log in to GHCR once
+# with a GitHub token that has read:packages, for example via the gh CLI:
+#   gh auth refresh -h github.com -s read:packages
+#   gh auth token | docker login ghcr.io -u <github-user> --password-stdin
+# (Docker keeps one login per registry; already logged in to ghcr.io as
+# another account? Set DOCKER_CONFIG to a separate folder first.)
+docker login ghcr.io
+
+docker compose pull       # prebuilt geocode, weather, stub-apis + third-party images
+docker compose up -d      # starts the stack; builds nothing
+```
+
+Open the Aspire dashboard at http://localhost:18888 (**Traces**). Traces
+from `geocode` and `weather` show up within a few seconds; the load generator
+sends traffic for 15 minutes.
+
+Flip flags with the `flag` service. It applies a preset from
+[src/flagd/presets](src/flagd/presets) and waits until flagd serves it:
+
+```sh
+docker compose run --rm flag 01-otel-off       # Demo 1: tracing off
+docker compose run --rm flag 02-quiet-noise    # Demo 2: health checks and DB spans dropped
+docker compose run --rm flag 03-semconv-rules  # Demo 3: sample by environment
+docker compose run --rm flag 03a-weather-boost
+docker compose run --rm flag 03b-incident      # fault injection + error-driven sampling
+docker compose run --rm flag 00-baseline       # back to the start
+docker compose run --rm flag                   # prints usage and the presets
+```
+
+[STAGE.md](STAGE.md) says what each preset changes and what Aspire shows.
+`docker compose --profile staging up -d` adds the staging twins Demo 3 uses;
+`docker compose --profile staging down` stops everything.
+
+- `POC_IMAGE_TAG=sha-<short commit>` pins the images of one commit
+  instead of the latest of `main` (`main`).
+- `docker compose up -d --build` builds the images from your checkout
+  instead, for example after changing a service. The build needs network
+  access; the result keeps the image names, so a later `docker compose pull`
+  replaces it with the published images again.
+
 ## Architecture
 
 ```mermaid
@@ -122,22 +172,26 @@ flowchart LR
 
 ## Requirements
 
-- Docker and Docker Compose
-- Nothing else for `make test`, `make shell` and `make e2e`: they run in
+- Docker and Docker Compose v2. That is all for running the demo (see
+  [Try it locally](#try-it-locally)).
+- `make` is optional: the targets below are shortcuts around Docker.
+  `make test`, `make shell` and `make e2e` run in
   the toolchain image (`ci/Dockerfile`). [uv](https://docs.astral.sh/uv/) is
   optional, only for working on `geocode` outside a container.
 
 ## Running
 
 ```sh
-make build            # docker compose build (staging twins included)
+make build            # build geocode, weather, stub-apis from source (staging twins included)
 make start            # docker compose up -d, external APIs stubbed
 make start-live       # same, but geocode/weather call the real Nominatim and Open-Meteo
 make start-staging    # also start the staging twins (compose profile `staging`)
-make prepare-offline  # pull + build everything, so `make start` later needs no network
+make prepare-offline  # pull every image (prebuilt ones from main), so `make start` later needs no network
+make prepare-offline BUILD=1  # same, but build geocode, weather, stub-apis from source
 make stop             # docker compose down (staging included)
 
-make flag PRESET=02-quiet-noise  # apply a flag preset (see STAGE.md)
+make flag PRESET=02-quiet-noise  # apply a flag preset (see STAGE.md); without make:
+                                 #   docker compose run --rm flag 02-quiet-noise
 make demo-reset                  # baseline flags, restart k6
 make test                        # preset checks (schema + evaluation), in the toolchain image
 make unit-test                   # geocode and weather unit tests, in each Dockerfile's test stage
@@ -203,12 +257,17 @@ One exception: the collector's optional Datadog exporter is always in the
 pipelines and, without `DD_SITE`/`DD_API_KEY`, logs export errors (which
 also show up in Aspire as collector logs). Ignore them.
 
-1. While online: `make prepare-offline`. This pulls every image and builds
-   `geocode`, `weather` and their staging twins (their builds download
-   dependencies, the OTel Java agent and the otelfeature extension, so they
-   can't run offline).
-2. Offline: `make start`. It never rebuilds on its own; don't run
-   `make build` or `docker compose up --build` without network.
+1. While online: `make prepare-offline` (without make:
+   `docker compose --profile staging --profile tools pull`). This pulls every
+   image, including the prebuilt `geocode`, `weather` and `stub-apis` images
+   and the `flag` service's busybox. `make prepare-offline BUILD=1` builds
+   the three from source instead (their builds download dependencies, the
+   OTel Java agent and the otelfeature extension, so they can't run offline).
+2. Offline: `docker compose up -d --pull never --no-build` (STAGE.md uses
+   this): a missing image then fails loudly. Plain `docker compose up -d` and
+   `make start` don't refresh images that are present, but they pull a missing
+   one and, if that fails, build it from source; don't run `make build` or
+   `docker compose up --build` without network.
 
 The outgoing `CLIENT` spans still show a real HTTP call, with
 `server.address` = `stub-apis` and 20–120 ms of latency. They only appear on
@@ -292,7 +351,7 @@ The spec keeps the reference table in
 
 ```
 compose.yaml              # service definitions and wiring
-compose.e2e.yaml          # override for the end-to-end suite (make e2e)
+compose.e2e.yaml          # override for the end-to-end suite (make e2e); builds the checkout
 ci/Dockerfile             # toolchain image (make test, make shell, make e2e)
 STAGE.md                  # stage runbook: one command per script beat
 Makefile                  # build/start/stop shortcuts around docker compose
@@ -301,6 +360,7 @@ src/
   weather/                # Java/Spring Boot weather service (Gradle + Docker)
   flagd/                  # OpenFeature flag definitions (flagd)
     presets/              # one complete flagd.json per demo state (STAGE.md)
+    flag.sh               # the `flag` compose service: apply a preset, confirm over OFREP
   coordinates-db/         # Postgres init script (coordinates + weather cache)
   load-generator/         # k6 load test script targeting geocode and weather
   stub-apis/              # offline stand-in for Nominatim and Open-Meteo

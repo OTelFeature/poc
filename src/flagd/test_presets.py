@@ -1,13 +1,15 @@
 """Checks every preset with the same flagd evaluator geocode uses.
 
 The JSON schema check (CI) proves a preset is valid flagd syntax. This script
-proves two more things the schema can't:
+proves three more things the schema can't:
 
 - the Python in-process provider can parse it (it rejects keys the schema
-  allows, such as a flag-level "description"), and
+  allows, such as a flag-level "description"),
 - each rule gives the intended answer for the spans of each demo beat, using
   the evaluation context the extensions build: semconv attributes nested by
-  dot segment, trace id as targetingKey (OTelFeature/poc#22).
+  dot segment, trace id as targetingKey (OTelFeature/poc#22), and
+- it names itself in its flag-set metadata (`metadata.preset`), which the
+  flag compose service waits for over OFREP (OTelFeature/poc#91).
 
 Run: make test (in the ci/Dockerfile image, with the schema check)
 (keep openfeature-provider-flagd in tests/e2e/pyproject.toml in step with
@@ -127,6 +129,11 @@ def main() -> int:
         if file.stem not in EXPECTED:
             continue
         before = len(failures)
+        # The flag compose service confirms a flip by this name, which flagd
+        # merges into the metadata of every OFREP answer (flag.sh).
+        preset_name = json.loads(file.read_text(encoding="utf-8")).get("metadata", {}).get("preset")
+        if preset_name != file.stem:
+            failures.append(f"{file.stem}: metadata.preset is {preset_name!r}, want {file.stem!r}")
         core = FlagdCore()
         try:
             core.set_flags(file.read_text(encoding="utf-8"))

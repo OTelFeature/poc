@@ -47,6 +47,12 @@ updates:
     schedule:
       interval: "weekly"
 
+  # Base image of the stub-apis Dockerfile
+  - package-ecosystem: "docker"
+    directory: "/src/stub-apis"
+    schedule:
+      interval: "weekly"
+
   # Image tags pinned in compose.yaml (postgres, flagd, otel-collector, k6, aspire-dashboard)
   - package-ecosystem: "docker-compose"
     directory: "/"

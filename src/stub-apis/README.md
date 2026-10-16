@@ -16,9 +16,11 @@ return `404` as they would live. Forecast values are random. Every API
 response waits 20–120 ms, so the outgoing `CLIENT` spans look like real
 network calls (with `server.address` = `stub-apis`).
 
-[stub.py](stub.py) uses only the Python standard library. Compose runs it on
-the stock `python:3.15-slim-bookworm` image with the script mounted in, so
-there is no build step.
+[stub.py](stub.py) uses only the Python standard library. The
+[Dockerfile](Dockerfile) copies it into the stock `python:3.15-slim-bookworm`
+image; `main` publishes that as `ghcr.io/otelfeature/poc-stub-apis`
+(NFR-017), so `docker compose pull` fetches it like the other services. After
+editing `stub.py`, run `docker compose up -d --build stub-apis`.
 
 If you add a location to `load-test.js`, add it to `LOCATIONS` in `stub.py`
 too.
