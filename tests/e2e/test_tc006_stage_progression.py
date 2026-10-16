@@ -145,8 +145,8 @@ def test_stage_progression(step: Step, flags: Flags):
     wait_until(about_half, timeout=3 * FLIP_BUDGET_SECONDS, interval=0)
     _geocode_production_low(step, "03a")
 
-    # 03b-incident: weather fails ~30%; its error rate passes 5% and the loop
-    # samples production weather fully. The error rate needs continuous
+    # 03b-incident: weather fails ~50% (UC-006 BR-003); its error rate
+    # passes 5% and the loop samples production weather fully. The error rate needs continuous
     # traffic (min 5 requests per 2 s interval; below it the key is absent
     # and weather falls back to 0.5), so there is no settle pause between
     # batches here: each poll sends 20 requests and waits only until they're
@@ -166,7 +166,7 @@ def test_stage_progression(step: Step, flags: Flags):
     _geocode_production_low(step, "03b")  # the loop raises only the failing service
 
     # Incident over: back to 03a. The fault and the loop rule go with the
-    # preset, so weather is back at 0.5 on the flip (OQ-11).
+    # preset, so weather is back at 0.5 on the flip (OQ-14).
     flags.apply("03a-weather-boost")
     wait_until(about_half, timeout=3 * FLIP_BUDGET_SECONDS, interval=0)
 

@@ -39,21 +39,20 @@ because Demo 3 needs the staging twins.
 | Demo 2: tracing back, noise dropped | `make flag PRESET=02-quiet-noise` | Traces again, but no `GET /health` traces from `geocode`, and `/weather` traces with no `SELECT`/`INSERT` (JDBC) spans. `weather`'s own `/health` traces stay |
 | Demo 3: rules on semconv attributes | `make flag PRESET=03-semconv-rules` | About 1 in 10 production traces from both services; all staging traces (filter by `deployment.environment.name`). Demo 2's drops stay on |
 | Demo 3: boost one service | `make flag PRESET=03a-weather-boost` | Production `weather` at about half its traces; production `geocode` stays at about 1 in 10 |
-| Demo 3: incident | `make flag PRESET=03b-incident` | About 30% of `POST /weather` requests fail (HTTP 503, span status ERROR, `error.type=503`), in `weather` and `weather-staging` (the fault flag has no targeting). Within one or two error-rate intervals (10 s), weather's error rate passes 5% and the loop rule samples it fully: production `weather` goes from about half to all traces; `geocode` stays at 1 in 10. See the note below on the margin |
+| Demo 3: incident | `make flag PRESET=03b-incident` | About half of the `POST /weather` requests fail (HTTP 503, span status ERROR, `error.type=503`), in `weather` and `weather-staging` (the fault flag has no targeting). Within one or two error-rate intervals (10 s), weather's error rate passes 5% and the loop rule samples it fully: production `weather` goes from about half to all traces; `geocode` stays at 1 in 10. See the note below on the margin |
 | Demo 3: incident over | `make flag PRESET=03a-weather-boost` | No new errors; production `weather` is back at about half right away, because the loop rule goes with the fault (OQ-14). Not a reset |
 | End | `make demo-reset` | Baseline, fresh k6 run |
 
 **Incident margin.** The loop reads weather's error rate over *all* its
 requests in a 10 s interval, and only `POST /weather` fails. With the stage
 load (k6: `/weather` 1/s and `/health` 2/s, plus the compose healthcheck
-every 2 s) that is about 3 failures in 35 requests, an error rate of about
-**9%, not 30%**. It is above 5%, but in roughly one interval in seven
-fewer than two of the ten `/weather` requests fail, and weather dips back to
-half for about 10 s. A wider margin needs a decision (a higher incident
-share, a lower `HEALTHCHECK_RATE` on stage, or a lower threshold). The span
-metrics in Aspire are built from *sampled* spans, so their error rate moves
-with the sampling and isn't the loop's input (that is the services'
-unsampled HTTP metric).
+every 2 s) that is about 5 failures in 35 requests, an error rate of about
+**14%** at the incident share of 0.5 (UC-006 BR-003). An interval not above
+the 5% threshold (at most one failure in ten `/weather` requests) happens
+about 1% of the time, so over a minute-long beat there is roughly a 6%
+chance of one 10 s dip back to half. The span metrics in Aspire are built from *sampled* spans,
+so their error rate moves with the sampling and isn't the loop's input
+(that is the services' unsampled HTTP metric).
 
 If a beat doesn't show its effect, switch to the fallback video for that demo
 (OTelFeature/poc#32) and carry on with the next command.
@@ -82,7 +81,7 @@ ratio's other variants are `half` 0.5, `tenth` 0.1 and `none` 0.0.
 | `02-quiet-noise` | `recordSpan` targeting → `off` for `service.name=geocode` + `span.kind=server` + `url.path=/health`, and for `service.name=weather` + `otel.scope.name=io.opentelemetry.jdbc` |
 | `03-semconv-rules` | `02-quiet-noise` plus `traceSampleRatio` targeting: production → 0.1, everything else (staging, or no environment) → 1.0 |
 | `03a-weather-boost` | `03-semconv-rules` plus production `weather` → 0.5 (other production 0.1, everything else 1.0) |
-| `03b-incident` | `03a-weather-boost` plus `weatherUpstreamFailure` default `incident` (0.3) and the control-loop rule: `otelfeature.http.server.error_rate > 0.05` → 1.0, ahead of the other ratio rules |
+| `03b-incident` | `03a-weather-boost` plus `weatherUpstreamFailure` default `incident` (0.5) and the control-loop rule: `otelfeature.http.server.error_rate > 0.05` → 1.0, ahead of the other ratio rules |
 
 Rules read the evaluation context the extensions build from OTel semantic
 conventions, nested by dot segment, so `{"var": "service.name"}` works as
