@@ -24,7 +24,7 @@
 | Step | Name | Description | Test Data | Use Case |
 |---|---|---|---|---|
 | 1 | Start state | `03a-weather-boost` applied, no reset (progression) | `make flag PRESET=03a-weather-boost` | [UC-008](../use_cases/UC-008-run-demo-on-stage.md) |
-| 2 | Inject failure | Apply the incident preset: the fault and the control-loop rule (OTelFeature/poc#29) | `03b-incident`, `weatherUpstreamFailure` → 0.3 | [UC-006](../use_cases/UC-006-inject-upstream-failures.md), [UC-005](../use_cases/UC-005-raise-sampling-on-errors.md) |
+| 2 | Inject failure | Apply the incident preset: the fault and the control-loop rule (OTelFeature/poc#29) | `03b-incident`, `weatherUpstreamFailure` → 0.5 (UC-006 BR-003) | [UC-006](../use_cases/UC-006-inject-upstream-failures.md), [UC-005](../use_cases/UC-005-raise-sampling-on-errors.md) |
 | 3 | Verify errors | Error spans for `/weather` in Aspire within 2 s | - | - |
 | 4 | Loop reacts | `weather` error rate above 0.05 within one to two collections | interval 10 s, at least 10 requests per interval | [UC-005](../use_cases/UC-005-raise-sampling-on-errors.md) |
 | 5 | Verify sampling | Traces that start in `weather` at 100% of requests (from about 50%); `geocode` unchanged | - | - |
@@ -60,7 +60,7 @@ On stage, `03b-incident` builds on `03a-weather-boost` (UC-008 BR-006), which se
 ## Automation
 
 - **Test:** `test_tc005_control_loop` in `tests/e2e/` (OTelFeature/poc#35, phase 4). Needs the fault-injection flag (OTelFeature/poc#28), the control-loop preset (OTelFeature/poc#29) and the error-rate code in both extensions.
-- **How:** differs from the stage flow so it runs fast and deterministically: the failure fraction is 1.0 instead of 0.3, and the e2e override sets a short `OTELFEATURE_ERROR_RATE_INTERVAL` and a low `OTELFEATURE_ERROR_RATE_MIN_REQUESTS`. The test sends its own requests (load generator off).
+- **How:** differs from the stage flow so it runs fast and deterministically: the failure fraction is 1.0 instead of 0.5, and the e2e override sets a short `OTELFEATURE_ERROR_RATE_INTERVAL` and a low `OTELFEATURE_ERROR_RATE_MIN_REQUESTS`. The test sends its own requests (load generator off).
 - **Matrix:** runs in both Java enforcement modes (`processor`, `sampler`).
 - **Extension code:** built from git refs (each extension's `main`, where both chains are merged) until the releases in the preconditions exist (C-013).
 - **Not automated:** items 1 to 12; steps 6 and 7 (reading the trace) stay manual. Item 11 is covered for the suite as a whole by NFR-015 (three green runs in a row), not for the stage timings.

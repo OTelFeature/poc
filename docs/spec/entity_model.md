@@ -200,7 +200,7 @@ Nothing about the decision is written onto the span (FR-014).
 | `telemetryLevel` | string | `full`=FULL, `io`=IO, `off`=OFF | `full` | extension | FULL/IO released; OFF on `main` (Python #10, Java #24), not released | OTelFeature/poc#8 |
 | `recordSpan` | boolean | `on`=true, `off`=false | `on` | extension | on `main`: Python OTelFeature/otelfeature-instrument#18, Java OTelFeature/otelfeature-java-extension#29 (landed via #33); carries the Demo 2 drop rules (OQ-8) | OTelFeature/otelfeature-instrument#14, OTelFeature/otelfeature-java-extension#27 |
 | `traceSampleRatio` | number | `all`=1.0, `half`=0.5 (PR OTelFeature/poc#56), `tenth`=0.1, `none`=0.0 | `all` | extension | on `main`: Python OTelFeature/otelfeature-instrument#13, Java OTelFeature/otelfeature-java-extension#30 (landed via #33); in `flagd.json` with PR OTelFeature/poc#41 | OTelFeature/poc#10 |
-| `weatherUpstreamFailure` | number | `none`=0.0, `incident`=0.3, `outage`=1.0 (e2e) | `none` | application (`weather`) | in PR OTelFeature/poc#42 | OTelFeature/poc#28 |
+| `weatherUpstreamFailure` | number | `none`=0.0, `incident`=0.5 (UC-006 BR-003), `outage`=1.0 (e2e) | `none` | application (`weather`) | in PR OTelFeature/poc#42 | OTelFeature/poc#28 |
 | `signalsEnabled` | object | per signal | all on | extension | deferred, out of scope (P2) | OTelFeature/poc#11 |
 
 The variant names in this table are the ones `src/flagd/flagd.json` and the

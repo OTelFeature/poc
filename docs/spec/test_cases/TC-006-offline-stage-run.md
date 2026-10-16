@@ -41,7 +41,7 @@
 
 ## Stage progression in CI
 
-The e2e suite runs this whole sequence as one ordered test, `test_stage_progression` (OTelFeature/poc#35): presets 00 → 01 → 02 → 03 → 03a → 03b in order, **no resets**, asserting the expected spans and sampling after each flip. A preset that only works after a reset fails CI.
+The e2e suite runs this whole sequence as one ordered test, `test_stage_progression` (OTelFeature/poc#35): presets 00 → 01 → 02 → 03 → 03a → 03b in order, **no resets**, asserting the expected spans and sampling after each flip. A preset that only works after a reset fails CI. In the 03b beat about half of the `/weather` requests fail (UC-006 BR-003), and the test asserts that the loop then samples production `weather` fully.
 
 ## Postconditions
 

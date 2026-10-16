@@ -20,7 +20,7 @@
 
 ## Main Success Scenario
 
-1. The speaker sets `weatherUpstreamFailure` to 0.3 (incident preset).
+1. The speaker sets `weatherUpstreamFailure` to 0.5 (incident preset, BR-003).
 2. flagd pushes the ruleset to `weather`.
 3. For each `/weather` request, `weather` evaluates the flag and fails that share of requests with "service unavailable".
 4. Failed requests appear as error spans in the dashboard within 2 seconds, and in span metrics with status error.
@@ -57,3 +57,7 @@ The failure flag is evaluated by the application, not by the telemetry extension
 ### BR-002: Value range
 
 The value is a fraction from 0.0 to 1.0 of `/weather` requests.
+
+### BR-003: The incident fails half of `/weather`
+
+Decided by Simon, 2026-10-16 (OQ-14 b): the incident preset `03b-incident` sets the share to **0.5** (was 0.3). The control loop (UC-005) reads the error rate over all of `weather`'s requests, and only `POST /weather` fails; on the stage load (k6 `/weather` 1/s and `/health` 2/s, plus the compose healthcheck every 2 s) that is about 35 requests per 10 s interval. At 0.3 the error rate was about 9%, and in about one interval in seven it stayed under the 5% threshold, so `weather` dipped back to its 0.5 ratio. At 0.5 it is about 15%, and an interval under 5% (at most one failure in ten `/weather` requests) has a chance of about 1%.
