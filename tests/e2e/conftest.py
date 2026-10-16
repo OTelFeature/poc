@@ -109,6 +109,42 @@ class Step:
         wait_until(check, timeout=timeout, interval=0.2)
         return latency[-1]
 
+    def wait_for_trace(self, send, satisfied, timeout: float | None = None) -> float:
+        """Barrier for a change that shows *inside* a traced request (rather
+        than whether the request is traced at all).
+
+        On every poll, `send(headers)` sends one fresh request carrying its
+        own probe header. `satisfied(spans)` gets the spans of each probe's
+        trace(s) so far and returns None once they show the new behaviour,
+        or a description of what is still missing. Returns the flip latency:
+        when the first satisfying probe was sent, counted from the call.
+        Probes sent before the flip keep failing, so they can't satisfy it.
+        """
+        if timeout is None:
+            timeout = FLIP_BUDGET_SECONDS
+        start = time.monotonic()
+        probes: list[tuple[str, float]] = []
+        latency: list[float] = []
+        last: list[str] = []
+
+        def check() -> str | None:
+            probe = f"probe-{uuid.uuid4().hex}"
+            send({STEP_HEADER: probe})
+            probes.append((probe, time.monotonic()))
+            for p, sent in probes:
+                spans = self.spans.for_step(p)
+                if not spans:
+                    continue  # not exported yet (or not traced at all)
+                problem = satisfied(spans)
+                if problem is None:
+                    latency.append(sent - start)
+                    return None
+                last[:] = [problem]  # report the newest probe that has spans
+            return last[0] if last else "no probe traced yet"
+
+        wait_until(check, timeout=timeout, interval=0.2)
+        return latency[-1]
+
     def quiet(self, where) -> list:
         """Spans matching `where` since the mark, after waiting QUIET_SECONDS."""
         time.sleep(QUIET_SECONDS)
