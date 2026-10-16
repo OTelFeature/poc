@@ -2,17 +2,17 @@
 
 ## Overview
 
-- **Use Case ID:** UC-008
-- **Use Case Name:** Run the demo on stage
-- **Primary Actor:** Speaker
-- **Secondary Actors:** flagd, demo stack, Aspire dashboard
-- **Goal:** The speaker runs Demos 1 to 3 from a laptop without network access, moving between states with one command per script beat and resetting between rehearsals, so that the live demo cannot be broken by venue Wi-Fi or a typo in a JSON file.
-- **Status:** Draft
-- **Requirements:** FR-018, FR-019, FR-010, NFR-004, NFR-012, NFR-015, C-007, C-008, C-009
-- **Work Items:** OTelFeature/poc#24, OTelFeature/poc#26, OTelFeature/poc#25, OTelFeature/poc#32, OTelFeature/poc#33, OTelFeature/poc#35
-- **Test Cases:** TC-006
-- **Script Beat:** all demos; cold open uses OTel Demo footage (D1)
-- **Open Questions:** none (OQ-10 resolved)
+**Use Case ID:** UC-008  
+**Use Case Name:** Run the demo on stage  
+**Primary Actor:** Speaker  
+**Secondary Actors:** flagd, demo stack, Aspire dashboard  
+**Goal:** The speaker runs Demos 1 to 3 from a laptop without network access, moving between states with one command per script beat and resetting between rehearsals, so that the live demo cannot be broken by venue Wi-Fi or a typo in a JSON file.  
+**Status:** Draft  
+**Requirements:** FR-018, FR-019, FR-010, NFR-004, NFR-012, NFR-015, C-007, C-008, C-009  
+**Work Items:** OTelFeature/poc#24, OTelFeature/poc#26, OTelFeature/poc#25, OTelFeature/poc#32, OTelFeature/poc#33, OTelFeature/poc#35  
+**Test Cases:** TC-006  
+**Script Beat:** all demos; cold open uses OTel Demo footage (D1)  
+**Open Questions:** none (OQ-10 resolved)  
 
 ## Preconditions
 
@@ -33,7 +33,7 @@
 
 ### A1: A live step fails
 
-**Trigger:** Step 5, the expected effect does not appear.
+**Trigger:** The expected effect does not appear (step 5).
 
 **Flow:**
 
@@ -42,7 +42,7 @@
 
 ### A2: Running with real external APIs
 
-**Trigger:** Step 2, the speaker chooses the live mode.
+**Trigger:** The speaker chooses the live mode (step 2).
 
 **Flow:**
 

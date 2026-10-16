@@ -2,17 +2,17 @@
 
 ## Overview
 
-- **Use Case ID:** UC-002
-- **Use Case Name:** Drop noisy spans before they are created
-- **Primary Actor:** Operator
-- **Secondary Actors:** flagd, geocode, weather, Aspire dashboard
-- **Goal:** The operator writes one `recordSpan` targeting rule per noise source (health-check requests in `geocode`, database spans in `weather`) so that those spans are never created, while every other span in both services is kept.
-- **Status:** Draft
-- **Requirements:** FR-004, FR-005, FR-006, FR-007, FR-008, FR-023, NFR-002, NFR-003, NFR-005, NFR-007, C-003, C-004, C-011
-- **Work Items:** OTelFeature/poc#22, OTelFeature/otelfeature-instrument#7, OTelFeature/otelfeature-java-extension#20, OTelFeature/otelfeature-java-extension#21, OTelFeature/otelfeature-instrument#14, OTelFeature/otelfeature-java-extension#27, OTelFeature/poc#12, OTelFeature/poc#9
-- **Test Cases:** TC-002
-- **Script Beat:** Demo 2 ("service name, instrumentation scope, the path")
-- **Open Questions:** OQ-1, OQ-5
+**Use Case ID:** UC-002  
+**Use Case Name:** Drop noisy spans before they are created  
+**Primary Actor:** Operator  
+**Secondary Actors:** flagd, geocode, weather, Aspire dashboard  
+**Goal:** The operator writes one `recordSpan` targeting rule per noise source (health-check requests in `geocode`, database spans in `weather`) so that those spans are never created, while every other span in both services is kept.  
+**Status:** Implemented  
+**Requirements:** FR-004, FR-005, FR-006, FR-007, FR-008, FR-023, NFR-002, NFR-003, NFR-005, NFR-007, C-003, C-004, C-011  
+**Work Items:** OTelFeature/poc#22, OTelFeature/otelfeature-instrument#7, OTelFeature/otelfeature-java-extension#20, OTelFeature/otelfeature-java-extension#21, OTelFeature/otelfeature-instrument#14, OTelFeature/otelfeature-java-extension#27, OTelFeature/poc#12, OTelFeature/poc#9  
+**Test Cases:** TC-002  
+**Script Beat:** Demo 2 ("service name, instrumentation scope, the path")  
+**Open Questions:** OQ-1, OQ-5  
 
 ## Preconditions
 
@@ -37,7 +37,7 @@
 
 ### A1: Java service runs in processor mode
 
-**Trigger:** Step 6, `weather` runs with `OTELFEATURE_ENFORCEMENT=processor` (the default).
+**Trigger:** `weather` runs with `OTELFEATURE_ENFORCEMENT=processor`, the default (step 6).
 
 **Flow:**
 
@@ -47,7 +47,7 @@
 
 ### A2: Rule reads only keys present on the tracer (Python)
 
-**Trigger:** Step 4, a rule for `geocode` reads only resource and scope keys (for example muting its database instrumentation by `otel.scope.name`).
+**Trigger:** A rule for `geocode` reads only resource and scope keys (step 4), for example muting its database instrumentation by `otel.scope.name`.
 
 **Flow:**
 
@@ -57,7 +57,7 @@
 
 ### A3: Rule targets an attribute that is not known at span start
 
-**Trigger:** Step 1, the operator writes the rule on `http.route` or `http.response.status_code`.
+**Trigger:** The operator writes the rule on `http.route` or `http.response.status_code` (step 1).
 
 **Flow:**
 
@@ -67,7 +67,7 @@
 
 ### A4: The sampler cannot drop the span safely (Java sampler mode)
 
-**Trigger:** Step 6, in sampler mode, the matching span propagates mid-trace (neither a root nor a non-propagating leaf), or the rule reads a key a `Sampler` is not told (such as `otel.scope.name`).
+**Trigger:** In sampler mode, the matching span propagates mid-trace (neither a root nor a non-propagating leaf), or the rule reads a key a `Sampler` is not told, such as `otel.scope.name` (step 6).
 
 **Flow:**
 
@@ -77,7 +77,7 @@
 
 ### A5: Evaluation fails for a span
 
-**Trigger:** Step 4, the provider is not ready, the flag is missing, or the rule errors.
+**Trigger:** The provider is not ready, the flag is missing, or the rule errors (step 4).
 
 **Flow:**
 
@@ -87,7 +87,7 @@
 
 ### A6: Rule matches an incoming request from another service
 
-**Trigger:** Step 4, the matching span is a `SERVER` or `CONSUMER` span whose parent is remote (the request came from another traced service).
+**Trigger:** The matching span is a `SERVER` or `CONSUMER` span whose parent is remote, because the request came from another traced service (step 4).
 
 **Flow:**
 
@@ -98,7 +98,7 @@
 
 ### A7: Tracing is off globally
 
-**Trigger:** Step 4, `otelEnabled=false`, `telemetryLevel=OFF`, or an env-var hard floor applies.
+**Trigger:** `otelEnabled=false`, `telemetryLevel=OFF`, or an env-var hard floor applies (step 4).
 
 **Flow:**
 

@@ -39,7 +39,7 @@ conventions (resource, instrumentation scope, span start attributes), so a
 targeting rule reads like the telemetry it controls: `service.name`,
 `otel.scope.name`, `url.path`. The service's own error rate, read from the
 `http.server.request.duration` metric it already records, is added to the same
-context so a flag rule can raise sampling when a service starts failing.
+context so a targeting rule can raise sampling when a service starts failing.
 
 This repository (`poc`) is the demo stack the talk runs on: `geocode`
 (Python), `weather` (Java), flagd, Postgres, the OTel Collector, the Aspire

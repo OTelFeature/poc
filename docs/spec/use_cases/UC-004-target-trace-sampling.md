@@ -2,17 +2,17 @@
 
 ## Overview
 
-- **Use Case ID:** UC-004
-- **Use Case Name:** Target trace sampling by environment and service
-- **Primary Actor:** Operator
-- **Secondary Actors:** flagd, geocode, weather, their staging instances, Aspire dashboard
-- **Goal:** The operator sets the trace sample ratio as a number flag with rules on `deployment.environment.name` and `service.name`, so that sampling changes live per environment and service and every sampled trace stays complete across services.
-- **Status:** Draft
-- **Requirements:** FR-004, FR-005, FR-009, FR-010, NFR-001, NFR-003, NFR-007, C-003, C-011, C-012
-- **Work Items:** OTelFeature/poc#10, OTelFeature/poc#25, OTelFeature/poc#22, OTelFeature/otelfeature-instrument#7, OTelFeature/otelfeature-java-extension#20, OTelFeature/otelfeature-java-extension#21
-- **Test Cases:** TC-004
-- **Script Beat:** Demo 3 ("your evaluation context is just my resource attributes", "sample rate as a number flag")
-- **Open Questions:** none (OQ-2 resolved)
+**Use Case ID:** UC-004  
+**Use Case Name:** Target trace sampling by environment and service  
+**Primary Actor:** Operator  
+**Secondary Actors:** flagd, geocode, weather, their staging instances, Aspire dashboard  
+**Goal:** The operator sets the trace sample ratio as a number flag with rules on `deployment.environment.name` and `service.name`, so that sampling changes live per environment and service and every sampled trace stays complete across services.  
+**Status:** Draft  
+**Requirements:** FR-004, FR-005, FR-009, FR-010, NFR-001, NFR-003, NFR-007, C-003, C-011, C-012  
+**Work Items:** OTelFeature/poc#10, OTelFeature/poc#25, OTelFeature/poc#22, OTelFeature/otelfeature-instrument#7, OTelFeature/otelfeature-java-extension#20, OTelFeature/otelfeature-java-extension#21  
+**Test Cases:** TC-004  
+**Script Beat:** Demo 3 ("your evaluation context is just my resource attributes", "sample rate as a number flag")  
+**Open Questions:** none (OQ-2 resolved)  
 
 ## Preconditions
 
@@ -23,9 +23,9 @@
 ## Main Success Scenario
 
 1. The operator sets a rule on `traceSampleRatio`: 0.1 where `deployment.environment.name` is `production`, 1.0 otherwise.
-2. flagd pushes the ruleset; all four instances switch to a decision per root span.
-3. For each new root span, the service builds the evaluation context, with the trace id as targeting key, and resolves the sample ratio.
-4. The service samples the root span by bucketing the trace id against the ratio.
+2. flagd pushes the ruleset; all four instances switch to a decision per trace root.
+3. For each new trace root, the service builds the evaluation context, with the trace id as targeting key, and resolves the sample ratio.
+4. The service samples the trace root by bucketing the trace id against the ratio.
 5. A trace that enters `weather` from `geocode` falls in the same bucket in both services, so it is either complete or absent.
 6. The dashboard shows about one in ten production traces and all staging traces.
 7. The operator adds a second rule that sets 0.5 for `service.name` = `weather` in production, so `weather` is sampled more than the rest but not fully (it leaves room for the error-rate rule in UC-005 to raise it to 1.0).
@@ -35,7 +35,7 @@
 
 ### A1: Ratio out of range or not a number
 
-**Trigger:** Step 3, the flag resolves to a value outside 0.0 to 1.0 or not a number.
+**Trigger:** The flag resolves to a value outside 0.0 to 1.0 or not a number (step 3).
 
 **Flow:**
 
@@ -45,7 +45,7 @@
 
 ### A2: Ratio flipped on a downstream service only
 
-**Trigger:** Step 7, the operator raises the ratio for a service that is never the root of a trace.
+**Trigger:** The operator raises the ratio for a service that is never the root of a trace (step 7).
 
 **Flow:**
 
@@ -55,16 +55,16 @@
 
 ### A3: Ratio set to zero
 
-**Trigger:** Step 1, the rule resolves to 0.0 for a service.
+**Trigger:** The rule resolves to 0.0 for a service (step 1).
 
 **Flow:**
 
-1. No root spans of that service are sampled, equivalent to an always-off sampler.
+1. No trace roots of that service are sampled, equivalent to an always-off sampler.
 2. Use case continues at step 6.
 
 ### A4: Service does not declare its environment
 
-**Trigger:** Step 3, `deployment.environment.name` is missing from the resource.
+**Trigger:** `deployment.environment.name` is missing from the resource (step 3).
 
 **Flow:**
 
@@ -73,7 +73,7 @@
 
 ### A5: The service's env vars switched sampling off
 
-**Trigger:** Step 3, the service runs with `OTEL_TRACES_SAMPLER=always_off` or `parentbased_always_off`.
+**Trigger:** The service runs with `OTEL_TRACES_SAMPLER=always_off` or `parentbased_always_off` (step 3).
 
 **Flow:**
 
@@ -83,7 +83,7 @@
 
 ### A6: Unknown sampler name (Python)
 
-**Trigger:** Step 3, `OTEL_TRACES_SAMPLER` names a sampler the SDK does not know (for example `jaeger_remote`).
+**Trigger:** `OTEL_TRACES_SAMPLER` names a sampler the SDK does not know, for example `jaeger_remote` (step 3).
 
 **Flow:**
 
@@ -108,9 +108,9 @@
 
 The targeting key is the trace id in hex, so flagd's `fractional` puts a trace in the same bucket in every service.
 
-### BR-002: Root spans only
+### BR-002: Trace roots only
 
-Only root spans evaluate the ratio. Non-root spans follow the parent's decision (always parent-based), so a flip mid-trace never splits a trace.
+Only trace roots evaluate the ratio. All other spans follow the parent's decision (always parent-based), so a flip mid-trace never splits a trace.
 
 ### BR-003: Entry point decides
 

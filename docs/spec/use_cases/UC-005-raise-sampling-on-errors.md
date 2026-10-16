@@ -2,16 +2,16 @@
 
 ## Overview
 
-- **Use Case ID:** UC-005
-- **Use Case Name:** Raise sampling while a service is failing
-- **Primary Actor:** Operator
-- **Secondary Actors:** flagd, weather, geocode, Speaker (causes the failure through UC-006)
-- **Goal:** When a service's HTTP error rate rises above 5%, a flag rule raises that service's trace sample ratio to 1.0 and lowers it again once errors stop, with no script outside the services, so that the failing service is fully traced exactly while it fails.
-- **Status:** Draft
-- **Requirements:** FR-011, FR-013, FR-009, FR-024, NFR-006, NFR-012, NFR-013, NFR-014, C-005
-- **Work Items:** OTelFeature/otelfeature-instrument#8, OTelFeature/otelfeature-java-extension#22, OTelFeature/poc#28, OTelFeature/poc#29, OTelFeature/poc#10
-- **Test Cases:** TC-005
-- **Script Beat:** Demo 3 ("errors go up, a rule turns sampling up for that service")
+**Use Case ID:** UC-005  
+**Use Case Name:** Raise sampling while a service is failing  
+**Primary Actor:** Operator  
+**Secondary Actors:** flagd, weather, geocode, Speaker (causes the failure through UC-006)  
+**Goal:** When a service's HTTP error rate rises above 5%, a targeting rule raises that service's trace sample ratio to 1.0 and lowers it again once errors stop, with no script outside the services, so that the failing service is fully traced exactly while it fails.  
+**Status:** Draft  
+**Requirements:** FR-011, FR-013, FR-009, FR-024, NFR-006, NFR-012, NFR-013, NFR-014, C-005  
+**Work Items:** OTelFeature/otelfeature-instrument#8, OTelFeature/otelfeature-java-extension#22, OTelFeature/poc#28, OTelFeature/poc#29, OTelFeature/poc#10  
+**Test Cases:** TC-005  
+**Script Beat:** Demo 3 ("errors go up, a rule turns sampling up for that service")  
 
 ## Preconditions
 
@@ -35,7 +35,7 @@
 
 ### A1: Too few requests in the interval
 
-**Trigger:** Step 3, the service handled fewer than `OTELFEATURE_ERROR_RATE_MIN_REQUESTS` (default 10) requests in the last interval.
+**Trigger:** The service handled fewer than `OTELFEATURE_ERROR_RATE_MIN_REQUESTS` (default 10) requests in the last interval (step 3).
 
 **Flow:**
 
@@ -45,7 +45,7 @@
 
 ### A2: Spans are sampled at zero
 
-**Trigger:** Step 2, the service's sample ratio is 0.0 when errors start.
+**Trigger:** The service's sample ratio is 0.0 when errors start (step 2).
 
 **Flow:**
 
@@ -54,7 +54,7 @@
 
 ### A3: Python service without the stable HTTP conventions
 
-**Trigger:** Step 3, `geocode` emits only the older HTTP duration metric without `error.type`.
+**Trigger:** `geocode` emits only the older HTTP duration metric without `error.type` (step 3).
 
 **Flow:**
 
@@ -63,7 +63,7 @@
 
 ### A4: Both metric versions are emitted
 
-**Trigger:** Step 3, `geocode` runs with `OTEL_SEMCONV_STABILITY_OPT_IN=http/dup`.
+**Trigger:** `geocode` runs with `OTEL_SEMCONV_STABILITY_OPT_IN=http/dup` (step 3).
 
 **Flow:**
 
@@ -72,7 +72,7 @@
 
 ### A5: Metrics export is switched off
 
-**Trigger:** Step 3, the service runs with `OTEL_METRICS_EXPORTER=none`.
+**Trigger:** The service runs with `OTEL_METRICS_EXPORTER=none` (step 3).
 
 **Flow:**
 
@@ -106,7 +106,7 @@ The reader uses delta temporality, so each collection is its own window. The rat
 
 Each service computes its own rate; the rule raises sampling for the failing service only.
 
-### BR-004: Loop lives in the flag rule
+### BR-004: Loop lives in the targeting rule
 
 The threshold and the reaction are a flagd targeting rule. No external script and no new exported metric.
 
