@@ -90,7 +90,7 @@ issue is one PR, stacked on the previous one in its lane (see the
 - **People, not agents:** poc#33, poc#32
 
 Sync points: poc#22 finishes before instrument#7 / java#20 start. poc#27
-decides D3 once java#21 is released. poc#27's final numbers and poc#29 need
+decided D3 (`processor`, 2026-10-16). poc#27's final numbers and poc#29 need
 released versions of both extensions (C-006); both are released
 (otelfeature-instrument v0.3.0, otelfeature-java-extension v0.4.0) and pinned
 by poc#64, and poc#35 runs against those pins by default (C-013). The `traceSampleRatio` entry in
@@ -166,7 +166,7 @@ decision ([entity model](entity_model.md#flag_preset), UC-008 BR-006) before
 they merge.
 
 Next `poc` items after this stack, in lane order: OTelFeature/poc#30 (hooks
-in the apps), OTelFeature/poc#27 (measurements, decides OQ-1),
+in the apps), OTelFeature/poc#27 (measurements, decided OQ-1: `processor`),
 OTelFeature/poc#29 (control-loop preset), OTelFeature/poc#31 (public repo),
 and the remaining phases of OTelFeature/poc#35. The `poc` version bump to
 the released extensions (C-006) is OTelFeature/poc#64: the stage and the e2e

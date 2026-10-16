@@ -35,7 +35,7 @@
 
 ### A1: Runs are not reproducible
 
-**Trigger:** The two measurements differ by more than 10% on spans or bytes, or by more than the run-to-run noise on CPU or memory, for the same preset (step 7).
+**Trigger:** The two measurements differ by more than 10% on spans or bytes, or by more than the run-to-run noise on CPU (BR-003), for the same preset (step 7).
 
 **Flow:**
 
@@ -69,7 +69,7 @@
 
 ### Failure Postconditions
 
-- _None: the slide brackets stay empty and D3 stays open until a reproducible table exists._
+- _None: the slide brackets stay empty until a reproducible table exists._
 
 ## Business Rules
 
@@ -83,7 +83,7 @@ Reported savings include the cost of the targeted flag evaluation (NFR-005).
 
 ### BR-003: Reproducibility
 
-Two runs of the same preset agree within 10% on exported spans and bytes per service. CPU and memory are reported as mean ± sd of 5 s samples; a difference counts only beyond the run-to-run noise the report prints, the difference between geocode's two identically configured runs (NFR-011; softened by Simon, 2026-10-16, OQ-15).
+Two runs of the same preset agree within 10% on exported spans and bytes per service. CPU is reported as mean ± sd of 5 s samples; a difference counts only beyond the run-to-run noise, the largest CPU difference among `geocode`'s identically configured runs in the same report (its baseline, no-op and Demo 2 runs in the two Java modes; the mode is Java-only). Memory is reported as a mean and not compared (NFR-011; softened by Simon, 2026-10-16, OQ-15).
 
 ### BR-004: Script wording follows the decision
 

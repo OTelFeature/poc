@@ -32,7 +32,7 @@ in-process) at the point where spans are created:
 - `otelfeature-instrument`: a Python launcher that wraps the tracer.
 - `otelfeature-java-extension`: an OTel Java agent extension that enforces
   either in a span processor or in a sampler (`OTELFEATURE_ENFORCEMENT`,
-  default `processor` until D3 is decided).
+  default `processor`, the mode chosen for the talk, D3).
 
 The flags' evaluation context is built from OpenTelemetry semantic
 conventions (resource, instrumentation scope, span start attributes), so a

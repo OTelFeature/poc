@@ -349,7 +349,7 @@ dropped spans record nothing.
 
 | Env var | Default | Language | Meaning |
 |---|---|---|---|
-| `OTELFEATURE_ENFORCEMENT` | `processor` | java | `processor` or `sampler` (FR-008, OQ-1) |
+| `OTELFEATURE_ENFORCEMENT` | `processor` | java | `processor` or `sampler`; the talk uses `processor` (FR-008, D3, OQ-1) |
 | `OTELFEATURE_FLAG_NAME` | `telemetryLevel` | java | Key of the level flag |
 | `OTELFEATURE_ENABLED_FLAG_NAME` | `otelEnabled` | java | Key of the kill-switch flag |
 | `OTELFEATURE_RECORD_SPAN_FLAG_NAME` | `recordSpan` | both | Key of the per-span drop flag |
