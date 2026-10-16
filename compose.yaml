@@ -115,6 +115,7 @@ services:
       - WEATHER_BASE_URL=http://weather:8001
       - REQUEST_INTERVAL_SECONDS=1
       - DURATION=15m
+      - HEALTHCHECK_RATE=2
       - K6_OTEL_GRPC_EXPORTER_ENDPOINT=otel-collector:4317
       - K6_OTEL_GRPC_EXPORTER_INSECURE=true
       - K6_OTEL_SERVICE_NAME=load-generator
@@ -138,6 +139,7 @@ services:
       - WEATHER_BASE_URL=http://weather-staging:8001
       - REQUEST_INTERVAL_SECONDS=1
       - DURATION=15m
+      - HEALTHCHECK_RATE=2
       - K6_OTEL_GRPC_EXPORTER_ENDPOINT=otel-collector:4317
       - K6_OTEL_GRPC_EXPORTER_INSECURE=true
       - K6_OTEL_SERVICE_NAME=load-generator-staging

@@ -9,12 +9,24 @@ Runs via the official `grafana/k6` image in [compose.yaml](../../compose.yaml)
 
 ## Behavior
 
-The script defines two k6 scenarios that run **concurrently**:
+The script defines three k6 scenarios that run **concurrently**:
 
 | Scenario | Target | Endpoint | Rate |
 |----------|--------|----------|------|
 | `geocode` | `geocode` service | `POST /geocode` | 1 request / N seconds |
 | `weather` | `weather` service | `POST /weather` | 1 request / N seconds |
+| `healthchecks` | both services | `GET /health` | `HEALTHCHECK_RATE` requests / second, per service |
+
+`healthchecks` stands in for a kubelet probe, so Demo 2 has health-check
+spans to drop (OTelFeature/poc#38, open question OQ-5). k6 sends no trace
+context, so every check is a root `SERVER` span of its own trace. With the
+default of 2/s, health checks outnumber the business traces. `/health`
+makes no outgoing calls, so this rate doesn't count against the external-API
+limits below. `HEALTHCHECK_RATE=0` turns the scenario off (changing it
+means restarting k6). The "root span" property holds only as long as k6
+doesn't use its tracing module, which would add a `traceparent`. k6's own
+exported metrics (`http_reqs`, `http_req_duration`, ...) now include the
+health checks; split them by the `scenario` tag.
 
 Each iteration in each scenario picks a random city/country pair from a small
 fixed list and POSTs it. Both scenarios use the same `LOCATIONS` list, so when
@@ -51,6 +63,7 @@ instance, `load-generator-staging`, runs the same script against
 | `WEATHER_BASE_URL`               | `http://weather:8001` | Base URL of the `weather` service                 |
 | `REQUEST_INTERVAL_SECONDS`       | `5`                   | Seconds between requests per scenario (1 / N s)   |
 | `DURATION`                       | `1h`                  | How long the test runs                            |
+| `HEALTHCHECK_RATE`               | `2`                   | `GET /health` per second, per service (whole number, `0` = off; anything else makes k6 exit at startup) |
 | `K6_OTEL_GRPC_EXPORTER_ENDPOINT` | -                     | Collector endpoint for k6's own OTLP/gRPC metrics |
 | `K6_OTEL_GRPC_EXPORTER_INSECURE` | -                     | Disable TLS for the gRPC exporter                 |
 | `K6_OTEL_SERVICE_NAME`           | -                     | `service.name` reported in k6's own telemetry     |
