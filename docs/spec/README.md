@@ -236,8 +236,9 @@ stack (see [traceability.md](traceability.md#merge-order)).
 
 ### Toolchain images (OTelFeature/otelfeature-instrument#20, OTelFeature/otelfeature-java-extension#32)
 
-Open: OTelFeature/otelfeature-instrument#21 (CI green three runs in a row)
-and OTelFeature/otelfeature-java-extension#35, neither merged yet.
+Merged 2026-10-16: OTelFeature/otelfeature-instrument#21 and
+OTelFeature/otelfeature-java-extension#35. `poc` still has gaps against
+NFR-016, listed in [traceability.md](traceability.md#toolchain).
 
 - Each repo has a `ci/Dockerfile`: base image pinned by tag and digest,
   dependencies preinstalled in a layer keyed on the lock files.
@@ -247,7 +248,8 @@ and OTelFeature/otelfeature-java-extension#35, neither merged yet.
 - Python: `otelfeature-instrument` had no test CI at all until
   OTelFeature/otelfeature-instrument#20.
 - Java: `ci.yml` keeps its shaded service-files check and the JAR upload. Its
-  `ci/Dockerfile` doubles as the build stage of the `poc` e2e suite.
+  `ci/Dockerfile` is meant to double as the build stage of the `poc` e2e
+  suite; that stage still builds with its own Gradle image (C-013).
 - `poc`: the e2e runner image is `ci/Dockerfile` in this repo (uv and the
   pytest dependencies preinstalled).
 

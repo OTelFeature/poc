@@ -96,8 +96,9 @@ PRs.
 
 State as of 2026-10-16, checked with `gh` and
 `git merge-base --is-ancestor <head> origin/main`. Both extension chains are
-**merged on `main`** (not released yet, C-006). The `poc` lane is an open
-stack. The toolchain PRs are merged.
+**merged on `main`** (not released yet, C-006). The toolchain PRs are
+merged. The POC section below was not rechecked: its stack #36–#43 has
+since merged.
 
 ### Python (`OTelFeature/otelfeature-instrument`): merged
 
@@ -175,9 +176,11 @@ Not stacked; each is its own PR from `main`.
 | OTelFeature/otelfeature-instrument#20 | OTelFeature/otelfeature-instrument#21 | NFR-016, C-014 | merged 2026-10-16 |
 | OTelFeature/otelfeature-java-extension#32 | OTelFeature/otelfeature-java-extension#35 | NFR-016, C-013, C-014 | merged 2026-10-16 |
 
-NFR-016 stays In Progress: both extensions have `ci/Dockerfile`, `make test`,
-`make shell`, image-based CI and Dependabot on `/ci`, but `poc` has no
-`make shell` target yet (its `ci/Dockerfile` serves `make e2e` only).
+NFR-016 and C-014 stay In Progress: both extensions have `ci/Dockerfile`,
+`make test`, `make shell`, image-based CI and Dependabot on `/ci`, and all
+three repos enforce LF in `.gitattributes`. `poc` falls short: no
+`make test` or `make shell` target (its `ci/Dockerfile` serves `make e2e`
+only), and that Dockerfile pins its base image by tag, not digest.
 
 ### Merge lessons
 
