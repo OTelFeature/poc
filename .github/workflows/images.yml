@@ -16,7 +16,7 @@ name: images
 # images either: it builds the checkout (e2e.yml).
 on:
   push:
-    branches: [main]
+    branches: [main, feat/prebuilt-images]  # TEMP: verify publishing before merge; dropped before review
   pull_request:
     paths:
       - "src/geocode/**"
