@@ -28,29 +28,41 @@ network call on the span hot path and no poll interval to wait out.
 
 [flagd.json](flagd.json) is flagd's
 [flag definition file](https://flagd.dev/reference/flag-definitions/),
-mounted read-only into the container at `/etc/flagd` and passed via
+mounted into the container at `/etc/flagd` and passed via
 `--uri file:./etc/flagd/flagd.json` (see the `flagd` service in
 [compose.yaml](../../compose.yaml)):
 
-```json
-{
-  "flags": {
-    "telemetryLevel": {
-      "defaultVariant": "full",
-      "description": "Control telemetry level",
-      "state": "ENABLED",
-      "variants": {
-        "io": "IO",
-        "full": "FULL"
-      }
-    }
-  }
-}
-```
+| Flag | Type | Variants | Default | What it does |
+|---|---|---|---|---|
+| `otelEnabled` | boolean | `on`, `off` | `on` | Kill switch: `off` means no spans in either service (Demo 1) |
+| `telemetryLevel` | string | `full`=FULL, `io`=IO, `off`=OFF | `full` | `IO` drops `INTERNAL` spans; `OFF` is the same as `otelEnabled=off` |
+| `recordSpan` | boolean | `on`, `off` | `on` | Evaluated per span against the semconv context; a targeting rule returning `off` drops that span (Demo 2) |
+| `traceSampleRatio` | number | `all`=1.0, `tenth`=0.1, `none`=0.0 | `all` | Sample ratio for root spans (Demo 3) |
 
-The default is `"full"` — all spans are visible, including controller and
-internal implementation spans. Flip to `"io"` to suppress `INTERNAL` spans
-and see only the I/O boundary (SERVER and CLIENT) spans.
+The committed `flagd.json` is the neutral baseline: every flag at its
+default, no targeting, so the services behave like stock OpenTelemetry. It is
+byte-for-byte the `00-baseline` preset (CI checks this). The flags other than
+`telemetryLevel` FULL/IO need extension versions that aren't released yet;
+older versions ignore them.
+
+Flag descriptions live in each flag's `metadata`. A flag-level
+`"description"` key passes the flagd schema, but the Python in-process
+provider (`openfeature-provider-flagd`) refuses the whole file because of it.
+
+## Presets
+
+[presets/](presets) holds one complete flag file per demo state. `make flag
+PRESET=<name>` copies one over `flagd.json`, and `make demo-reset` goes back
+to `00-baseline`. [STAGE.md](../../STAGE.md) maps every script beat to a
+preset and says what each one changes.
+
+Every preset is checked in CI ([flags.yml](../../.github/workflows/flags.yml),
+or `make validate-flags` locally):
+
+1. It validates against `https://flagd.dev/schema/v0/flags.json`.
+2. [test_presets.py](test_presets.py) loads it with the same Python flagd
+   evaluator geocode uses and checks the rules against the spans of each demo
+   beat. When you add a preset, add its expected results there.
 
 ## Updating a flag
 
@@ -65,7 +77,8 @@ or any consuming service:
 3. Each provider raises `PROVIDER_CONFIGURATION_CHANGED`, and both services
    re-evaluate `telemetryLevel` on the very next span they create.
 
-To flip trace verbosity, change `defaultVariant` between `"full"` and `"io"`.
+To flip trace verbosity by hand, change `telemetryLevel`'s `defaultVariant`
+between `"full"` and `"io"`; for the demo beats use the presets above.
 More elaborate changes (targeting rules, additional flags) follow the same
 [flag definition schema](https://flagd.dev/reference/flag-definitions/) — see
 below for what a targeting rule changes about how the flag is *evaluated*.
@@ -107,10 +120,10 @@ services log that `telemetryLevel` is now being evaluated per span. Delete the
 block again and they log that it is static and go back to evaluating it once.
 
 > [!NOTE]
-> Passing the span's own attributes to the targeting rules — so a rule could
-> say "keep our spans, drop the framework's" — isn't wired up yet. The
-> evaluation machinery above already handles such a flag correctly; it just
-> has nothing to match on beyond flagd's own `$flagd.*` properties.
+> The extension versions that build an evaluation context from the span's
+> semconv attributes (resource, scope, span-start attributes; trace id as
+> `targetingKey`) aren't released yet. With the currently pinned versions a
+> rule has nothing to match on beyond flagd's own `$flagd.*` properties.
 
 ## Verifying a flag's current value
 

@@ -12,6 +12,11 @@ volumes:
 x-geocode: &geocode
   build:
     context: ./src/geocode
+  healthcheck:
+    test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+    interval: 2s
+    timeout: 2s
+    retries: 30
   depends_on: &app-depends-on
     otel-collector:
       condition: service_started
@@ -26,6 +31,10 @@ x-geocode-env: &geocode-env
   FLAGD_HOST: flagd
   GEOCODE_PORT: "8000"
   NOMINATIM_URL: ${NOMINATIM_URL:-http://stub-apis:8080/search}
+  # Stable HTTP semconv: the server span carries url.path at start (the
+  # Demo 2 rule needs it; the old conventions only set http.target), and the
+  # duration metric is http.server.request.duration with error.type.
+  OTEL_SEMCONV_STABILITY_OPT_IN: http
   OTEL_SERVICE_NAME: geocode
   OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4318
   OTEL_EXPORTER_OTLP_PROTOCOL: http/protobuf
@@ -38,6 +47,12 @@ x-geocode-env: &geocode-env
 x-weather: &weather
   build:
     context: ./src/weather
+  # The JVM plus agent takes a while; k6 waits for this.
+  healthcheck:
+    test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://localhost:8001/health"]
+    interval: 2s
+    timeout: 2s
+    retries: 60
   depends_on: *app-depends-on
 
 x-weather-env: &weather-env
@@ -122,9 +137,9 @@ services:
       - K6_NO_USAGE_REPORT=true
     depends_on:
       geocode:
-        condition: service_started
+        condition: service_healthy
       weather:
-        condition: service_started
+        condition: service_healthy
   
   # Second k6 instance for the staging profile, same script and rate.
   load-generator-staging:
@@ -146,9 +161,9 @@ services:
       - K6_NO_USAGE_REPORT=true
     depends_on:
       geocode-staging:
-        condition: service_started
+        condition: service_healthy
       weather-staging:
-        condition: service_started
+        condition: service_healthy
 
   # Offline stand-in for Nominatim and Open-Meteo (see src/stub-apis).
   # geocode and weather point at it unless `make start-live` overrides the
@@ -218,7 +233,11 @@ services:
   otel-collector:
     image: otel/opentelemetry-collector-contrib:0.162.0
     container_name: otel-collector
-    user: "10001:0"
+    # root, so the docker_stats receiver can read the Docker socket. As
+    # 10001 it works on Docker Desktop, but on a native engine (WSL2, Linux)
+    # the socket is root:docker 660, the receiver fails to start, and the
+    # collector exits: no telemetry at all.
+    user: "0:0"
     command:
       - --config=/etc/otel-collector-config.yaml
     volumes:

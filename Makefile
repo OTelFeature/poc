@@ -1,4 +1,7 @@
-.PHONY: build start start-live start-staging prepare-offline stop
+.PHONY: build start start-live start-staging prepare-offline stop flag flags demo-reset validate-flags
+
+PRESET_DIR := src/flagd/presets
+PRESETS := $(sort $(basename $(notdir $(wildcard $(PRESET_DIR)/*.json))))
 
 # Real API endpoints, used only by `make start-live`. Plain `make start` talks
 # to the stub-apis container so the stack runs with no network at all.
@@ -70,3 +73,35 @@ start:
 
 stop:
 	docker compose --profile staging down
+
+# ── Stage controls (see STAGE.md) ──────────────────────────────────────
+# `make flag PRESET=02-quiet-noise` replaces src/flagd/flagd.json with a
+# preset. flagd watches that file and pushes the change to both services, so
+# the flip shows up on the next span. apply-preset.sh renames a temp file
+# over it (atomic) with a strictly newer mtime, so no watcher misses a quick
+# second flip. flagd.json is tracked and equal to 00-baseline;
+# `make demo-reset` puts it back.
+flag:
+	@test -n "$(PRESET)" || { echo "usage: make flag PRESET=<name>, one of: $(PRESETS)"; exit 1; }
+	@test -f "$(PRESET_DIR)/$(PRESET).json" || { echo "unknown preset '$(PRESET)', one of: $(PRESETS)"; exit 1; }
+	sh src/flagd/apply-preset.sh "$(PRESET_DIR)/$(PRESET).json" src/flagd/flagd.json
+	@echo "flagd.json is now $(PRESET)"
+
+flags:
+	@printf '%s\n' $(PRESETS)
+
+# Back to baseline flags, and restart k6 so traffic starts fresh (its run
+# also ends after DURATION). The staging k6 is restarted only if it exists.
+demo-reset:
+	@$(MAKE) --no-print-directory flag PRESET=00-baseline
+	docker compose restart load-generator
+	@if [ -n "$$(docker compose --profile staging ps -a -q load-generator-staging)" ]; then \
+		docker compose --profile staging restart load-generator-staging; \
+	fi
+
+# Same checks as CI: flagd schema (needs network for the schema) and the
+# Python provider's evaluation of every preset.
+validate-flags:
+	uvx check-jsonschema --schemafile https://flagd.dev/schema/v0/flags.json src/flagd/flagd.json $(PRESET_DIR)/*.json
+	cmp src/flagd/flagd.json $(PRESET_DIR)/00-baseline.json
+	uv run --no-project --with openfeature-provider-flagd==0.5.2 python src/flagd/test_presets.py
