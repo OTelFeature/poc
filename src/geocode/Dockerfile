@@ -39,6 +39,13 @@ RUN uv pip install --python /app/.venv/bin/python --reinstall-package otelfeatur
 
 FROM instrument-${OTELFEATURE_INSTRUMENT_SOURCE} AS deps
 
+# ── Unit tests (make unit-test, OTelFeature/poc#75) ─────────────────
+# Only built with `--target test`; the default build skips this stage, so
+# the image is unchanged. Standard-library unittest: no dev dependencies.
+FROM deps AS test
+COPY test_fault_injection.py ./
+RUN .venv/bin/python -m unittest -v test_fault_injection
+
 FROM python:3.14-slim-bookworm AS runtime
 
 WORKDIR /app

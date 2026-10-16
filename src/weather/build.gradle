@@ -40,6 +40,16 @@ dependencies {
             version { strictly '1.28.0-alpha' }
         }
     }
+    // Unit tests (FaultInjectionTest, OTelFeature/poc#75). Not in the Docker
+    // dependency layer: the image builds with -x test, and the Dockerfile's
+    // test stage (make unit-test) downloads them itself.
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+}
+
+tasks.named('test') {
+    useJUnitPlatform()
+    testLogging { events 'passed', 'skipped', 'failed' }
 }
 
 // For the Docker dependency layer (Dockerfile): resolves, and so downloads,
