@@ -42,5 +42,6 @@ jobs:
         with:
           context: src/${{ matrix.service }}
           target: test
+          outputs: type=cacheonly
           cache-from: type=gha,scope=unit-${{ matrix.service }}
           cache-to: type=gha,scope=unit-${{ matrix.service }},mode=max

@@ -1,7 +1,6 @@
 package otelfeature.poc;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatNoException;
 import static org.assertj.core.api.Assertions.catchThrowableOfType;
 
 import java.util.Map;
@@ -79,6 +78,8 @@ class FaultInjectionTest {
         assertThat(failures()).isZero();
     }
 
+    // Non-numbers: the OpenFeature client's type check returns the default
+    // 0.0 (UC-006 A2), checked here through the SDK's in-memory provider.
     @Test
     void stringIsATypeMismatchAndFailsNoRequest() {
         flag(Flag.<String>builder().variant("v", "1.0").defaultVariant("v").build());
@@ -94,10 +95,6 @@ class FaultInjectionTest {
     @Test
     void missingFlagFailsNoRequest() {
         OpenFeatureAPI.getInstance().setProviderAndWait(new InMemoryProvider(Map.of()));
-        assertThatNoException().isThrownBy(() -> {
-            for (int i = 0; i < CALLS; i++) {
-                faultInjection.maybeFail();
-            }
-        });
+        assertThat(failures()).isZero();
     }
 }
