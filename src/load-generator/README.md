@@ -39,6 +39,10 @@ response latency.
 > Open-Meteo has no comparable rate limit, but the same interval is used for
 > consistency and readability in the dashboard.
 
+With the `staging` compose profile (`make start-staging`), a second
+instance, `load-generator-staging`, runs the same script against
+`geocode-staging` and `weather-staging`.
+
 ## Configuration
 
 | Environment variable             | Default               | Description                                       |

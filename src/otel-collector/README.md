@@ -24,6 +24,14 @@ container via [compose.yaml](../../compose.yaml).
 - **logs**: `otlp` receiver → `resource` processor → `debug` +
   `otlp_grpc/aspire` + `otlp_http/datadog` exporters.
 
+## Resource processor
+
+The `resource` processor sets `deployment.environment.name=otelfeature` with
+`action: insert`, so it only fills the attribute when a sender didn't set one
+(flagd, k6, docker stats). `geocode` and `weather` set their own
+(`production` or `staging`) because the flag rules that read it run inside
+their SDKs; the collector must not overwrite it.
+
 ## Datadog export
 
 `otlp_http/datadog` forwards all three signals to Datadog's OTLP intake

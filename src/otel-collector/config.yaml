@@ -9,11 +9,15 @@ receivers:
     endpoint: unix:///var/run/docker.sock
 
 processors:
+  # Only fills deployment.environment.name for senders that don't set it
+  # (flagd, k6, docker_stats). geocode and weather set their own
+  # (production/staging) and the flag decisions in the SDK depend on it, so
+  # the collector must never overwrite it.
   resource:
     attributes:
       - key: deployment.environment.name
         value: "otelfeature"
-        action: upsert
+        action: insert
   transform:
     error_mode: ignore
     metric_statements:
