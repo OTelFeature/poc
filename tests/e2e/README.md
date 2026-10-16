@@ -89,7 +89,10 @@ waits `QUIET_SECONDS` (2 s, `E2E_QUIET_SECONDS`) before it collects spans,
 because proving that nothing arrived takes some time.
 
 After a flip, `step.wait_tracing(service, traced=...)` is the behaviour
-barrier. It sends a probe request (its own header value) on every poll.
+barrier for "is this request traced at all". For a change *inside* a traced
+request (for example weather's DB spans), `step.wait_for_trace(send,
+satisfied)` sends a fresh request per poll and waits until one probe's trace
+satisfies the check. Both return the flip latency. `wait_tracing` sends a probe request (its own header value) on every poll.
 `traced=True` is done once any probe shows up. `traced=False` is done once
 the last three probes are older than `QUIET_SECONDS` and none of them
 showed up. It returns the flip latency (when the first probe with the new
@@ -137,6 +140,6 @@ requests until the new behaviour shows) before counting.
 | [test_baseline.py](test_baseline.py) | Baseline: complete traces from both services |
 | [test_tc001_kill_switch.py](test_tc001_kill_switch.py) | TC-001: `otelEnabled=false` and `telemetryLevel=OFF` stop all spans in both services; baseline brings complete traces back |
 | [test_hard_floors.py](test_hard_floors.py) | TC-001 V6 (spans only) / V7, TC-004 V8 (`always_off` half): `OTEL_SDK_DISABLED=true` and `OTEL_TRACES_SAMPLER=always_off` instances export nothing, even with flags on and a sampled `traceparent` |
-| [test_tc002_drop_noisy_spans.py](test_tc002_drop_noisy_spans.py) | TC-002: `02-quiet-noise` drops geocode `/health` (also a proxied one with a sampled `traceparent`) and weather's JDBC spans; everything else stays, trees connected; baseline restores both |
+| [test_tc002_drop_noisy_spans.py](test_tc002_drop_noisy_spans.py) | TC-002: `02-quiet-noise` drops geocode `/health` (also a proxied one with a sampled `traceparent`, with a positive control at baseline) and weather's JDBC spans; everything else stays, trees connected; baseline restores both. Plus a non-stage variation the Java *sampler* can decide (weather root, DB leaves by `db.system`, a proxied `/geocode` with its downstream calls) |
 | [checks.py](checks.py) | Shared trace-shape checks (complete request trace, DB and stub client spans) |
 | [../../ci/Dockerfile](../../ci/Dockerfile) | Runner image: Python, uv, locked test deps |
