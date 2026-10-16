@@ -39,7 +39,7 @@ RUN uv pip install --python /app/.venv/bin/python --reinstall-package otelfeatur
 
 FROM instrument-${OTELFEATURE_INSTRUMENT_SOURCE} AS deps
 
-FROM python:3.14-slim-bookworm AS runtime
+FROM python:3.15-slim-bookworm AS runtime
 
 WORKDIR /app
 
