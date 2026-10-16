@@ -127,7 +127,7 @@ steady whatever the cache holds (a real upstream outage would spare cache
 hits). The reason ("Injected upstream failure") is in the exception event on
 the span, not in the response body. The server span gets
 status ERROR, and the span metrics count it as an error. That is the input
-for Demo 3's incident beat (`make flag PRESET=03b-incident`, 0.3).
+for Demo 3's incident beat (`make flag PRESET=03b-incident`, 0.5).
 
 [FaultInjection.java](src/main/java/otelfeature/poc/FaultInjection.java)
 uses the OpenFeature Java SDK with the flagd provider (in-process resolver,

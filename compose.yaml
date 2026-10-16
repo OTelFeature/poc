@@ -30,6 +30,7 @@ x-geocode: &geocode
 x-geocode-env: &geocode-env
   FLAGD_HOST: flagd
   GEOCODE_PORT: "8000"
+  WEATHER_URL: http://weather:8001
   NOMINATIM_URL: ${NOMINATIM_URL:-http://stub-apis:8080/search}
   # Stable HTTP semconv: the server span carries url.path at start (the
   # Demo 2 rule needs it; the old conventions only set http.target), and the
@@ -108,6 +109,8 @@ services:
     environment:
       <<: *geocode-env
       OTEL_RESOURCE_ATTRIBUTES: deployment.environment.name=staging,service.namespace=otelfeature,service.version=0.1.0,service.instance.id=geocode-staging
+      # The cross-service path stays in its environment.
+      WEATHER_URL: http://weather-staging:8001
 
   weather-staging:
     <<: *weather
@@ -128,6 +131,7 @@ services:
     environment:
       - GEOCODE_BASE_URL=http://geocode:8000
       - WEATHER_BASE_URL=http://weather:8001
+      - FORECAST_INTERVAL_SECONDS=15
       - REQUEST_INTERVAL_SECONDS=1
       - DURATION=15m
       - HEALTHCHECK_RATE=2
@@ -152,6 +156,7 @@ services:
     environment:
       - GEOCODE_BASE_URL=http://geocode-staging:8000
       - WEATHER_BASE_URL=http://weather-staging:8001
+      - FORECAST_INTERVAL_SECONDS=15
       - REQUEST_INTERVAL_SECONDS=1
       - DURATION=15m
       - HEALTHCHECK_RATE=2

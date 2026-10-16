@@ -21,7 +21,7 @@ import pytest
 
 from conftest import FLIP_BUDGET_SECONDS, URLS, Step
 from flags import Flags
-from spans import STEP_HEADER, describe, wait_until
+from spans import STEP_HEADER, describe, tree_problem, wait_until
 
 PRODUCTION = ("geocode", "weather")
 STAGING = ("geocode-staging", "weather-staging")
@@ -141,3 +141,76 @@ def test_tc004_stage_preset_ratio(step: Step, flags: Flags):
     for service, tag in tags.items():
         count = len([s for s in step.spans.for_step(tag) if s.kind == "server"])
         assert 10 <= count <= 55, f"{service} production: {count}/{n} sampled at 0.1"
+
+
+FORECAST = {"city": "linz", "country": "austria"}  # stub-known: geocode and weather answer 200
+
+
+def _forecast_trace_problem(trace) -> str | None:
+    """A /forecast trace: geocode server root, geocode HTTP client span to
+    weather, weather server span as that client span's child, connected."""
+    root = next((s for s in trace if s.is_root), None)
+    if root is None or root.service != "geocode" or root.attrs.get("url.path") != "/forecast":
+        return f"no geocode /forecast root:\n{describe(trace)}"
+    weather = next((s for s in trace if s.service == "weather" and s.kind == "server"), None)
+    if weather is None:
+        return f"no weather server span in the /forecast trace:\n{describe(trace)}"
+    parent = next((s for s in trace if s.span_id == weather.parent_id), None)
+    if parent is None or parent.service != "geocode" or parent.kind != "client":
+        return f"weather's parent is not geocode's HTTP client span:\n{describe(trace)}"
+    return tree_problem(trace)
+
+
+def test_tc004_cross_service(step: Step, flags: Flags):
+    """TC-004 step 6 / UC-004 BR-003 and A2 on the cross-service path
+    (FR-026): geocode's POST /forecast calls weather. A sampled trace has
+    spans from both services, and the entry point (geocode) decides for the
+    whole trace, whatever weather's own ratio says."""
+    # Baseline: complete across services.
+    r = step.http.post(f"{URLS['geocode']}/forecast", json=FORECAST)
+    assert r.status_code == 200, f"/forecast: HTTP {r.status_code} {r.text}"
+    assert "weather" in r.json()
+
+    def complete() -> str | None:
+        traces = [t for t in step.traces().values()
+                  if any(s.is_root and s.attrs.get("url.path") == "/forecast" for s in t)]
+        if not traces:
+            return "no /forecast trace yet"
+        return _forecast_trace_problem(traces[0])
+
+    wait_until(complete, timeout=10.0)
+
+    # Production geocode at 0.0, production weather at 1.0 (the 03a shape
+    # with 0.0 for 0.1): /forecast traces are absent in *both* services,
+    # while direct /weather traces are sampled.
+    config = flags.preset("00-baseline")
+    config["flags"]["traceSampleRatio"]["targeting"] = {"if": [
+        {"and": [_eq("deployment.environment.name", "production"), _eq("service.name", "weather")]}, "all",
+        _eq("deployment.environment.name", "production"), "none",
+        "all",
+    ]}
+    flags.write(config)
+    step.wait_tracing("geocode", traced=False)
+    step.wait_tracing("weather", traced=True)
+
+    step.remark()
+    forecast_tag, weather_tag = f"{step.id}-forecast", f"{step.id}-weather"
+    for _ in range(5):
+        r = step.http.post(f"{URLS['geocode']}/forecast", json=FORECAST, headers={STEP_HEADER: forecast_tag})
+        assert r.status_code == 200
+        r = step.http.post(f"{URLS['weather']}/weather", json=FORECAST, headers={STEP_HEADER: weather_tag})
+        assert r.status_code == 200
+
+    def direct_sampled() -> str | None:
+        n = len([s for s in step.spans.for_step(weather_tag) if s.kind == "server"])
+        return None if n >= 5 else f"direct /weather: {n}/5 traced, expected all"
+
+    wait_until(direct_sampled, timeout=10.0)
+    # Without k6, weather's only /weather requests in this window are the
+    # tagged direct ones and the ones /forecast makes. Any other /weather
+    # server span is a leak, root or not (a root would mean geocode stopped
+    # propagating its unsampled context).
+    leaked = step.quiet(lambda s: s.step == forecast_tag
+                        or (s.resource.get("service.instance.id") == "weather" and s.kind == "server"
+                            and s.attrs.get("url.path") == "/weather" and s.step != weather_tag))
+    assert not leaked, f"/forecast traced although geocode decided 0.0:\n{describe(leaked)}"
