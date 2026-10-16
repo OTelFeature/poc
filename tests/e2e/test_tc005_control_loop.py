@@ -133,8 +133,11 @@ def test_tc005_control_loop(step: Step, flags: Flags):
     # services, sampled down and up): no span carries attributes the
     # extensions would have written. Outside the barrier, so one violating
     # trace can't be skipped.
+    # Only the services the extensions run in: flagd's own spans (flagSync)
+    # legitimately carry feature_flag.* attributes of their own.
     written = [s for s in step.spans.spans
-               if any(k.startswith("feature_flag.") or k in EXTENSION_ATTRS for k in s.attrs)]
+               if s.service in ("geocode", "weather")
+               and any(k.startswith("feature_flag.") or k in EXTENSION_ATTRS for k in s.attrs)]
     assert not written, f"span attributes the extensions must not write:\n{describe(written)}"
 
     # geocode had error-free traffic all along (rate 0.0): none of it traced.
