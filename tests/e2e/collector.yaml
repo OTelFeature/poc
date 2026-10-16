@@ -1,0 +1,31 @@
+# Collector config for the e2e suite (compose.e2e.yaml). Every span the
+# services export goes, unchanged, into one JSON-lines file the tests read.
+# No processors: the tests must see exactly what the SDKs sent (for example
+# that deployment.environment.name comes from the service, not from here).
+receivers:
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:4317
+      http:
+        endpoint: 0.0.0.0:4318
+
+exporters:
+  file/spans:
+    path: /out/spans.jsonl
+    format: json
+    flush_interval: 100ms
+  nop: {}
+
+service:
+  pipelines:
+    traces:
+      receivers: [otlp]
+      exporters: [file/spans]
+    # Accepted and dropped, so the services' metric/log exports don't fail.
+    metrics:
+      receivers: [otlp]
+      exporters: [nop]
+    logs:
+      receivers: [otlp]
+      exporters: [nop]

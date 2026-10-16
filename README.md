@@ -138,6 +138,7 @@ make stop             # docker compose down (staging included)
 make flag PRESET=02-quiet-noise  # apply a flag preset (see STAGE.md)
 make demo-reset                  # baseline flags, restart k6
 make validate-flags              # schema + evaluation checks of all presets
+make e2e                         # end-to-end suite against the real stack (tests/e2e)
 ```
 
 [STAGE.md](STAGE.md) is the stage runbook: one command per script beat.
@@ -230,6 +231,8 @@ Each service has its own README with configuration details:
 
 ```
 compose.yaml              # service definitions and wiring
+compose.e2e.yaml          # override for the end-to-end suite (make e2e)
+ci/Dockerfile             # e2e runner image
 STAGE.md                  # stage runbook: one command per script beat
 Makefile                  # build/start/stop shortcuts around docker compose
 src/

@@ -105,3 +105,47 @@ validate-flags:
 	uvx check-jsonschema --schemafile https://flagd.dev/schema/v0/flags.json src/flagd/flagd.json $(PRESET_DIR)/*.json
 	cmp src/flagd/flagd.json $(PRESET_DIR)/00-baseline.json
 	uv run --no-project --with openfeature-provider-flagd==0.5.2 python src/flagd/test_presets.py
+
+# ── End-to-end suite (tests/e2e, OTelFeature/poc#35) ───────────────────
+# Needs only Docker. Runs as its own compose project, so it can run next to
+# a demo stack. geocode and weather are built against extension git refs
+# (default main), so unreleased extension code can be checked before merge:
+#
+#   make e2e
+#   make e2e OTELFEATURE_INSTRUMENT_REF=feat/x OTELFEATURE_EXTENSION_REF=v0.4.0
+#   make e2e OTELFEATURE_ENFORCEMENT=sampler PYTEST_ARGS="-k baseline -x"
+#   make e2e E2E_KEEP=1      # leave the stack up afterwards (make e2e-down)
+#
+# Logs and the collected spans land in tests/e2e/.artifacts/.
+E2E_PROJECT := otelfeature-e2e
+E2E := docker compose -p $(E2E_PROJECT) -f compose.yaml -f compose.e2e.yaml
+E2E_ARTIFACTS := tests/e2e/.artifacts
+OTELFEATURE_INSTRUMENT_REF ?= main
+OTELFEATURE_EXTENSION_REF ?= main
+OTELFEATURE_ENFORCEMENT ?= processor
+PYTEST_ARGS ?= -m "not slow"
+export OTELFEATURE_INSTRUMENT_REF OTELFEATURE_EXTENSION_REF OTELFEATURE_ENFORCEMENT
+
+.PHONY: e2e e2e-build e2e-up e2e-test e2e-artifacts e2e-down
+
+e2e: e2e-build
+	@$(MAKE) --no-print-directory e2e-up || { $(MAKE) --no-print-directory e2e-artifacts e2e-down; exit 1; }
+	@rc=0; $(MAKE) --no-print-directory e2e-test || rc=$$?; $(MAKE) --no-print-directory e2e-artifacts; [ -n "$(E2E_KEEP)" ] || $(MAKE) --no-print-directory e2e-down; exit $$rc
+
+e2e-build:
+	$(E2E) --profile runner build
+
+e2e-up:
+	$(E2E) up -d --wait --wait-timeout 180
+
+e2e-test:
+	$(E2E) --profile runner run --rm e2e $(PYTEST_ARGS)
+
+e2e-artifacts:
+	@mkdir -p $(E2E_ARTIFACTS)
+	-@$(E2E) logs --no-color --timestamps > $(E2E_ARTIFACTS)/compose.log 2>&1
+	-@$(E2E) cp otel-collector:/out/spans.jsonl $(E2E_ARTIFACTS)/spans.jsonl 2>/dev/null
+	@echo "e2e artifacts in $(E2E_ARTIFACTS)/"
+
+e2e-down:
+	$(E2E) --profile runner down -v --remove-orphans

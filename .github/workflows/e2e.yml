@@ -1,0 +1,62 @@
+name: e2e
+
+# The talk's demo beats against the real stack (tests/e2e, OTelFeature/poc#35).
+# Runs `make e2e`, the same command as locally: only Docker is needed.
+on:
+  pull_request:
+    paths:
+      - "compose*.yaml"
+      - "Makefile"
+      - "src/**"
+      - "tests/e2e/**"
+      - "ci/**"
+      - ".github/workflows/e2e.yml"
+  push:
+    branches: [main]
+  schedule:
+    - cron: "17 3 * * *"
+  workflow_dispatch:
+    inputs:
+      instrument_ref:
+        description: "otelfeature-instrument git ref (branch, tag or commit)"
+        default: main
+      extension_ref:
+        description: "otelfeature-java-extension git ref (branch, tag or commit)"
+        default: main
+
+permissions:
+  contents: read
+
+concurrency:
+  group: e2e-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  e2e:
+    name: e2e (java ${{ matrix.enforcement }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        # Decision D3: both Java enforcement modes must pass the same beats.
+        enforcement: [processor, sampler]
+    env:
+      OTELFEATURE_INSTRUMENT_REF: ${{ inputs.instrument_ref || 'main' }}
+      OTELFEATURE_EXTENSION_REF: ${{ inputs.extension_ref || 'main' }}
+      OTELFEATURE_ENFORCEMENT: ${{ matrix.enforcement }}
+      # Nightly also runs the statistical (slow) tests.
+      PYTEST_ARGS: ${{ github.event_name == 'schedule' && '-v' || '-v -m "not slow"' }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Run the suite
+        run: make e2e
+
+      - name: Upload logs and spans
+        if: always()
+        uses: actions/upload-artifact@v7.0.2
+        with:
+          name: e2e-${{ matrix.enforcement }}
+          path: tests/e2e/.artifacts/
+          if-no-files-found: ignore

@@ -1,0 +1,18 @@
+[project]
+name = "otelfeature-poc-e2e"
+version = "0.1.0"
+description = "End-to-end tests: the talk's demo beats against the running stack"
+requires-python = ">=3.14"
+dependencies = [
+    "httpx==0.28.1",
+    "pytest==9.1.1",
+]
+
+[tool.uv]
+package = false
+
+[tool.pytest.ini_options]
+addopts = "-ra"
+markers = [
+    "slow: statistical or long-running, nightly only",
+]

@@ -43,6 +43,18 @@ updates:
     schedule:
       interval: "weekly"
 
+  # e2e runner image (ci/Dockerfile)
+  - package-ecosystem: "docker"
+    directory: "/ci"
+    schedule:
+      interval: "weekly"
+
+  # e2e test dependencies (tests/e2e/pyproject.toml + uv.lock)
+  - package-ecosystem: "uv"
+    directory: "/tests/e2e"
+    schedule:
+      interval: "weekly"
+
   # GitHub Actions workflows
   - package-ecosystem: "github-actions"
     directory: "/"
