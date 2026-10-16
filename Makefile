@@ -75,15 +75,16 @@ stop:
 	docker compose --profile staging down
 
 # ── Stage controls (see STAGE.md) ──────────────────────────────────────
-# `make flag PRESET=02-quiet-noise` copies a preset over src/flagd/flagd.json.
-# flagd watches that file and pushes the change to both services, so the
-# flip shows up on the next span. cp rewrites the file in place, which the
-# bind mount's file watcher sees. flagd.json is tracked and equal to
-# 00-baseline; `make demo-reset` puts it back.
+# `make flag PRESET=02-quiet-noise` replaces src/flagd/flagd.json with a
+# preset. flagd watches that file and pushes the change to both services, so
+# the flip shows up on the next span. apply-preset.sh renames a temp file
+# over it (atomic) with a strictly newer mtime, so no watcher misses a quick
+# second flip. flagd.json is tracked and equal to 00-baseline;
+# `make demo-reset` puts it back.
 flag:
 	@test -n "$(PRESET)" || { echo "usage: make flag PRESET=<name>, one of: $(PRESETS)"; exit 1; }
 	@test -f "$(PRESET_DIR)/$(PRESET).json" || { echo "unknown preset '$(PRESET)', one of: $(PRESETS)"; exit 1; }
-	cp "$(PRESET_DIR)/$(PRESET).json" src/flagd/flagd.json
+	sh src/flagd/apply-preset.sh "$(PRESET_DIR)/$(PRESET).json" src/flagd/flagd.json
 	@echo "flagd.json is now $(PRESET)"
 
 flags:

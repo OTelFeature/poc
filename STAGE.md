@@ -67,9 +67,8 @@ starts are available, so rules use `url.path`, never `http.route`.
 - Run `make validate-flags` after editing a preset. It runs the CI checks:
   the flagd schema, baseline = `flagd.json`, and an evaluation of every rule
   with the Python flagd provider (`src/flagd/test_presets.py`).
-- `make flag` rewrites `flagd.json` in place, so flagd can briefly see a
-  half-written file. It logs a parse error and applies the next write. Check
-  this once during rehearsal.
+- `make flag` swaps `flagd.json` atomically (temp file + rename) and always
+  gives it a newer mtime, so flags flipped in quick succession all arrive.
 - A flip that does nothing usually means a stale image (see
   [flagd's README](src/flagd/README.md#flag-changes-with-no-effect)) or
   extension versions that predate the flag (see the note at the top).
