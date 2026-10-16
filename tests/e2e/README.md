@@ -37,8 +37,14 @@ pinned versions.
 In CI, [e2e.yml](../../.github/workflows/e2e.yml) runs `make e2e` for both
 Java enforcement modes on PRs, on `main` and nightly, against the pinned
 releases. The refs are `workflow_dispatch` inputs, default `release` (exactly
-that word; anything else is a git ref). Artifacts are uploaded on every run.
-The images
+that word; anything else is a git ref). Each mode runs as two shards, each
+a job with its own stack: `stage` (TC-005 control loop, TC-006 stage
+progression) and `core` (everything else, new test files included), so every
+job finishes in under 4 minutes (NFR-015). Locally, `make e2e` runs the whole
+suite in one stack. Artifacts (compose log, spans, metrics) are uploaded on
+every run. The e2e override also starts the JVMs with C1 only and the serial
+GC: four weather JVMs start at once, and that start dominated the stack's
+start-up time. The images
 are built first by `docker/bake-action` with the GitHub Actions layer cache
 (one cache scope per image; `make e2e E2E_SKIP_BUILD=1` then uses them). The nightly run also includes
 the `slow` statistical tests and runs everything three times in a row
