@@ -384,3 +384,51 @@ OTelFeature/otelfeature-java-extension#31 and landing PR #33). Java has no
 tracing-hook setting: OTelFeature/otelfeature-java-extension#23 was closed as
 not planned (2026-10-16), since the extension writes nothing onto spans
 (FR-014). An opt-in hook for Java would be a new issue.
+
+### `OTEL_*` env vars and live flags
+
+Which standard `OTEL_*` env vars have a live flag, which can't have one, and
+why (FR-021, UC-009 BR-003). From OTelFeature/poc#14, with the audit
+correction of 2026-10-16: the `*_EXPORTER=none` values are honoured only as
+startup env vars.
+
+**Governing rule: the env var is the default, the flag is the live
+override.** Every policy field starts from the value its startup env vars
+give, read the way the stock SDK or agent reads them
+([policy field resolution](#policy-field-resolution)). A flag changes the
+field while the process runs, and when the flag can't be evaluated the field
+falls back to the env var value (NFR-001). The two exceptions are the
+[hard floors](#hard-floors) (C-011): `OTEL_SDK_DISABLED=true` and
+`OTEL_TRACES_SAMPLER=always_off`. There the env var wins and no flag
+overrides it, because flags only reduce telemetry.
+
+| Tier | Env var | Live flag | Why |
+|---|---|---|---|
+| 1: live flag | `OTEL_SDK_DISABLED` | `otelEnabled=false`, `telemetryLevel=OFF` | The SDK reads the env var once, at startup. The flags suppress spans instead of disabling the SDK (FR-001, FR-002). `true` is a hard floor |
+| 1: live flag | `OTEL_TRACES_SAMPLER`, `OTEL_TRACES_SAMPLER_ARG` | `traceSampleRatio`, for trace roots | The env vars give the fallback ratio (FR-009). `always_off` is a hard floor; `parentbased_always_off` keeps its standard meaning |
+| 1: live flag, approximated | `OTEL_INSTRUMENTATION_<name>_ENABLED` | A `recordSpan` or `telemetryLevel` targeting rule on `otel.scope.name` (FR-023) | Scope filtering, not the same thing: the instrumentation stays installed and still runs its hooks; only its spans are left out. In Java sampler mode the processor enforces a scope rule (C-004) |
+| Startup only, honoured | `OTEL_TRACES_EXPORTER=none` | none | Honoured at startup like the SDK (FR-025). A live per-signal switch, `signalsEnabled`, is deferred: OTelFeature/poc#11 closed as not planned (FR-022) |
+| Startup only, honoured | `OTEL_METRICS_EXPORTER=none` | none | Honoured at startup like the SDK (FR-024); no error rate then. Same deferral as above |
+| Startup only, honoured | `OTEL_LOGS_EXPORTER` | none | Read at startup by the SDK or the Java agent; the extensions don't read it (logs are out of scope, C-001) |
+| 2: feasible, deferred | `OTEL_SPAN_ATTRIBUTE_VALUE_LENGTH_LIMIT`, `OTEL_ATTRIBUTE_COUNT_LIMIT` | none | Fixed in the span limits when the tracer provider is built. An exporter-side truncating wrapper could approximate them, as a "we're leaking large payloads or blowing up cardinality, clamp it now" lever, but its semantics differ from the real limits |
+| 2: feasible, deferred | `OTEL_BSP_SCHEDULE_DELAY`, `OTEL_METRIC_EXPORT_INTERVAL` | none | Read when the span processor or metric reader is built. Changing them live means rebuilding it mid-flight, with a flush: fiddly, for a small payoff |
+| 2: feasible, deferred | `OTEL_PROPAGATORS` | none | The easiest of this tier (a delegating propagator), but no incident is known where flipping propagators live is the answer |
+| 2: excluded on security grounds | `OTEL_EXPORTER_OTLP_ENDPOINT`, `OTEL_EXPORTER_OTLP_HEADERS` (and their per-signal variants) | none, by decision | Feasible (rebuild the exporter, flush), but must not ship. A flag that redirects a fleet's telemetry to an arbitrary endpoint is a data-exfiltration primitive, and flagd rulesets usually have weaker access control than deployment config; the headers carry credentials. If it is ever built, it may only choose from an allowlist of endpoints fixed at startup |
+| 3: cannot be a live flag | `OTEL_SERVICE_NAME`, `OTEL_RESOURCE_ATTRIBUTES` | none | The resource is fixed when the providers are built, and every span and the evaluation context's resource keys come from it |
+| 3: cannot be a live flag | `OTEL_EXPORTER_OTLP_PROTOCOL` | none | Chooses the exporter implementation at startup |
+| 3: cannot be a live flag | `OTEL_JAVAAGENT_ENABLED` | none | Decides whether the Java agent loads at all; without the agent there is no extension to read a flag |
+| 3: cannot be a live flag | `OTEL_PYTHON_DISABLED_INSTRUMENTATIONS` | none | Decides at launch which instrumentors patch the libraries; nothing re-reads it. The live approximation is the scope rule in tier 1 |
+| 3: cannot be a live flag | `OTEL_SEMCONV_STABILITY_OPT_IN` | none | Each instrumentation picks its attribute and metric names when it is installed (C-005) |
+
+Tier 3 env vars are consumed once, before there is anything to re-evaluate,
+and have no read point at runtime to intercept. A flag for one of them would
+only take effect at the next restart, and at a restart the env var already
+does the job.
+
+An `OTEL_*` env var not in this table has no live flag. A proposal for one
+names its tier first.
+
+**Out of scope: startup-time flags.** Reading configuration from flagd at
+bootstrap would give central configuration without a redeploy per service,
+though not without a restart. It is a different product line, and this
+project does not pursue it.

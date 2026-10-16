@@ -27,7 +27,7 @@
 ## Validation
 
 1. **Secrets (OTelFeature/poc#31):** `gitleaks` is clean on the full history.
-2. **Docs:** README has "Try it in 5 minutes" and links both extensions; env-var tiers documented (OTelFeature/poc#14).
+2. **Docs:** README has "Try it in 5 minutes" and links both extensions; env-var tiers documented (OTelFeature/poc#14): the README section matches the [entity model](../entity_model.md#otel_-env-vars-and-live-flags) table, links both extension READMEs, and states the governing rule with its two hard floors and the security reason for excluding the OTLP endpoint.
 
 ## Postconditions
 
