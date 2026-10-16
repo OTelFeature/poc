@@ -36,9 +36,10 @@ In CI, [e2e.yml](../../.github/workflows/e2e.yml) runs `make e2e` for both
 Java enforcement modes on PRs, on `main` and nightly. The refs are
 `workflow_dispatch` inputs. Artifacts are uploaded on every run. The images
 are built first by `docker/bake-action` with the GitHub Actions layer cache
-(`make e2e E2E_SKIP_BUILD=1` then uses them). The nightly run also includes
+(one cache scope per image; `make e2e E2E_SKIP_BUILD=1` then uses them). The nightly run also includes
 the `slow` statistical tests and runs everything three times in a row
-(`pytest --count 3`), the suite's flake check.
+(`pytest --count 3 --repeat-scope session`: the whole suite, then again), the
+suite's flake check.
 
 ## How it works
 

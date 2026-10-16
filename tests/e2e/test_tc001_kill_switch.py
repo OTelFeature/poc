@@ -67,12 +67,19 @@ def test_tc001_kill_switch(step: Step, flags: Flags, metrics: MetricLog, switch:
     leaked = step.quiet(lambda s: s.resource.get("service.instance.id") in APP_SERVICES)
     assert not leaked, f"spans exported while {switch} is off:\n{describe(leaked)}"
 
-    # Step 2, second half: the services' metrics keep arriving (spans only
-    # are switched off; metrics are the input of the error-rate loop).
+    # Step 2, second half: the services keep *recording* metrics (spans only
+    # are switched off; the HTTP metric is the input of the error-rate loop).
+    # The requests above must show up in http.server.request.duration: its
+    # cumulative count grows past the count exported before the window.
+    before = {i: metrics.request_count(i, until=metrics_mark) or 0 for i in APP_SERVICES}
+
     def metrics_problem() -> str | None:
-        seen = {instance for instance, names in metrics.since(metrics_mark) if names}
-        missing = set(APP_SERVICES) - seen
-        return f"no metric export since tracing went off from {sorted(missing)}" if missing else None
+        for instance in APP_SERVICES:
+            now = metrics.request_count(instance)
+            if now is None or now <= before[instance]:
+                return (f"{instance}: http.server.request.duration count {now} not above "
+                        f"{before[instance]} since tracing went off")
+        return None
 
     wait_until(metrics_problem, timeout=10.0)
 
