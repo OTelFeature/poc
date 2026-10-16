@@ -13,7 +13,7 @@
 
 ## Preconditions
 
-- Extension code (the version pinned in the demo stack, C-006; each extension's `main` or another git ref in the end-to-end suite, C-013) containing OTelFeature/otelfeature-instrument#7 and OTelFeature/otelfeature-java-extension#20 (context), OTelFeature/otelfeature-instrument#14 and OTelFeature/otelfeature-java-extension#27 (`recordSpan`) and, for sampler mode, OTelFeature/otelfeature-java-extension#21.
+- Extension code in the pinned released versions (C-006: otelfeature-instrument v0.3.0, otelfeature-java-extension v0.4.0; a git ref only when passed explicitly to the e2e suite, C-013) containing OTelFeature/otelfeature-instrument#7 and OTelFeature/otelfeature-java-extension#20 (context), OTelFeature/otelfeature-instrument#14 and OTelFeature/otelfeature-java-extension#27 (`recordSpan`) and, for sampler mode, OTelFeature/otelfeature-java-extension#21.
 - Context shape fixed by OTelFeature/poc#22.
 - Health-check traffic reaches `geocode` (source: OQ-5).
 
@@ -57,5 +57,5 @@
 - **Test:** `test_tc002_drop_noisy_spans` in `tests/e2e/` (OTelFeature/poc#35, phase 3). Needs the `recordSpan` code in both extensions, the presets (OTelFeature/poc#26) and health-check traffic (OQ-5).
 - **How:** applies the `02-quiet-noise` preset, then the baseline; the test sends its own `/health`, `/geocode` and `/weather` requests (load generator off) and reads every exported span from the collector's `file` exporter.
 - **Matrix:** runs in both Java enforcement modes (`processor`, `sampler`).
-- **Extension code:** built from git refs (each extension's `main`, where both chains are merged) until the releases C-006 requires exist (C-013).
+- **Extension code:** the pinned released versions (C-006): otelfeature-instrument v0.3.0, otelfeature-java-extension v0.4.0. A git ref can be passed explicitly to check unreleased extension code (C-013).
 - **Not automated:** items 1 to 3, 5 to 8 and 10 to 14 are extension unit tests, benchmarks or docs checks.

@@ -14,7 +14,7 @@
 ## Preconditions
 
 - `docker compose --profile staging up` runs four service instances (OTelFeature/poc#25).
-- Extension code (the version pinned in the demo stack, C-006; each extension's `main` or another git ref in the end-to-end suite, C-013) containing OTelFeature/poc#10 in both languages.
+- Extension code in the pinned released versions (C-006: otelfeature-instrument v0.3.0, otelfeature-java-extension v0.4.0; a git ref only when passed explicitly to the e2e suite, C-013) containing OTelFeature/poc#10 in both languages.
 - The cross-service path (FR-026, OTelFeature/poc#59) for step 6.
 
 ## Flow
@@ -52,5 +52,5 @@
 - **Test:** `test_tc004_target_sampling` in `tests/e2e/` (OTelFeature/poc#35, phase 4). Needs the production and staging instances (OTelFeature/poc#25) and the ratio code in both extensions.
 - **How:** CI asserts only deterministic ratios (0.0 and 1.0); the 0.1 and 0.5 volumes of steps 3 and 5 are not asserted. The statistical case at 0.5 runs nightly.
 - **Matrix:** runs in both Java enforcement modes (`processor`, `sampler`).
-- **Extension code:** built from git refs (each extension's `main`, where both chains are merged) until the releases C-006 requires exist (C-013).
+- **Extension code:** the pinned released versions (C-006): otelfeature-instrument v0.3.0, otelfeature-java-extension v0.4.0. A git ref can be passed explicitly to check unreleased extension code (C-013).
 - **Not automated:** items 1 to 3, 5 to 7 and 9 are extension unit tests or docs checks. Step 6 waits for the cross-service path (OTelFeature/poc#59); once it exists, the e2e test asserts completeness only, not the 10% volume.

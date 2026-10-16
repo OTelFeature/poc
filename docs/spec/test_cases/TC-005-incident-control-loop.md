@@ -14,7 +14,7 @@
 ## Preconditions
 
 - TC-004 preconditions, except the cross-service path. The stage progression has reached `03a-weather-boost` (production `weather` at 0.5, UC-008 BR-006); the control-loop rule comes with `03b-incident`.
-- Extension code (the version pinned in the demo stack, C-006; each extension's `main` or another git ref in the end-to-end suite, C-013) with OTelFeature/otelfeature-instrument#8 / OTelFeature/otelfeature-java-extension#22 (error rate) and OTelFeature/otelfeature-instrument#9 (opt-in tracing hook).
+- Extension code in the pinned released versions (C-006: otelfeature-instrument v0.3.0, otelfeature-java-extension v0.4.0; a git ref only when passed explicitly to the e2e suite, C-013) with OTelFeature/otelfeature-instrument#8 / OTelFeature/otelfeature-java-extension#22 (error rate) and OTelFeature/otelfeature-instrument#9 (opt-in tracing hook).
 - The demo stack sets `OTEL_SEMCONV_STABILITY_OPT_IN=http` for `geocode` (the extension does not set it).
 - `OTELFEATURE_OPENFEATURE_TRACING_HOOK` is not set.
 
@@ -61,7 +61,7 @@ On stage, `03b-incident` builds on `03a-weather-boost` (UC-008 BR-006), which se
 - **Test:** `test_tc005_control_loop` in `tests/e2e/` (OTelFeature/poc#35, phase 4). Needs the fault-injection flag (OTelFeature/poc#28), the control-loop preset (OTelFeature/poc#29) and the error-rate code in both extensions.
 - **How:** differs from the stage flow so it runs fast and deterministically: the failure fraction is 1.0 instead of 0.3, and the e2e override sets a short `OTELFEATURE_ERROR_RATE_INTERVAL` and a low `OTELFEATURE_ERROR_RATE_MIN_REQUESTS`. The test sends its own requests (load generator off).
 - **Matrix:** runs in both Java enforcement modes (`processor`, `sampler`).
-- **Extension code:** built from git refs (each extension's `main`, where both chains are merged) until the releases C-006 requires exist (C-013).
+- **Extension code:** the pinned released versions (C-006): otelfeature-instrument v0.3.0, otelfeature-java-extension v0.4.0. A git ref can be passed explicitly to check unreleased extension code (C-013).
 - **Not automated:** items 1 to 12; steps 6 and 7 (reading the trace) stay manual. Item 11 is covered for the suite as a whole by NFR-015 (three green runs in a row), not for the stage timings.
 
 ## Notes

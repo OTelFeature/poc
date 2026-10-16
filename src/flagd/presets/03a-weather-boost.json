@@ -98,6 +98,7 @@
       "defaultVariant": "all",
       "variants": {
         "all": 1.0,
+        "half": 0.5,
         "tenth": 0.1,
         "none": 0.0
       },
@@ -126,7 +127,7 @@
               }
             ]
           },
-          "all",
+          "half",
           {
             "==": [
               {
