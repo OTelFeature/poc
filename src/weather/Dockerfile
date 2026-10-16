@@ -53,6 +53,13 @@ RUN gradle downloadDependencies --no-daemon -q
 COPY src ./src
 RUN gradle build -x test --no-daemon --offline
 
+# ── Unit tests (make unit-test, OTelFeature/poc#75) ─────────────────
+# Only built with `--target test`; the default build skips this stage, so
+# the image is unchanged. Online: the test dependencies aren't in the
+# dependency layer above.
+FROM builder AS test
+RUN gradle test --no-daemon
+
 # ── Runtime stage ───────────────────────────────────────────────────
 FROM eclipse-temurin:25-jre-alpine@sha256:3c0a9084927a221ccd1d007fcaf614465672c0af37aaa834c5184483afe56d61
 
