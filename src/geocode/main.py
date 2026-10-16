@@ -1,8 +1,11 @@
 import asyncio
+import math
 import os
+import random
 
 import httpx
 from fastapi import FastAPI, HTTPException
+from openfeature import api as openfeature_api
 from opentelemetry import trace
 from opentelemetry.trace import SpanKind
 from pydantic import BaseModel
@@ -14,6 +17,23 @@ USER_AGENT = os.environ.get("NOMINATIM_USER_AGENT", "poc-otelfeature-geocode/1.0
 WEATHER_URL = os.environ.get("WEATHER_URL", "http://weather:8001")
 
 tracer = trace.get_tracer(__name__)
+
+# Fault injection (FR-012, UC-006 A3, OTelFeature/poc#80): the share of
+# /geocode requests (and so /forecast) that fail with 503, from the number
+# flag geocodeUpstreamFailure. Evaluated through geocode's own client on the
+# OpenFeature API otelfeature-instrument already set a flagd provider on;
+# no hooks on it, so the extension's evaluations stay unrecorded (FR-014).
+# A missing flag (the stage presets don't define it) resolves to 0.0.
+FAULT_FLAG = "geocodeUpstreamFailure"
+flags = openfeature_api.get_client("geocode")
+
+
+def maybe_fail() -> None:
+    share = flags.get_float_value(FAULT_FLAG, 0.0)
+    if math.isnan(share) or share <= 0.0:
+        return
+    if share >= 1.0 or random.random() < share:
+        raise HTTPException(status_code=503, detail=f"Injected upstream failure ({FAULT_FLAG}={share})")
 
 app = FastAPI(title="geocode")
 
@@ -36,6 +56,8 @@ class ForecastResponse(BaseModel):
 
 @app.post("/geocode", response_model=GeocodeResponse)
 async def geocode(request: GeocodeRequest) -> GeocodeResponse:
+    # Before the cache lookup, so the error rate doesn't depend on cache hits.
+    maybe_fail()
     # Wraps the cache lookup / Nominatim call / persist steps below in one
     # INTERNAL span, purely to have something for otelfeature-instrument's
     # telemetryLevel=IO to suppress. Its children (the psycopg2/httpx CLIENT
