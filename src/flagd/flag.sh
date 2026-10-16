@@ -44,8 +44,9 @@ url="${FLAGD_OFREP_URL:-http://flagd:8016}/ofrep/v1/evaluate/flags"
 timeout=${FLAG_CONFIRM_TIMEOUT:-10}
 end=$(( $(date +%s) + timeout ))
 while :; do
+  # Whitespace dropped, so the match doesn't depend on flagd's JSON layout.
   body=$(wget -q -T 2 -O - --header 'Content-Type: application/json' \
-    --post-data '{"context":{}}' "$url" 2>/dev/null) || body=
+    --post-data '{"context":{}}' "$url" 2>/dev/null | tr -d ' \t\r\n') || body=
   case $body in
     *"\"preset\":\"$preset\""*)
       echo "flagd serves $preset"

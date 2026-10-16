@@ -16,7 +16,7 @@
 
 ## Preconditions
 
-- The operator has pulled all images while online: the prebuilt `geocode`, `weather` and `stub-apis` images published from `main`, which carry the pinned extension releases (C-006, NFR-017), and the third-party images (BR-008).
+- The operator has pulled all images while online: the prebuilt `geocode`, `weather` and `stub-apis` images published from `main`, which carry the pinned extension releases (C-006, NFR-017), and the third-party images, including the `flag` command's busybox (BR-008).
 - Presets exist for each demo state: baseline, tracing off, quiet noise, semconv rules, weather boost, incident (BR-006).
 - A fallback video exists for each demo.
 
@@ -100,4 +100,4 @@ flagd reloads a flag file only when its mtime strictly increases, so every prese
 
 ### BR-008: The stage pulls, it does not build
 
-The stage runs the images published from `main` (NFR-017), so the operator's laptop needs Docker only and no build can fail on the day. `POC_IMAGE_TAG` selects them: `main` by default, or the `sha-<short>` tag of the commit that was rehearsed, so the stage runs exactly the rehearsed images. Building from source is the fallback (A3), never the default (Simon, 2026-10-16, OTelFeature/poc#91).
+The stage runs the images published from `main` (NFR-017), so the operator's laptop needs Docker only and no build can fail on the day. `POC_IMAGE_TAG` selects them: `main` by default, or the `sha-<short>` tag of the commit that was rehearsed, so the stage runs exactly the rehearsed images. The stage starts with `--pull never --no-build`, so a missing image fails before the talk instead of being built quietly. Building from source is the fallback (A3), never the default (Simon, 2026-10-16, OTelFeature/poc#91).

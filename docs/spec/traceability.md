@@ -77,7 +77,7 @@ the end-to-end suite and the toolchain images.
 | OTelFeature/poc#74 | Full stage rehearsal three times, offline, on the pinned releases (people: Simon and Juliano) | P1 | NFR-012, FR-018, C-006 | UC-008 | TC-006 |
 | OTelFeature/poc#75 | Unit test for the `FaultInjection` bounds | P2 | FR-012 | UC-006 (BR-002) | TC-005 (item 7) |
 | OTelFeature/poc#80 | Python parity in e2e: fault injection in `geocode`, clearer job names | P1 | FR-012, FR-013, FR-015, NFR-015 | UC-005, UC-006 (A3), UC-007 (A2) | TC-005 |
-| OTelFeature/poc#91 | Prebuilt multi-arch images from `main`; Docker is the only dependency (`flag` compose service) | P1 | NFR-017, FR-020, C-006 | UC-008 (BR-007, BR-008, A3), UC-009 (BR-001, A1) | TC-006, TC-007 |
+| OTelFeature/poc#91 | Prebuilt multi-arch images from `main`; Docker is the only dependency (`flag` compose service) | P1 | NFR-017, FR-019, FR-020, C-006 | UC-008 (BR-007, BR-008, A3), UC-009 (BR-001, A1) | TC-006, TC-007 |
 | OTelFeature/poc#70 | Faster builds and e2e suite | P1 | NFR-015, NFR-016 | none (tooling) | TC-001, TC-002, TC-004, TC-005, TC-006 (Automation sections) |
 | OTelFeature/otelfeature-instrument#24 | Release v0.3.0 (release workflow, wheel + sdist); tagged and released 2026-10-16 | P0 | C-006 | UC-008 | TC-006 |
 | OTelFeature/otelfeature-java-extension#37 | Release v0.4.0; tagged and released 2026-10-16 | P0 | C-006 | UC-008 | TC-006 |

@@ -51,7 +51,7 @@ dashboard and k6.
 |---|---|
 | Talk audience (developers, SREs, platform engineers) | A demo that shows each claim live and holds up to "but does it really save anything?" |
 | Speakers / maintainers (Simon for OpenFeature, Juliano for OpenTelemetry) | A stage setup that works offline, flips in one keystroke and resets between rehearsals; script lines that are true for both languages |
-| Adopters (teams who try it after the talk) | A public repo that starts with `make start`, extensions that change nothing until a flag is flipped, honest docs about what is and isn't saved |
+| Adopters (teams who try it after the talk) | A public repo that starts with `docker compose pull && docker compose up -d` (Docker only), extensions that change nothing until a flag is flipped, honest docs about what is and isn't saved |
 | Agents and contributors picking up issues | A spec that says what "done" means for each work item, so code and tests follow from it; one Docker-based toolchain per repo, so local runs and CI agree |
 
 ## Goals

@@ -250,7 +250,7 @@ services:
     volumes:
       - ./src/flagd:/flagd
     environment:
-      FLAGD_OFREP_URL: http://flagd:8016
+      FLAGD_OFREP_URL: ${FLAGD_OFREP_URL:-http://flagd:8016}
       FLAG_CONFIRM_TIMEOUT: ${FLAG_CONFIRM_TIMEOUT:-10}
 
 

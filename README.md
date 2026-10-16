@@ -37,15 +37,15 @@ docker compose run --rm flag 03-semconv-rules  # Demo 3: sample by environment
 docker compose run --rm flag 03a-weather-boost
 docker compose run --rm flag 03b-incident      # fault injection + error-driven sampling
 docker compose run --rm flag 00-baseline       # back to the start
-docker compose run --rm flag                   # lists the presets
+docker compose run --rm flag                   # prints usage and the presets
 ```
 
 [STAGE.md](STAGE.md) says what each preset changes and what Aspire shows.
 `docker compose --profile staging up -d` adds the staging twins Demo 3 uses;
 `docker compose --profile staging down` stops everything.
 
-- `POC_IMAGE_TAG=sha-<short commit>` pins the images of one commit of `main`
-  instead of the latest (`main`).
+- `POC_IMAGE_TAG=sha-<short commit>` pins the images of one commit
+  instead of the latest of `main` (`main`).
 - `docker compose up -d --build` builds the images from your checkout
   instead, for example after changing a service. The build needs network
   access; the result keeps the image names, so a later `docker compose pull`
@@ -259,9 +259,11 @@ also show up in Aspire as collector logs). Ignore them.
    and the `flag` service's busybox. `make prepare-offline BUILD=1` builds
    the three from source instead (their builds download dependencies, the
    OTel Java agent and the otelfeature extension, so they can't run offline).
-2. Offline: `make start` (or `docker compose up -d`). It never pulls or
-   rebuilds on its own; don't run `make build` or `docker compose up --build`
-   without network.
+2. Offline: `docker compose up -d --pull never --no-build` (STAGE.md uses
+   this): a missing image then fails loudly. Plain `docker compose up -d` and
+   `make start` don't refresh images that are present, but they pull a missing
+   one and, if that fails, build it from source; don't run `make build` or
+   `docker compose up --build` without network.
 
 The outgoing `CLIENT` spans still show a real HTTP call, with
 `server.address` = `stub-apis` and 20–120 ms of latency. They only appear on

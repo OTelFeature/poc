@@ -20,8 +20,11 @@ confirmation.
 > The stage **pulls** these images prebuilt from `main`
 > (`ghcr.io/otelfeature/poc-geocode`, `poc-weather`, `poc-stub-apis`; their
 > labels name the extension versions) instead of building them (UC-008
-> BR-008). `docker compose up` never pulls on its own: after a version bump
-> lands on `main`, pull again, or the old images keep the old extensions. To
+> BR-008). `docker compose up` doesn't refresh images that are present:
+> after a version bump lands on `main`, pull again, or the old images keep
+> the old extensions. The start command below adds `--pull never --no-build`,
+> so a missing image fails loudly instead of being pulled or quietly built
+> from source. To
 > run exactly the images you rehearsed, pin their tag:
 > `export POC_IMAGE_TAG=sha-<short commit>` before pulling and starting.
 > `geocode` runs with `OTEL_SEMCONV_STABILITY_OPT_IN=http`, so its server
@@ -33,7 +36,8 @@ confirmation.
 |---|---|---|
 | Log in to GHCR (until the repo is public, OTelFeature/poc#31) | `docker login ghcr.io` | `Login Succeeded` |
 | Pull everything, nothing built | `docker compose --profile staging --profile tools pull` (or `make prepare-offline`) | No errors |
-| Start empty, with staging | `docker compose --profile staging down -v` then `docker compose --profile staging up -d` (or `make start-staging`) | 4 app containers + 2 k6 |
+| Check the images are the published ones | `docker image inspect ghcr.io/otelfeature/poc-weather:${POC_IMAGE_TAG:-main} --format '{{index .Config.Labels "org.opencontainers.image.revision"}}'` (same for `poc-geocode`, `poc-stub-apis`) | A commit id; empty means a local build |
+| Start empty, with staging | `docker compose --profile staging down -v` then `docker compose --profile staging up -d --pull never --no-build` | 4 app containers + 2 k6 |
 | Baseline flags, fresh traffic | `docker compose run --rm flag 00-baseline` then `docker compose --profile staging restart load-generator load-generator-staging` (or `make demo-reset`) | `flagd serves 00-baseline` |
 
 If the pull fails (not logged in, or a local code change to show), build

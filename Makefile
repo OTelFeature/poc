@@ -16,7 +16,7 @@ build:
 	docker compose --profile staging build
 
 # Run once while online, so that `make start` afterwards needs no network (it
-# never pulls or builds on its own). Pulls every image, including the
+# doesn't refresh images that are present). Pulls every image, including the
 # prebuilt geocode, weather and stub-apis images published from main
 # (NFR-017; POC_IMAGE_TAG=sha-<short> pins one commit's images) and the
 # busybox image of the `flag` service. `make prepare-offline BUILD=1` builds

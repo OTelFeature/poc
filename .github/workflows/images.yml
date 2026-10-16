@@ -28,8 +28,11 @@ on:
 permissions:
   contents: read
 
+# Pull requests: one run per PR, superseded runs cancelled. Pushes and manual
+# runs: one group per commit, so every commit on main gets its sha- tag
+# (GitHub keeps only the newest pending run of a group).
 concurrency:
-  group: images-${{ github.ref }}
+  group: images-${{ github.event_name == 'pull_request' && github.ref || github.sha }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
