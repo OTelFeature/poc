@@ -92,4 +92,7 @@ jobs:
         with:
           name: e2e-${{ matrix.enforcement }}
           path: tests/e2e/.artifacts/
+          # The folder name starts with a dot: without this, upload-artifact
+          # skips it as hidden and nothing is uploaded, even on failure.
+          include-hidden-files: true
           if-no-files-found: ignore
