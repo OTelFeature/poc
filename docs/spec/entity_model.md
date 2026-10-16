@@ -339,12 +339,13 @@ own flags (OTelFeature/poc#30).
 | `feature_flag.*` attributes or events | no; only via the opt-in hook below |
 | `otelfeature.sample_ratio` | no |
 | tracestate `ot=th` (sampling threshold) | no |
-| Hook events for the extension's own evaluations | Python only, and only with `OTELFEATURE_OPENFEATURE_TRACING_HOOK=true` (never default); evaluation exceptions are excluded. Java has none (OTelFeature/otelfeature-java-extension#23, not planned) |
+| Hook events for the extension's own evaluations | only with `OTELFEATURE_OPENFEATURE_TRACING_HOOK=true` (never default); evaluation exceptions are excluded. Python: `feature_flag.evaluation` (current names); Java (OTelFeature/otelfeature-java-extension#39, `main` after v0.4.0): event `feature_flag` with the semconv 1.28 names (UC-007 BR-004) |
 
-Caveat of the opt-in hook: it writes to the span that is current at
-evaluation time, which is the **parent** of the span being decided. So
-decisions for new roots (including every `traceSampleRatio` decision) and for
-dropped spans record nothing.
+Caveat of the opt-in hook: it writes to the span that is current on the
+thread at evaluation time, usually the **parent** of the span being decided.
+So decisions for new roots started with no span current (including every
+`traceSampleRatio` decision for an incoming request) and for dropped spans
+record nothing (UC-007 BR-003).
 
 ### Configuration
 
@@ -357,7 +358,7 @@ dropped spans record nothing.
 | `OTELFEATURE_SAMPLE_RATIO_FLAG_NAME` | `traceSampleRatio` | java | Key of the ratio flag |
 | `OTELFEATURE_ERROR_RATE_INTERVAL` | `10` | both | Seconds between error-rate collections |
 | `OTELFEATURE_ERROR_RATE_MIN_REQUESTS` | `10` | both | Minimum requests per interval before a rate is published |
-| `OTELFEATURE_OPENFEATURE_TRACING_HOOK` | `false` | python | `true` records the extension's own evaluations through the OpenFeature OTel hook |
+| `OTELFEATURE_OPENFEATURE_TRACING_HOOK` | `false` | both | `true` (case and surrounding whitespace ignored; anything else is off) records the extension's own evaluations through the OpenFeature OTel hook, attached only to the extension's own client. Java: OTelFeature/otelfeature-java-extension#39, on `main` after v0.4.0, not in the pinned release |
 | `OTELFEATURE_FLAG_PROVIDER` | `flagd` | python | `none` lets the application manage OpenFeature (NFR-009) |
 | `OTEL_SEMCONV_STABILITY_OPT_IN` | unset | python | Documented, not set by the extension (C-005) |
 | `OTEL_METRICS_EXPORTER` | `otlp` | both | Honoured like the SDK (FR-024). `none`: no metrics SDK, so the error-rate reader is not registered, `otelfeature.http.server.error_rate` is absent and error-rate rules never match. Java: OTelFeature/otelfeature-java-extension#31; Python: OTelFeature/otelfeature-instrument#15 |
@@ -380,10 +381,12 @@ Python's other flag keys (`telemetryLevel`, `otelEnabled`,
 
 Java's error-rate settings follow the Python names
 (OTelFeature/otelfeature-java-extension#22, released in v0.4.0 via
-OTelFeature/otelfeature-java-extension#31 and landing PR #33). Java has no
-tracing-hook setting: OTelFeature/otelfeature-java-extension#23 was closed as
-not planned (2026-10-16), since the extension writes nothing onto spans
-(FR-014). An opt-in hook for Java would be a new issue.
+OTelFeature/otelfeature-java-extension#31 and landing PR #33). Java's tracing-hook
+setting follows the Python name and semantics (OTelFeature/otelfeature-java-extension#39; not in v0.4.0).
+It adds `dev.openfeature.contrib.hooks:otel` to the client of the extension's
+isolated OpenFeature API, never to the application's. The extension still
+writes nothing onto spans itself (FR-014;
+OTelFeature/otelfeature-java-extension#23 was closed as not planned).
 
 ### `OTEL_*` env vars and live flags
 
