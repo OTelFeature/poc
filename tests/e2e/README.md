@@ -37,8 +37,13 @@ pinned versions.
 In CI, [e2e.yml](../../.github/workflows/e2e.yml) runs `make e2e` for both
 Java enforcement modes on PRs, on `main` and nightly, against the pinned
 releases. The refs are `workflow_dispatch` inputs, default `release` (exactly
-that word; anything else is a git ref). Artifacts are uploaded on every run.
-The images
+that word; anything else is a git ref). Pull requests skip the full stage
+run-through (`stage_run`, TC-006), which runs on `main`, nightly and on
+manual runs, so a pull-request job finishes in under 5 minutes with a warm
+layer cache (NFR-015). Artifacts (compose log, spans,
+metrics) are uploaded on every run. The e2e override also starts the JVMs with C1 only and the serial
+GC: four weather JVMs start at once, and that start dominated the stack's
+start-up time. The images
 are built first by `docker/bake-action` with the GitHub Actions layer cache
 (one cache scope per image; `make e2e E2E_SKIP_BUILD=1` then uses them). The nightly run also includes
 the `slow` statistical tests and runs everything three times in a row
@@ -148,7 +153,8 @@ requests until the new behaviour shows) before counting.
    through `step.remark()` + `step.since_mark()` (after the flip has taken
    effect), and tree shape with `tree_problem` (pass `remote_parents` for a
    request the test sent with a `traceparent`).
-5. Mark statistical or long tests `@pytest.mark.slow` (nightly only).
+5. Mark statistical or long tests `@pytest.mark.slow` (nightly only), and
+   a full run-through `@pytest.mark.stage_run` (not on pull requests).
 6. In the TC's **Validation** list (spec), mark which checks are now
    automated.
 
@@ -156,7 +162,7 @@ requests until the new behaviour shows) before counting.
 
 | File | What |
 |---|---|
-| [conftest.py](conftest.py) | Fixtures: `spans`, `flags`, `step`, `baseline` |
+| [conftest.py](conftest.py) | Fixtures: `spans`, `flags`, `step`, `baseline`; `no_extension_attributes` checks at the end of the session that no span carries attributes the extensions must not write (FR-014, UC-007 BR-001) |
 | [spans.py](spans.py) | OTLP/JSON span parsing, `wait_until`, `tree_problem` |
 | [flags.py](flags.py) | Preset application with the mtime and revision barrier |
 | [collector.yaml](collector.yaml) | e2e collector: OTLP in, JSON file out |

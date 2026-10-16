@@ -25,7 +25,7 @@ Issue refs: `OTelFeature/poc#N` (poc), `OTelFeature/otelfeature-instrument#N`
 | "Why not the collector?" (could read the same flags) | C-010 | - | - | none (D4, script only) |
 | CTA: repo and demo on the slide | FR-020, FR-021 | UC-009 | TC-007 | OTelFeature/poc#31, OTelFeature/poc#14 |
 | Stage risk: live demo fails | C-008 | UC-008 | TC-006 | OTelFeature/poc#32 |
-| Stage risk: a beat broke since the last rehearsal | NFR-004, NFR-012, NFR-015, NFR-016, C-013, C-014 | UC-008 (BR-005) | TC-001, TC-002, TC-004, TC-005, TC-006 (Automation sections) | OTelFeature/poc#35, OTelFeature/otelfeature-instrument#20, OTelFeature/otelfeature-java-extension#32, OTelFeature/poc#67 |
+| Stage risk: a beat broke since the last rehearsal | NFR-004, NFR-012, NFR-015, NFR-016, C-013, C-014 | UC-008 (BR-005) | TC-001, TC-002, TC-004, TC-005, TC-006 (Automation sections) | OTelFeature/poc#35, OTelFeature/otelfeature-instrument#20, OTelFeature/otelfeature-java-extension#32, OTelFeature/poc#67, OTelFeature/poc#70 |
 | Q&A: what else can become a flag | FR-021 | UC-009 | TC-007 | OTelFeature/poc#14, OTelFeature/poc#15 |
 
 ## Issue → spec
@@ -77,7 +77,7 @@ the end-to-end suite and the toolchain images.
 | OTelFeature/poc#74 | Full stage rehearsal three times, offline, on the pinned releases (people: Simon and Juliano) | P1 | NFR-012, FR-018, C-006 | UC-008 | TC-006 |
 | OTelFeature/poc#75 | Unit test for the `FaultInjection` bounds | P2 | FR-012 | UC-006 (BR-002) | TC-005 (item 7) |
 | OTelFeature/poc#80 | Python parity in e2e: fault injection in `geocode`, clearer job names | P1 | FR-012, FR-013, FR-015, NFR-015 | UC-005, UC-006 (A3), UC-007 (A2) | TC-005 |
-| OTelFeature/poc#70 | Faster `poc` builds and e2e suite (targets recorded under NFR-015 / NFR-016 first) | P1 | NFR-015, NFR-016 | none (tooling) | none |
+| OTelFeature/poc#70 | Faster builds and e2e suite | P1 | NFR-015, NFR-016 | none (tooling) | TC-001, TC-002, TC-004, TC-005, TC-006 (Automation sections) |
 | OTelFeature/otelfeature-instrument#24 | Release v0.3.0 (release workflow, wheel + sdist); tagged and released 2026-10-16 | P0 | C-006 | UC-008 | TC-006 |
 | OTelFeature/otelfeature-java-extension#37 | Release v0.4.0; tagged and released 2026-10-16 | P0 | C-006 | UC-008 | TC-006 |
 
@@ -95,7 +95,7 @@ issue is one PR, stacked on the previous one in its lane (see the
 - **People, not agents:** poc#33, poc#32
 
 Sync points: poc#22 finishes before instrument#7 / java#20 start. poc#27
-decides D3 once java#21 is released. poc#27's final numbers and poc#29 need
+decided D3 (`processor`, 2026-10-16). poc#27's final numbers and poc#29 need
 released versions of both extensions (C-006); both are released
 (otelfeature-instrument v0.3.0, otelfeature-java-extension v0.4.0) and pinned
 by poc#64, and poc#35 runs against those pins by default (C-013). The `traceSampleRatio` entry in
@@ -170,7 +170,7 @@ Every PR below is on `main`. The first stack (#36 ← #37 ← #40 ← #41 ← #4
 | OTelFeature/poc#71 | OTelFeature/poc#59 (closed) | FR-026 | UC-004, UC-005 (A7) | TC-004 |
 | OTelFeature/poc#77 | OTelFeature/poc#64 (closed) | C-006, C-013 | UC-008 | TC-006 |
 | OTelFeature/poc#78 | OTelFeature/poc#30 (closed, answers OQ-4) | FR-014, FR-015 | UC-007 | TC-005 |
-| OTelFeature/poc#79 | OTelFeature/poc#27 (open: the numbers and the OQ-1 decision follow) | FR-016, NFR-005, NFR-011 | UC-003 | TC-003 |
+| OTelFeature/poc#79 | OTelFeature/poc#27 (numbers posted; OQ-1 decided `processor`, OQ-3 deferred, OQ-15 answered in PR OTelFeature/poc#85) | FR-016, NFR-005, NFR-011 | UC-003 | TC-003 |
 | OTelFeature/poc#63 | none (spec loop for instrument#21 and #23) | NFR-016, NFR-001 | UC-004 (A1) | TC-004 |
 | OTelFeature/poc#82 | OTelFeature/poc#80 | FR-012 | UC-005, UC-006 | TC-005 |
 
@@ -179,7 +179,7 @@ unmerged, and OTelFeature/poc#61 as not planned: the stage runs released
 extensions only (C-006).
 
 Open `poc` items, in lane order: OTelFeature/poc#27 (measurements: harness
-merged with PR OTelFeature/poc#79, the numbers and OQ-1 follow), OTelFeature/poc#31 (public repo), OTelFeature/poc#14 (env-var tier
+merged with PR OTelFeature/poc#79, numbers posted, OQ-1 decided: `processor`), OTelFeature/poc#31 (public repo), OTelFeature/poc#14 (env-var tier
 docs), OTelFeature/poc#70 (faster builds and e2e), OTelFeature/poc#80 (Python
 parity in e2e), OTelFeature/poc#75 (unit test for the `FaultInjection` bounds),
 OTelFeature/poc#76 (`geocode` on Python 3.15), and OTelFeature/poc#35 until its nightly runs are green.

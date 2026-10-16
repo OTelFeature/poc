@@ -55,7 +55,10 @@ jobs:
       OTELFEATURE_ENFORCEMENT: ${{ matrix.enforcement }}
       # Nightly also runs the statistical (slow) tests, and the whole suite
       # three times in a row to catch flakes (#35 acceptance criterion).
-      PYTEST_ARGS: ${{ github.event_name == 'schedule' && '-v --count 3 --repeat-scope session' || '-v -m "not slow"' }}
+      # Pull requests skip the full stage run-through (stage_run, TC-006),
+      # so a PR job stays under 5 minutes (NFR-015); main and manual runs
+      # include it.
+      PYTEST_ARGS: ${{ github.event_name == 'schedule' && '-v --count 3 --repeat-scope session' || github.event_name == 'pull_request' && '-v -m "not slow and not stage_run"' || '-v -m "not slow"' }}
     steps:
       - uses: actions/checkout@v7
 
@@ -92,4 +95,7 @@ jobs:
         with:
           name: e2e-${{ matrix.enforcement }}
           path: tests/e2e/.artifacts/
+          # The folder name starts with a dot: without this, upload-artifact
+          # skips it as hidden and nothing is uploaded, even on failure.
+          include-hidden-files: true
           if-no-files-found: ignore

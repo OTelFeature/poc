@@ -97,8 +97,6 @@ HOOK_NAMES = {
                 "feature_flag.provider.name"),
 }
 
-# Written by the extensions? They must not (FR-014, UC-007 BR-001).
-EXTENSION_ATTRS = ("otelfeature.sample_ratio",)
 
 
 def _failing_and_traced(service: str):
@@ -161,15 +159,8 @@ def test_tc005_control_loop(step: Step, flags: Flags, failing: str):
     # one-off), and the trace says which flag failed it (steps 6-7, UC-007).
     step.wait_for_trace(traffic, _flag_explains_failure(failing), timeout=LOOP_TIMEOUT)
 
-    # FR-014 / UC-007 BR-001, over every span exported so far in the session
-    # (both services, sampled down and up): no span carries attributes the
-    # extensions would have written. Outside the barrier, so one violating
-    # trace can't be skipped. Only the services the extensions run in:
-    # flagd's own spans (flagSync) carry feature_flag.* attributes of their own.
-    written = [s for s in step.spans.spans
-               if s.service in ("geocode", "weather")
-               and any(k.startswith("feature_flag.") or k in EXTENSION_ATTRS for k in s.attrs)]
-    assert not written, f"span attributes the extensions must not write:\n{describe(written)}"
+    # FR-014 / UC-007 BR-001 (no attributes written by the extensions) is
+    # checked over the whole session's spans: conftest.no_extension_attributes.
 
     # The other service had error-free traffic all along (rate 0.0): none of
     # it traced.

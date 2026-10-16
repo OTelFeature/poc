@@ -45,6 +45,11 @@ x-weather-e2e-env: &weather-e2e-env
   OTELFEATURE_ENFORCEMENT: ${OTELFEATURE_ENFORCEMENT:-processor}
   OTELFEATURE_ERROR_RATE_INTERVAL: "2"
   OTELFEATURE_ERROR_RATE_MIN_REQUESTS: "5"
+  # Faster JVM start (OTelFeature/poc#70): four weather JVMs start at once
+  # and took 85-100 s to get healthy on a CI runner. C1 only and the serial
+  # GC trade peak throughput, which the suite doesn't need, for start time.
+  # The bench resets it (compose.bench.yaml), so it measures the stage JVM.
+  JAVA_TOOL_OPTIONS: "-XX:TieredStopAtLevel=1 -XX:+UseSerialGC"
 
 x-geocode-floor: &geocode-floor
   extends: {file: compose.yaml, service: geocode}

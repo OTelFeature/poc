@@ -2,7 +2,7 @@
 
 `make bench` measures what the Demo 2 rules save, at the service, and what
 the targeted flag decision costs (OTelFeature/poc#27, UC-003, TC-003). It also
-gives the numbers for decision D3 (Java `processor` vs `sampler` mode, OQ-1).
+gave the numbers for decision D3 (Java `processor` vs `sampler` mode, OQ-1: decided `processor`).
 
 ```sh
 make bench                                   # stage load, 120 s warm-up, 240 s per run (~36 min)
@@ -53,7 +53,7 @@ is printed as the run-to-run noise.
 
 The report and the raw per-run JSON are saved to `bench/.results/` (owned by
 root on a native Docker engine). Run it twice to check reproducibility
-(NFR-011; the rule for small differences is open, OQ-15). If a run fails, the
+(NFR-011): spans and bytes within 10%; CPU only beyond the run-to-run noise, the largest CPU difference among geocode's identically configured runs; memory is not compared (OQ-15). If a run fails, the
 last service logs are in `bench/.results/failed-run.log`.
 
 ## Live view on stage
