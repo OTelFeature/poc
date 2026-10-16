@@ -49,6 +49,10 @@
 12. **Metrics export off (OTelFeature/otelfeature-instrument#15, OTelFeature/otelfeature-java-extension#31):** with `OTEL_METRICS_EXPORTER=none`, no error-rate reader is registered, the context never contains `otelfeature.http.server.error_rate` and the control-loop rule never matches; `none` mixed with another exporter logs a warning and keeps exporting (FR-024).
 13. **Loop end to end (OTelFeature/poc#35):** with `weatherUpstreamFailure=1.0`, `weather` samples at 1.0 within a bounded number of error-rate intervals; `geocode` sampling does not change; after the revert, `weather` returns to its baseline ratio. [e2e: `test_tc005_control_loop`]
 
+## Note on the stage preset
+
+On stage, `03b-incident` builds on `03a-weather-full` (UC-008 BR-006, OQ-10), so `weather` already samples at 1.0 and the sampling jump is not visible there. This test case therefore starts from `03-semconv-rules` plus the incident rules (error-rate rule and `weatherUpstreamFailure`), so the rise from 0.1 to 1.0 can be checked.
+
 ## Postconditions
 
 - Flags back at baseline; no injected failures.

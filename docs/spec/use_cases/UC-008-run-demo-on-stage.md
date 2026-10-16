@@ -12,7 +12,7 @@
 - **Work Items:** OTelFeature/poc#24, OTelFeature/poc#26, OTelFeature/poc#25, OTelFeature/poc#32, OTelFeature/poc#33, OTelFeature/poc#35
 - **Test Cases:** TC-006
 - **Script Beat:** all demos; cold open uses OTel Demo footage (D1)
-- **Open Questions:** OQ-10
+- **Open Questions:** none (OQ-10 resolved)
 
 ## Preconditions
 
@@ -83,7 +83,7 @@ Each demo beat runs as an automated end-to-end test in CI, with the same presets
 
 ### BR-006: Presets are cumulative, in a fixed order
 
-Decided by Simon, 2026-10-16 (OTelFeature/poc#26, PR OTelFeature/poc#41). Each preset keeps the rules of the preset before it, so a later beat never brings back spans an earlier beat dropped: `03-semconv-rules`, `03a-weather-full` and `03b-incident` keep `02-quiet-noise`'s drop rules. `01-otel-off` is the baseline with tracing off. Demo 3 has two presets: `03-semconv-rules` (production `traceSampleRatio` 0.1, UC-004 step 6) and `03a-weather-full` (adds `weather` at 1.0, UC-004 step 7). The stage order is `00-baseline` → `01-otel-off` → `02-quiet-noise` → `03-semconv-rules` → `03a-weather-full` → `03b-incident`. Which preset `03b-incident` builds on is open (OQ-10). See the [entity model](../entity_model.md#flag_preset).
+Decided by Simon, 2026-10-16 (OTelFeature/poc#26, PR OTelFeature/poc#41). Each preset keeps the rules of the preset before it, so a later beat never brings back spans an earlier beat dropped: `03-semconv-rules`, `03a-weather-full` and `03b-incident` keep `02-quiet-noise`'s drop rules. `01-otel-off` is the baseline with tracing off. Demo 3 has two presets: `03-semconv-rules` (production `traceSampleRatio` 0.1, UC-004 step 6) and `03a-weather-full` (adds `weather` at 1.0, UC-004 step 7). The stage order is `00-baseline` → `01-otel-off` → `02-quiet-noise` → `03-semconv-rules` → `03a-weather-full` → `03b-incident`. `03b-incident` builds on `03a-weather-full` (strictly linear; OQ-10 resolved, Simon, 2026-10-16), so on stage `weather` is already at 1.0 when the incident starts. See the [entity model](../entity_model.md#flag_preset).
 
 ### BR-007: A flip counts only once flagd serves it
 
