@@ -7,7 +7,7 @@ LIVE_OPEN_METEO_GEOCODING_URL := https://geocoding-api.open-meteo.com/v1/search
 LIVE_OPEN_METEO_FORECAST_URL := https://api.open-meteo.com/v1/forecast
 
 build:
-	docker compose build
+	docker compose --profile staging build
 
 # Run once while online: pulls every image and builds the services, so that
 # `make start` afterwards needs no network (it never rebuilds on its own).

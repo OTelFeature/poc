@@ -61,7 +61,8 @@ services:
   # Each service sets its own semconv resource attributes, so the SDK-side
   # flag decision sees them (the collector only fills in what's missing).
   # service.version matches `version` in src/geocode/pyproject.toml and
-  # src/weather/build.gradle.
+  # src/weather/build.gradle. service.instance.id is the container name, so
+  # Aspire lists prod and staging as distinguishable instances.
   geocode:
     <<: *geocode
     container_name: geocode
@@ -69,7 +70,7 @@ services:
       - 8000:8000
     environment:
       <<: *geocode-env
-      OTEL_RESOURCE_ATTRIBUTES: deployment.environment.name=production,service.namespace=otelfeature,service.version=0.1.0
+      OTEL_RESOURCE_ATTRIBUTES: deployment.environment.name=production,service.namespace=otelfeature,service.version=0.1.0,service.instance.id=geocode
 
   weather:
     <<: *weather
@@ -78,7 +79,7 @@ services:
       - 8001:8001
     environment:
       <<: *weather-env
-      OTEL_RESOURCE_ATTRIBUTES: deployment.environment.name=production,service.namespace=otelfeature,service.version=0.1.0
+      OTEL_RESOURCE_ATTRIBUTES: deployment.environment.name=production,service.namespace=otelfeature,service.version=0.1.0,service.instance.id=weather
 
   # Staging twins: same image and config, deployment.environment.name=staging.
   # Only started with `--profile staging` (`make start-staging`). Their
@@ -91,7 +92,7 @@ services:
       - 8002:8000
     environment:
       <<: *geocode-env
-      OTEL_RESOURCE_ATTRIBUTES: deployment.environment.name=staging,service.namespace=otelfeature,service.version=0.1.0
+      OTEL_RESOURCE_ATTRIBUTES: deployment.environment.name=staging,service.namespace=otelfeature,service.version=0.1.0,service.instance.id=geocode-staging
 
   weather-staging:
     <<: *weather
@@ -101,7 +102,7 @@ services:
       - 8003:8001
     environment:
       <<: *weather-env
-      OTEL_RESOURCE_ATTRIBUTES: deployment.environment.name=staging,service.namespace=otelfeature,service.version=0.1.0
+      OTEL_RESOURCE_ATTRIBUTES: deployment.environment.name=staging,service.namespace=otelfeature,service.version=0.1.0,service.instance.id=weather-staging
 
   load-generator:
     image: grafana/k6:2.3.0
