@@ -39,9 +39,8 @@
 7. **Cross-service consistency (OTelFeature/poc#10):** two services in the same language with the same ratio make the same decision for the same trace id; `fractional` variants bucket on the trace id, the same in every language. The READMEs document that the plain ratio can differ between Java and Python for the same trace id (UC-004 BR-008).
 8. **Hard floors (OTelFeature/poc#10):** with `OTEL_TRACES_SAMPLER=always_off`, `traceSampleRatio=1.0` samples nothing, and a sampled parent is not followed; with `parentbased_always_off`, no root is sampled locally and sampled parents are followed. [e2e, partly: `test_hard_floors` covers `always_off`]
 9. **Unknown sampler name (Python, OTelFeature/poc#10):** an unknown `OTEL_TRACES_SAMPLER` (for example `jaeger_remote`) logs a warning and uses 1.0 as the startup ratio.
-
 10. **Deterministic ratios (OTelFeature/poc#35):** with production at `traceSampleRatio=0.0` and staging at 1.0, no new root trace is exported from a production instance and every staging request produces a trace. [e2e: `test_tc004_target_sampling`]
-11. **Statistical ratio (OTelFeature/poc#35):** at 0.5, 200 requests produce a sampled share within a tolerance band. [e2e: `test_tc004_target_sampling`, marked `slow`, nightly only]
+11. **Statistical ratio (OTelFeature/poc#35):** with the stage preset `03-semconv-rules` as it is (production at 0.1, UC-004 step 6), 300 root requests per production service produce between 10 and 55 sampled traces, a band that still fails on 0.0, 0.5 or 1.0. [e2e: `test_tc004_stage_preset_ratio`, marked `slow`, nightly only]
 
 ## Postconditions
 
@@ -49,8 +48,8 @@
 
 ## Automation
 
-- **Test:** `test_tc004_target_sampling` in `tests/e2e/` (OTelFeature/poc#35, phase 4). Needs the production and staging instances (OTelFeature/poc#25) and the ratio code in both extensions.
-- **How:** CI asserts only deterministic ratios (0.0 and 1.0); the 0.1 and 0.5 volumes of steps 3 and 5 are not asserted. The statistical case at 0.5 runs nightly.
+- **Tests:** `test_tc004_target_sampling`, `test_tc004_cross_service` and `test_tc004_stage_preset_ratio` (`slow`) in `tests/e2e/` (OTelFeature/poc#35, phase 4). Needs the production and staging instances (OTelFeature/poc#25) and the ratio code in both extensions.
+- **How:** CI asserts only deterministic ratios (0.0 and 1.0); the 0.1 and 0.5 volumes of steps 3 and 5 are not asserted. The statistical case, the stage preset's 0.1, runs nightly (`test_tc004_stage_preset_ratio`, item 11); until a nightly run is green, this test case stays Draft (status rule in [requirements.md](../requirements.md)).
 - **Matrix:** runs in both Java enforcement modes (`processor`, `sampler`).
 - **Extension code:** the pinned released versions (C-006): otelfeature-instrument v0.3.0, otelfeature-java-extension v0.4.0. A git ref can be passed explicitly to check unreleased extension code (C-013).
 - **Step 6:** `test_tc004_cross_service` (OTelFeature/poc#59) asserts completeness, not the 10% volume. At baseline a `/forecast` trace has spans from both services, `weather`'s server span is a child of `geocode`'s HTTP client span, and the tree is connected. With `geocode` at 0.0 and `weather` at 1.0 in production, `/forecast` traces are absent from both services while direct `POST /weather` traces are sampled: the entry point decides (UC-004 BR-003, A2).
