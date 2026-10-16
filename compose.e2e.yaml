@@ -1,0 +1,127 @@
+# Test override for the end-to-end suite (tests/e2e, OTelFeature/poc#35).
+# Use it through `make e2e`, which runs it as its own compose project
+# (`otelfeature-e2e`), so it never touches a running demo stack:
+#
+#   docker compose -p otelfeature-e2e -f compose.yaml -f compose.e2e.yaml ...
+#
+# What it changes:
+# - geocode and weather are built against extension git refs
+#   (OTELFEATURE_INSTRUMENT_REF, OTELFEATURE_EXTENSION_REF; default main),
+#   so unreleased extension code can be tested before it is merged/released
+# - no fixed container names or host ports, own network
+# - the collector writes every span to a JSON file on the e2e-out volume
+#   (tests/e2e/collector.yaml); no Aspire, no Datadog, no docker_stats
+# - flagd reads its flags from the e2e-flags volume, which the tests rewrite;
+#   src/flagd/flagd.json is never modified
+# - no load generator: the tests send every request themselves
+# - fast span export, and the tests' marker header recorded on server spans
+
+networks:
+  default:
+    name: otelfeature-e2e
+
+volumes:
+  e2e-flags:
+  e2e-out:
+
+services:
+  geocode:
+    container_name: !reset null
+    ports: !reset []
+    build:
+      args:
+        OTELFEATURE_INSTRUMENT_SOURCE: git
+        OTELFEATURE_INSTRUMENT_REF: ${OTELFEATURE_INSTRUMENT_REF:-main}
+    environment:
+      OTEL_BSP_SCHEDULE_DELAY: "100"
+      OTEL_INSTRUMENTATION_HTTP_CAPTURE_HEADERS_SERVER_REQUEST: x-e2e-step
+
+  weather:
+    container_name: !reset null
+    ports: !reset []
+    build:
+      args:
+        OTELFEATURE_EXTENSION_SOURCE: git
+        OTELFEATURE_EXTENSION_REF: ${OTELFEATURE_EXTENSION_REF:-main}
+    environment:
+      OTEL_BSP_SCHEDULE_DELAY: "100"
+      OTEL_INSTRUMENTATION_HTTP_SERVER_CAPTURE_REQUEST_HEADERS: x-e2e-step
+      OTELFEATURE_ENFORCEMENT: ${OTELFEATURE_ENFORCEMENT:-processor}
+
+  geocode-staging:
+    container_name: !reset null
+    ports: !reset []
+
+  weather-staging:
+    container_name: !reset null
+    ports: !reset []
+
+  stub-apis:
+    container_name: !reset null
+    ports: !reset []
+    environment:
+      STUB_LATENCY_MIN_MS: "1"
+      STUB_LATENCY_MAX_MS: "5"
+
+  coordinates-db:
+    container_name: !reset null
+    ports: !reset []
+
+  # Seeds the flags volume with the baseline preset before flagd starts.
+  flags-init:
+    image: busybox:1.37.0
+    command: ["cp", "/presets/00-baseline.json", "/flags/flagd.json"]
+    volumes:
+      - ./src/flagd/presets:/presets:ro
+      - e2e-flags:/flags
+
+  flagd:
+    container_name: !reset null
+    ports: !reset []
+    volumes: !override
+      - e2e-flags:/etc/flagd
+    depends_on:
+      flags-init:
+        condition: service_completed_successfully
+
+  otel-collector:
+    container_name: !reset null
+    # Root to write spans into the fresh, root-owned e2e-out volume (the base
+    # file also runs it as root, for docker_stats; don't depend on that).
+    user: "0:0"
+    ports: !reset []
+    volumes: !override
+      - ./tests/e2e/collector.yaml:/etc/otel-collector-config.yaml:ro
+      - e2e-out:/out
+    depends_on: !reset {}
+
+  aspire-dashboard:
+    profiles: [never]
+
+  load-generator:
+    profiles: [never]
+
+  load-generator-staging:
+    profiles: [never]
+
+  # The test runner (ci/Dockerfile): `docker compose ... --profile runner
+  # run --rm e2e [pytest args]`. Reaches the services by name on the e2e
+  # network, rewrites flags in e2e-flags, reads spans from e2e-out.
+  e2e:
+    profiles: [runner]
+    build:
+      context: .
+      dockerfile: ci/Dockerfile
+    volumes:
+      - ./tests/e2e:/e2e/tests:ro
+      - ./src/flagd/presets:/presets:ro
+      - e2e-flags:/flags
+      - e2e-out:/out:ro
+    environment:
+      GEOCODE_URL: http://geocode:8000
+      WEATHER_URL: http://weather:8001
+      FLAGD_OFREP_URL: http://flagd:8016
+      E2E_FLAGS_FILE: /flags/flagd.json
+      E2E_PRESETS_DIR: /presets
+      E2E_SPANS_FILE: /out/spans.jsonl
+      OTELFEATURE_ENFORCEMENT: ${OTELFEATURE_ENFORCEMENT:-processor}
