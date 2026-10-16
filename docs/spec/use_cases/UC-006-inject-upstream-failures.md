@@ -2,16 +2,16 @@
 
 ## Overview
 
-- **Use Case ID:** UC-006
-- **Use Case Name:** Inject upstream failures
-- **Primary Actor:** Speaker
-- **Secondary Actors:** flagd, weather, Aspire dashboard
-- **Goal:** The speaker makes a chosen fraction of `/weather` requests fail through a feature flag evaluated in the application's own code, so that an incident can be started and stopped on demand, the same way the OTel Demo does it.
-- **Status:** Draft
-- **Requirements:** FR-012, NFR-004
-- **Work Items:** OTelFeature/poc#28
-- **Test Cases:** TC-005
-- **Script Beat:** Demo 3 incident; "the only part of the demo I understand"
+**Use Case ID:** UC-006  
+**Use Case Name:** Inject upstream failures  
+**Primary Actor:** Speaker  
+**Secondary Actors:** flagd, weather, Aspire dashboard  
+**Goal:** The speaker makes a chosen fraction of `/weather` requests fail through a feature flag evaluated in the application's own code, so that an incident can be started and stopped on demand, the same way the OTel Demo does it.  
+**Status:** Draft  
+**Requirements:** FR-012, NFR-004  
+**Work Items:** OTelFeature/poc#28  
+**Test Cases:** TC-005  
+**Script Beat:** Demo 3 incident; "the only part of the demo I understand"  
 
 ## Preconditions
 
@@ -31,7 +31,7 @@
 
 ### A1: Flag missing or unreadable
 
-**Trigger:** Step 3, `weather` cannot evaluate the flag.
+**Trigger:** `weather` cannot evaluate the flag (step 3).
 
 **Flow:**
 

@@ -46,6 +46,7 @@ The core ideas, as they apply here:
 |---|---|---|
 | Inception | [vision.md](vision.md) | Problem, stakeholders, goals, non-goals, decisions D1 to D6. Hand-written; everything else derives from it |
 | Inception | [requirements.md](requirements.md) | Catalog: functional (`FR-`), non-functional (`NFR-`), constraints (`C-`) |
+| Inception | [glossary.md](glossary.md) | Domain terms, one name per concept, with the synonyms to avoid |
 | Elaboration | [entity_model.md](entity_model.md) | Flags, `TelemetryPolicy`, evaluation-context contract, enforcement points |
 | Elaboration | [use_cases.md](use_cases.md) | Use case diagram (Mermaid) |
 | Construction | [use_cases/](use_cases) | One spec per use case, `UC-XXX-name.md` |
@@ -95,8 +96,8 @@ Use cases:
   phase. Both are ours, not AIUP's.
 - **Extra Overview fields in use cases.** `Requirements` and `Secondary Actors`
   are AIUP fields. `Work Items`, `Test Cases`, `Script Beat` and `Open
-  Questions` are ours. AIUP's `validate_use_case.py` may warn about them; it
-  has not been run against these files.
+  Questions` are ours. The spec lint keeps unknown Overview lines as they
+  are, so they pass.
 - **Entity model is a domain model, not a schema.** Entities use AIUP's
   attribute-table format and data types. The concrete flags, the
   evaluation-context contract and the enforcement points are added as

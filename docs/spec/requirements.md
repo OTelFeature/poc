@@ -26,6 +26,9 @@ Roles used in the user stories:
   engineer, or the speaker on stage).
 - **Speaker**: Simon or Juliano, performing the demo.
 - **Adopter**: someone running the extensions or the demo after the talk.
+- **Maintainer**: someone who develops the extensions or the demo stack.
+
+Domain terms are defined in the [glossary](glossary.md).
 
 ## Functional Requirements
 
@@ -43,7 +46,7 @@ Roles used in the user stories:
 | FR-010 | Services declare their own resource attributes | As an operator, I want each service to emit `service.name`, `service.namespace`, `service.version` and `deployment.environment.name` itself, with a production and a staging instance, so that rules can target an environment. | High | In Progress |
 | FR-011 | Service error rate in the evaluation context | As an operator, I want the service's current HTTP server error rate, computed from its existing `http.server.request.duration` metric by an in-process delta reader, available as `otelfeature.http.server.error_rate` in the evaluation context, so that a rule can react to errors. Below `OTELFEATURE_ERROR_RATE_MIN_REQUESTS` (default 10) requests in an interval the key is omitted. | Medium | Implemented |
 | FR-012 | Fault injection flag | As a speaker, I want a `weatherUpstreamFailure` number flag that makes that fraction of `/weather` requests fail, so that I can cause an incident on demand. | Medium | In Progress |
-| FR-013 | Error-driven sampling rule | As an operator, I want a flag rule that sets `traceSampleRatio` to 1.0 for a service whose error rate is above 5%, and returns to the environment rule when it drops, so that sampling goes up exactly where and when it is needed. | Medium | Open |
+| FR-013 | Error-driven sampling rule | As an operator, I want a targeting rule that sets `traceSampleRatio` to 1.0 for a service whose error rate is above 5%, and returns to the environment rule when it drops, so that sampling goes up exactly where and when it is needed. | Medium | Open |
 | FR-014 | Extension decisions are not written onto spans | As an operator, I want the extensions to add no attributes of their own to spans: no `feature_flag.*`, no `otelfeature.sample_ratio`, no tracestate `ot=th`. Recording flag evaluations is the OpenFeature OpenTelemetry hook's job; for the extension's own evaluations it is opt-in only (`OTELFEATURE_OPENFEATURE_TRACING_HOOK=true`, never default, evaluation exceptions excluded), so that I can debug a rule without paying an event per span in normal operation. | Medium | Implemented |
 | FR-015 | Application flag evaluations visible in traces | As an operator, I want the applications' own flag evaluations (such as `weatherUpstreamFailure`) recorded on spans using the `feature_flag` semantic conventions, so that a trace shows which flag caused the failure. | Medium | Open |
 | FR-016 | Measured savings | As a speaker, I want a repeatable before/after measurement of CPU, memory, spans/s and export bytes per service, so that the numbers on the slide are real. | Medium | Open |
