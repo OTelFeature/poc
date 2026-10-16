@@ -76,6 +76,25 @@ A named, complete `flagd.json` for one stage state (OTelFeature/poc#26).
 | scriptBeat | Talk beat the preset belongs to | String | 100 | Not Null |
 | schemaValid | Validates against `https://flagd.dev/schema/v0/flags.json` | Boolean | 1 | Not Null |
 
+**Presets are cumulative** (Simon, 2026-10-16, OTelFeature/poc#26, PR
+OTelFeature/poc#41). Each Demo 2 and Demo 3 preset keeps the rules of the
+preset before it, so a later beat never brings back what an earlier beat
+dropped: `03-semconv-rules`, `03a-weather-full` and `03b-incident` keep
+`02-quiet-noise`'s `recordSpan` rules. Stage order: `00-baseline` →
+`01-otel-off` → `02-quiet-noise` → `03-semconv-rules` → `03a-weather-full`
+→ `03b-incident`. `01-otel-off` is the exception: it is the baseline with
+`otelEnabled` off. `00-baseline` is identical to `flagd.json`. See UC-008
+BR-006.
+
+| Preset | Adds to the previous preset | Script beat |
+|---|---|---|
+| `00-baseline` | nothing; no targeting, stock OTel behaviour | reset |
+| `01-otel-off` | `otelEnabled` → `off` (on top of the baseline) | Demo 1 |
+| `02-quiet-noise` | `recordSpan` off for `geocode` `SERVER` spans on `url.path=/health` and for `weather` spans with `otel.scope.name=io.opentelemetry.jdbc` | Demo 2 |
+| `03-semconv-rules` | `traceSampleRatio` 0.1 for production, 1.0 otherwise | Demo 3, UC-004 step 6 |
+| `03a-weather-full` | `traceSampleRatio` 1.0 for `weather` in production | Demo 3, UC-004 step 7 |
+| `03b-incident` | `weatherUpstreamFailure` → `incident` (OTelFeature/poc#28, PR OTelFeature/poc#42) | Demo 3 incident |
+
 ### TELEMETRY_POLICY
 
 The single value an enforcement point reads per decision (OTelFeature/poc#9).
@@ -169,17 +188,42 @@ Nothing about the decision is written onto the span (FR-014).
 
 | Key | Type | Variants | Default | Consumer | Status | Issue |
 |---|---|---|---|---|---|---|
-| `otelEnabled` | boolean | `on`=true, `off`=false | `on` | extension | in PR | OTelFeature/poc#8 |
-| `telemetryLevel` | string | `full`=FULL, `io`=IO, `off`=OFF | `full` | extension | FULL/IO exist; OFF in PR | OTelFeature/poc#8 |
-| `recordSpan` | boolean | `on`=true, `off`=false | `on` | extension | in PR; carries the Demo 2 drop rules (OQ-8) | OTelFeature/otelfeature-instrument#14, OTelFeature/otelfeature-java-extension#27 |
-| `traceSampleRatio` | number | e.g. `all`=1.0, `tenth`=0.1, `none`=0.0 | `all` | extension | in PR (Python done, Java in progress) | OTelFeature/poc#10 |
-| `weatherUpstreamFailure` | number | e.g. `none`=0.0, `incident`=0.3 | `none` | application (`weather`) | planned | OTelFeature/poc#28 |
+| `otelEnabled` | boolean | `on`=true, `off`=false | `on` | extension | on `main`: Python OTelFeature/otelfeature-instrument#10, Java OTelFeature/otelfeature-java-extension#24; in `flagd.json` with PR OTelFeature/poc#41 | OTelFeature/poc#8 |
+| `telemetryLevel` | string | `full`=FULL, `io`=IO, `off`=OFF | `full` | extension | FULL/IO released; OFF on `main` (Python #10, Java #24), not released | OTelFeature/poc#8 |
+| `recordSpan` | boolean | `on`=true, `off`=false | `on` | extension | on `main`: Python OTelFeature/otelfeature-instrument#18, Java OTelFeature/otelfeature-java-extension#29 (landed via #33); carries the Demo 2 drop rules (OQ-8) | OTelFeature/otelfeature-instrument#14, OTelFeature/otelfeature-java-extension#27 |
+| `traceSampleRatio` | number | e.g. `all`=1.0, `tenth`=0.1, `none`=0.0 | `all` | extension | on `main`: Python OTelFeature/otelfeature-instrument#13, Java OTelFeature/otelfeature-java-extension#30 (landed via #33); in `flagd.json` with PR OTelFeature/poc#41 | OTelFeature/poc#10 |
+| `weatherUpstreamFailure` | number | `none`=0.0, `incident`=0.3, `outage`=1.0 (e2e) | `none` | application (`weather`) | in PR OTelFeature/poc#42 | OTelFeature/poc#28 |
 | `signalsEnabled` | object | per signal | all on | extension | deferred, out of scope (P2) | OTelFeature/poc#11 |
 
-Variant names other than the existing `full`/`io` are suggestions; the issue
-that adds the flag fixes them.
+The variant names in this table are the ones `src/flagd/flagd.json` and the
+presets use (PR OTelFeature/poc#41, `weatherUpstreamFailure` in PR
+OTelFeature/poc#42).
 
 Flag keys can be overridden by env var; see [Configuration](#configuration).
+
+### Flag file reload
+
+flagd (v0.17, `--uri file:`, polling `fileinfo` watcher) and the Python
+provider's file watcher reload a flag file **only when its mtime strictly
+increases**. Linux file timestamps are coarse, so a rewrite within the same
+tick keeps the old mtime and is silently ignored for good. Measured on PR
+OTelFeature/poc#41: two plain `cp`s in a row lost the second flip.
+
+Every writer of a watched flag file therefore:
+
+1. **Bumps the mtime.** It leaves the file with an mtime strictly newer than
+   before. Stage tooling (`make flag`, `make demo-reset`) goes through
+   `src/flagd/apply-preset.sh`: write a temp file, set its mtime to
+   `max(old, now) + 1 s`, rename it over the target (atomic, so no reader
+   sees a half-written file). Test helpers do the same in their language; the
+   Python fix: if the mtime did not increase after the write, `os.utime` it
+   to the old mtime + 10 ms.
+2. **Confirms the new value** before it counts spans: it polls flagd over
+   OFREP (port 8016) until flagd serves the new value (the e2e suite adds a
+   per-write revision flag for this), with a timeout that fails the run.
+
+This applies to the preset scripts, `make demo-reset`, the extension tests
+that rewrite flag files, and the e2e flag-flip helper (NFR-004, TC-006).
 
 ### Policy field resolution
 
@@ -246,11 +290,11 @@ OQ-2 resolved). Collision rules:
 
 | Name | Language | Decides at | Saves service CPU | Can drop | State |
 |---|---|---|---|---|---|
-| Tracer wrapper (`_VerbosityAwareTracer`) | python | before-create | yes | Non-root: suppresses just this span, children attach to the real parent. Root (incl. remote-parent `SERVER`/`CONSUMER`): returns a non-recording span with a valid, non-sampled context, so the request is dropped in this service and downstream gets `sampled=0` | INTERNAL under `IO` released; `OFF`, `recordSpan` in PR |
-| Per-tracer decision (`_VerbosityAwareTracerProvider.get_tracer`) | python | before-create, once per tracer | yes | everything from one scope, when the rule is tracer-scoped (see TARGETING_RULE) | in PR (OTelFeature/poc#12) |
-| Python sampler (`ParentBased(root=flag ratio)`) | python | before-create | yes | root spans by ratio; children parent-based | in PR (OTelFeature/poc#10) |
-| `FilteringSpanProcessor` + `ReparentingSpanExporter` | java | on-start (span already created) | no (saves batching, serialization, export) | any kind, suppressed at `onStart`; children re-parented | INTERNAL under `IO` released; `OFF`, `recordSpan` in PR |
-| `FlagAwareSampler` | java | before-create | yes | `DROP` for roots (incl. remote-parent entry spans) and non-propagating leaves (DB client spans, `db.system.name`); ratio on trace roots | in PR (OTelFeature/otelfeature-java-extension#21, #27; ratio OTelFeature/poc#10 in progress) |
+| Tracer wrapper (`_VerbosityAwareTracer`) | python | before-create | yes | Non-root: suppresses just this span, children attach to the real parent. Root (incl. remote-parent `SERVER`/`CONSUMER`): returns a non-recording span with a valid, non-sampled context, so the request is dropped in this service and downstream gets `sampled=0` | INTERNAL under `IO` released; `OFF`, `recordSpan` on `main` (not released) |
+| Per-tracer decision (`_VerbosityAwareTracerProvider.get_tracer`) | python | before-create, once per tracer | yes | everything from one scope, when the rule is tracer-scoped (see TARGETING_RULE) | on `main` (OTelFeature/otelfeature-instrument#17, OTelFeature/poc#12) |
+| Python sampler (`ParentBased(root=flag ratio)`) | python | before-create | yes | root spans by ratio; children parent-based | on `main` (OTelFeature/otelfeature-instrument#13, OTelFeature/poc#10) |
+| `FilteringSpanProcessor` + `ReparentingSpanExporter` | java | on-start (span already created) | no (saves batching, serialization, export) | any kind, suppressed at `onStart`; children re-parented | INTERNAL under `IO` released; `OFF`, `recordSpan` on `main` (not released) |
+| `FlagAwareSampler` | java | before-create | yes | `DROP` for roots (incl. remote-parent entry spans) and non-propagating leaves (DB client spans, `db.system.name`); ratio on trace roots | on `main` via landing PR OTelFeature/otelfeature-java-extension#33 (#26 for java#21, #29 for java#27, #30 for the ratio, OTelFeature/poc#10) |
 
 Java mode is chosen with `OTELFEATURE_ENFORCEMENT=processor|sampler`, default
 `processor` until OTelFeature/poc#27 decides (OQ-1). In sampler mode, the
@@ -294,7 +338,7 @@ dropped spans record nothing.
 | `OTELFEATURE_SAMPLE_RATIO_FLAG_NAME` | `traceSampleRatio` | java | Key of the ratio flag |
 | `OTELFEATURE_ERROR_RATE_INTERVAL` | `10` | both | Seconds between error-rate collections |
 | `OTELFEATURE_ERROR_RATE_MIN_REQUESTS` | `10` | both | Minimum requests per interval before a rate is published |
-| `OTELFEATURE_OPENFEATURE_TRACING_HOOK` | `false` | both | `true` records the extension's own evaluations through the OpenFeature OTel hook |
+| `OTELFEATURE_OPENFEATURE_TRACING_HOOK` | `false` | python | `true` records the extension's own evaluations through the OpenFeature OTel hook |
 | `OTELFEATURE_FLAG_PROVIDER` | `flagd` | python | `none` lets the application manage OpenFeature (NFR-009) |
 | `OTEL_SEMCONV_STABILITY_OPT_IN` | unset | python | Documented, not set by the extension (C-005) |
 | `OTEL_METRICS_EXPORTER` | `otlp` | both | Honoured like the SDK (FR-024). `none`: no metrics SDK, so the error-rate reader is not registered, `otelfeature.http.server.error_rate` is absent and error-rate rules never match. Java: OTelFeature/otelfeature-java-extension#31; Python: OTelFeature/otelfeature-instrument#15 |
@@ -308,6 +352,8 @@ Python's other flag keys (`telemetryLevel`, `otelEnabled`,
 `traceSampleRatio`) are fixed.
 
 Java's error-rate settings follow the Python names
-(OTelFeature/otelfeature-java-extension#22, in PR
-OTelFeature/otelfeature-java-extension#31). Its tracing-hook setting
-(OTelFeature/otelfeature-java-extension#23) is not built yet.
+(OTelFeature/otelfeature-java-extension#22, on `main` via
+OTelFeature/otelfeature-java-extension#31 and landing PR #33). Java has no
+tracing-hook setting: OTelFeature/otelfeature-java-extension#23 was closed as
+not planned (2026-10-16), since the extension writes nothing onto spans
+(FR-014). An opt-in hook for Java would be a new issue.

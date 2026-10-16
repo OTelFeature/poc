@@ -12,11 +12,12 @@
 - **Work Items:** OTelFeature/poc#24, OTelFeature/poc#26, OTelFeature/poc#25, OTelFeature/poc#32, OTelFeature/poc#33, OTelFeature/poc#35
 - **Test Cases:** TC-006
 - **Script Beat:** all demos; cold open uses OTel Demo footage (D1)
+- **Open Questions:** OQ-10
 
 ## Preconditions
 
 - The speaker has pulled and built all images while online.
-- Presets exist for each demo state: baseline, tracing off, quiet noise, semconv rules, incident.
+- Presets exist for each demo state: baseline, tracing off, quiet noise, semconv rules, weather full, incident (BR-006).
 - A fallback video exists for each demo.
 
 ## Main Success Scenario
@@ -79,3 +80,11 @@ The wall of spans in the cold open is recorded OTel Demo footage; the POC does n
 ### BR-005: Every beat is tested before it reaches the stage
 
 Each demo beat runs as an automated end-to-end test in CI, with the same presets the speaker applies, and the suite must be green before extension code is merged (NFR-015, OTelFeature/poc#35). Rehearsals (NFR-012) check what CI cannot: the dashboard, the runbook and the laptop.
+
+### BR-006: Presets are cumulative, in a fixed order
+
+Decided by Simon, 2026-10-16 (OTelFeature/poc#26, PR OTelFeature/poc#41). Each preset keeps the rules of the preset before it, so a later beat never brings back spans an earlier beat dropped: `03-semconv-rules`, `03a-weather-full` and `03b-incident` keep `02-quiet-noise`'s drop rules. `01-otel-off` is the baseline with tracing off. Demo 3 has two presets: `03-semconv-rules` (production `traceSampleRatio` 0.1, UC-004 step 6) and `03a-weather-full` (adds `weather` at 1.0, UC-004 step 7). The stage order is `00-baseline` → `01-otel-off` → `02-quiet-noise` → `03-semconv-rules` → `03a-weather-full` → `03b-incident`. Which preset `03b-incident` builds on is open (OQ-10). See the [entity model](../entity_model.md#flag_preset).
+
+### BR-007: A flip counts only once flagd serves it
+
+flagd reloads a flag file only when its mtime strictly increases, so every preset command leaves the file with a newer mtime, and an automated run confirms over OFREP that flagd serves the new value before it counts spans ([flag file reload](../entity_model.md#flag-file-reload), NFR-004).

@@ -23,7 +23,7 @@
 | 1 | Check resource | Spans in Aspire carry the environment set by the service | `production`, `staging` | [UC-004](../use_cases/UC-004-target-trace-sampling.md) |
 | 2 | Apply env rule | Apply the semconv-rules preset | production → 0.1, else 1.0 | [UC-004](../use_cases/UC-004-target-trace-sampling.md) |
 | 3 | Verify volume | Production trace volume about 10% of requests; staging 100% | - | - |
-| 4 | Apply service rule | Add `weather` production → 1.0 | `service.name=weather` | [UC-004](../use_cases/UC-004-target-trace-sampling.md) |
+| 4 | Apply service rule | Apply the weather-full preset: adds `weather` production → 1.0 | `03a-weather-full`, `service.name=weather` | [UC-004](../use_cases/UC-004-target-trace-sampling.md) |
 | 5 | Verify volume | `weather` production 100%, `geocode` production about 10% | - | - |
 | 6 | Verify completeness | Every sampled `geocode` → `weather` trace contains spans from both services | - | - |
 
@@ -51,5 +51,5 @@
 - **Test:** `test_tc004_target_sampling` in `tests/e2e/` (OTelFeature/poc#35, phase 4). Needs the production and staging instances (OTelFeature/poc#25) and the ratio code in both extensions.
 - **How:** CI asserts only deterministic ratios (0.0 and 1.0); the 0.1 volumes of steps 3 and 5 are not asserted. The statistical case at 0.5 runs nightly.
 - **Matrix:** runs in both Java enforcement modes (`processor`, `sampler`).
-- **Extension code:** built from git refs until the releases in the preconditions exist (C-013).
+- **Extension code:** built from git refs (each extension's `main`, where both chains are merged) until the releases in the preconditions exist (C-013).
 - **Not automated:** items 1 to 3, 5 to 7 and 9 are extension unit tests or docs checks.

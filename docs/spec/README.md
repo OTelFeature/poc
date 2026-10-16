@@ -156,7 +156,7 @@ the affected requirement status.
 8. Run tests with `make test` (in `poc`, also `make e2e`) inside WSL. They
    run in the repo's `ci/Dockerfile` image; install nothing on the host but
    Docker (C-014). Keep scripts and Dockerfiles at LF line endings.
-9. A stack is merged only when the end-to-end suite is green against its top
+9. A `poc` stack is merged only when the end-to-end suite is green against it
    (C-013). See [Verification and tooling](#verification-and-tooling).
 
 ### Workflow for implementation (Simon, 2026-10-16)
@@ -164,8 +164,8 @@ the affected requirement status.
 - **Spec first.** A change that moves behaviour updates these documents
   before (or in the same PR as) the code.
 - **Stacked PRs, one per issue.** Each lane's issues are implemented in lane
-  order, each as its own PR stacked on the previous one. The open stacks are
-  listed in [traceability.md](traceability.md#implementation).
+  order, each as its own PR stacked on the previous one. The stacks and
+  their merge state are listed in [traceability.md](traceability.md#implementation).
 - **Fresh-agent review.** Each PR is reviewed by a fresh agent that has not
   seen the implementation. Its fixes are applied to that PR before the next
   issue in the lane starts.
@@ -206,13 +206,35 @@ The talk script's demo beats run as an automated suite in GitHub Actions.
 ### The suite is the safety net before merging
 
 The suite runs against **extension git refs**: Python installed from
-`git+https://…@ref`, the Java JAR built from the ref in a Docker stage. Until
-releases exist, the default refs are the tops of the open stacks; after that
+`git+https://…@ref`, the Java JAR built from the ref in a Docker stage. Both
+extension chains are merged, so until releases exist the default ref is each
+extension's `main` (the old stack-top branches are deleted); after that
 the defaults switch back to pinned versions (C-006, C-013). Merge order:
-extension stacks bottom-up → releases → `poc` version bump → `poc` stack (see
-[traceability.md](traceability.md#merge-order)).
+extension stacks bottom-up (done) → releases → `poc` version bump → `poc`
+stack (see [traceability.md](traceability.md#merge-order)).
+
+### Stage tooling: presets and flag flips (OTelFeature/poc#26)
+
+- **Presets are cumulative** (Simon, 2026-10-16, OTelFeature/poc#26, PR
+  OTelFeature/poc#41). Each preset in `src/flagd/presets/` keeps the rules of
+  the one before it, so `03-semconv-rules`, `03a-weather-full` and
+  `03b-incident` keep `02-quiet-noise`'s drop rules. Demo 3 is split in two:
+  `03-semconv-rules` sets production `traceSampleRatio` to 0.1 (UC-004 step 6)
+  and `03a-weather-full` adds the `weather` 1.0 override (step 7). Order:
+  `00-baseline` → `01-otel-off` → `02-quiet-noise` → `03-semconv-rules` →
+  `03a-weather-full` → `03b-incident`. Details in the
+  [entity model](entity_model.md#flag_preset) and UC-008 BR-006.
+- **flagd reloads a flag file only when its mtime strictly increases.**
+  Coarse Linux timestamps can make a fast rewrite invisible. Preset scripts
+  (`make flag`), `make demo-reset`, extension tests and the e2e flag-flip
+  helper bump the mtime and then confirm the new value over OFREP (port 8016)
+  before counting spans. See
+  [flag file reload](entity_model.md#flag-file-reload).
 
 ### Toolchain images (OTelFeature/otelfeature-instrument#20, OTelFeature/otelfeature-java-extension#32)
+
+Open: OTelFeature/otelfeature-instrument#21 (CI green three runs in a row)
+and OTelFeature/otelfeature-java-extension#35, neither merged yet.
 
 - Each repo has a `ci/Dockerfile`: base image pinned by tag and digest,
   dependencies preinstalled in a layer keyed on the lock files.
@@ -245,11 +267,12 @@ row so references stay valid.
 | OQ-2 | Shape of dotted semconv keys in the evaluation context, and the rule for a key that is both a leaf and a prefix. | **Resolved:** nested by dot segment; flat dotted keys never match in any flagd evaluator; on a leaf/prefix collision the namespace wins; extension-provided keys win over a clashing span start attribute; `otelfeature.*` is reserved. See FR-005, [entity model](entity_model.md#evaluation-context-contract), UC-002 BR-001 | Spike OTelFeature/poc#22 | FR-005, entity model, UC-002, UC-004 |
 | OQ-3 | What per-span decision cost is acceptable on the targeted path? No bound is set; measure first. | **Open** | OTelFeature/poc#27, extension benchmarks | NFR-005 |
 | OQ-4 | Do the pinned OpenFeature OTel hooks emit the current `feature_flag` semconv (`feature_flag.evaluation` event, `feature_flag.key`, `feature_flag.result.variant`, `feature_flag.provider.name`)? | **Open** | OTelFeature/poc#30 | UC-007, FR-015 |
-| OQ-5 | With OTelFeature/poc#23 deferred (P2), nothing calls `/health`. Where does health-check traffic for Demo 2 come from (compose healthchecks, a k6 scenario folded into OTelFeature/poc#26, or a different noise source for the demo)? | **Open** | Speakers, before OTelFeature/poc#26 | UC-002, UC-003, TC-002 |
+| OQ-5 | With OTelFeature/poc#23 deferred (P2), nothing calls `/health`. Where does health-check traffic for Demo 2 come from (compose healthchecks, a k6 scenario folded into OTelFeature/poc#26, or a different noise source for the demo)? | **Answer in review:** a k6 `healthchecks` scenario sends a steady `GET /health` to both services, one root `SERVER` span per check (OTelFeature/poc#38, split out of OTelFeature/poc#23 by Simon). Resolved when PR OTelFeature/poc#40 merges | Speakers, before OTelFeature/poc#26 | UC-002, UC-003, TC-002 |
 | OQ-6 | How is a dropped root's subtree dropped outside the Java sampler? | **Resolved (Simon, 2026-10-16):** an incoming request span (`SERVER`/`CONSUMER`) with a remote parent counts as a root. Python returns a non-recording span with a valid, non-sampled context for a dropped root and suppresses only the span itself for a non-root. Java sampler mode returns `DROP` for roots and non-propagating leaves and leaves spans that propagate mid-trace to the processor; processor mode suppresses at `onStart`. Known Java edge with a non-parent-based sampler documented, not fixed. See UC-002 BR-003, C-004, [enforcement points](entity_model.md#enforcement-points) | OTelFeature/otelfeature-instrument#14, OTelFeature/otelfeature-java-extension#27 | UC-002 BR-003, FR-006 |
 | OQ-7 | How does Python know a rule reads only resource and scope keys, so it may decide per tracer? | **Resolved (Simon, 2026-10-16):** Python reads the rule and decides once per tracer only when every key it reads is present on the tracer (resource and scope keys); `fractional` (reads `targetingKey`) and `missing_some` are handled; an OpenFeature global or transaction context, or API-level hooks, force per-span. See FR-007, UC-002 A2 and BR-007 | OTelFeature/poc#12 | UC-002 A2 |
 | OQ-8 | Which flag carries the Demo 2 drop rules? | **Resolved (Simon, 2026-10-16):** the per-span boolean flag `recordSpan` (default `true`, key override `OTELFEATURE_RECORD_SPAN_FLAG_NAME`). See FR-023, UC-002 BR-006, [flags](entity_model.md#flags) | Speakers, with OTelFeature/otelfeature-instrument#14, OTelFeature/otelfeature-java-extension#27 | UC-002 BR-006, entity model |
 | OQ-9 | Demo 3 script line: "when someone asks why did we stop collecting this, the answer is in the trace" no longer holds for telemetry decisions, because the extensions record none of their own decisions on spans (FR-014). Recommended rewording: "the flag decisions show up in your traces", demonstrated with the application's own `weatherUpstreamFailure` evaluation (OTelFeature/poc#30). | **Open** (recommendation only, not decided) | Speakers | UC-007, TC-005, script |
+| OQ-10 | Which preset does `03b-incident` build on? The presets are cumulative (UC-008 BR-006), but if `03b-incident` includes `03a-weather-full`'s override, `weather` already samples at 1.0 and the control loop (UC-005) shows no change. PR OTelFeature/poc#42 currently builds it on `03-semconv-rules` (as PR OTelFeature/poc#41 had it, before the split). | **Open** | Speakers, before OTelFeature/poc#42 merges | UC-005, UC-006, UC-008 BR-006, TC-005, TC-006 |
 
 ## Validation
 

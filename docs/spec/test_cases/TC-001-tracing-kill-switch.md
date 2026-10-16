@@ -53,5 +53,5 @@
 - **How:** flips by copying the `01-otel-off` and baseline presets over `flagd.json`; spans are read from the collector's `file` exporter, not Aspire; the test sends its own traffic (load generator off).
 - **Hard floors:** `test_hard_floors` uses a separate override that starts one service with `OTEL_SDK_DISABLED=true`, then with `OTEL_TRACES_SAMPLER=always_off`, and asserts that it exports no spans whatever the flags say.
 - **Matrix:** runs in both Java enforcement modes (`processor`, `sampler`).
-- **Extension code:** built from git refs (the tops of the open stacks) until the releases in the preconditions exist (C-013).
+- **Extension code:** built from git refs (each extension's `main`, where both chains are merged) until the releases in the preconditions exist (C-013).
 - **Not automated:** items 1, 3, 4, 5, 8, 9 and 10 stay in the extension unit tests or are docs checks.

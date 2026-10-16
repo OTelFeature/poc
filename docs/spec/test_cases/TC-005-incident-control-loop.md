@@ -58,7 +58,7 @@
 - **Test:** `test_tc005_control_loop` in `tests/e2e/` (OTelFeature/poc#35, phase 4). Needs the fault-injection flag (OTelFeature/poc#28), the control-loop preset (OTelFeature/poc#29) and the error-rate code in both extensions.
 - **How:** differs from the stage flow so it runs fast and deterministically: the failure fraction is 1.0 instead of 0.3, and the e2e override sets a short `OTELFEATURE_ERROR_RATE_INTERVAL` and a low `OTELFEATURE_ERROR_RATE_MIN_REQUESTS`. The test sends its own requests (load generator off).
 - **Matrix:** runs in both Java enforcement modes (`processor`, `sampler`).
-- **Extension code:** built from git refs until the releases in the preconditions exist (C-013).
+- **Extension code:** built from git refs (each extension's `main`, where both chains are merged) until the releases in the preconditions exist (C-013).
 - **Not automated:** items 1 to 12; steps 6 and 7 (reading the trace) stay manual. Item 11 is covered for the suite as a whole by NFR-015 (three green runs in a row), not for the stage timings.
 
 ## Notes

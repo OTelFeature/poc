@@ -57,5 +57,5 @@
 - **Test:** `test_tc002_drop_noisy_spans` in `tests/e2e/` (OTelFeature/poc#35, phase 3). Needs the `recordSpan` code in both extensions, the presets (OTelFeature/poc#26) and health-check traffic (OQ-5).
 - **How:** applies the `02-quiet-noise` preset, then the baseline; the test sends its own `/health`, `/geocode` and `/weather` requests (load generator off) and reads every exported span from the collector's `file` exporter.
 - **Matrix:** runs in both Java enforcement modes (`processor`, `sampler`).
-- **Extension code:** built from git refs until the releases in the preconditions exist (C-013).
+- **Extension code:** built from git refs (each extension's `main`, where both chains are merged) until the releases in the preconditions exist (C-013).
 - **Not automated:** items 1 to 3, 5 to 8 and 10 to 14 are extension unit tests, benchmarks or docs checks.
