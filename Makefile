@@ -221,15 +221,15 @@ BENCH_TOOL = $(BENCH) --profile bench run --rm bench
 
 bench:
 	$(BENCH) --profile bench build
-	OTELFEATURE_ENFORCEMENT=processor $(BENCH) up -d --wait --wait-timeout 180
 	@mkdir -p bench/.results
 	@set -e; \
+	trap '$(BENCH) --profile bench down -v --remove-orphans' EXIT; \
+	OTELFEATURE_ENFORCEMENT=processor $(BENCH) up -d --wait --wait-timeout 180; \
 	run() { \
 		OTELFEATURE_ENFORCEMENT=$$3 $(BENCH) up -d --wait --wait-timeout 180 weather; \
 		$(BENCH_TOOL) apply $$2; \
 		$(BENCH_TOOL) measure $$1 --mode $$3 --warmup $(BENCH_WARMUP) --seconds $(BENCH_SECONDS); \
 	}; \
-	trap '$(BENCH) --profile bench down -v --remove-orphans' EXIT; \
 	run baseline baseline processor; \
 	run noop noop processor; \
 	run quiet-noise-processor quiet-noise processor; \

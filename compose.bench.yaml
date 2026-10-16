@@ -15,6 +15,7 @@ networks:
 services:
   load-generator:
     profiles: !reset []
+    container_name: !reset null
     environment:
       - REQUEST_RATE=${BENCH_RATE:-1}
       - DURATION=120m
