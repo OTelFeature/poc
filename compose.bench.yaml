@@ -22,6 +22,7 @@ x-stage-settings: &stage-settings
   OTEL_METRIC_EXPORT_INTERVAL: "60000"
   OTELFEATURE_ERROR_RATE_INTERVAL: "10"
   OTELFEATURE_ERROR_RATE_MIN_REQUESTS: "10"
+  JAVA_TOOL_OPTIONS: ""
 
 services:
   geocode:

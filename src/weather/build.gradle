@@ -41,3 +41,11 @@ dependencies {
         }
     }
 }
+
+// For the Docker dependency layer (Dockerfile): resolves, and so downloads,
+// everything the build below needs, before the sources are copied in.
+tasks.register('downloadDependencies') {
+    inputs.files(configurations.compileClasspath, configurations.annotationProcessor,
+                 configurations.productionRuntimeClasspath)
+    doLast {}
+}

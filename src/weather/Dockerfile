@@ -46,8 +46,10 @@ FROM gradle:9-jdk25@sha256:e4f9e3d037cc0c7d8fc42cd97edb976dfd19a5b7314212b88b6de
 
 WORKDIR /app
 
-# Copy build files and source, then build in one layer
+# Dependencies in their own layer, keyed on the build files only: a source
+# change doesn't download Spring Boot and the rest again (OTelFeature/poc#70).
 COPY build.gradle settings.gradle ./
+RUN gradle downloadDependencies --no-daemon -q
 COPY src ./src
 RUN gradle build -x test --no-daemon
 
