@@ -31,6 +31,64 @@
         "on": true,
         "off": false
       },
+      "targeting": {
+        "if": [
+          {
+            "or": [
+              {
+                "and": [
+                  {
+                    "==": [
+                      {
+                        "var": "service.name"
+                      },
+                      "geocode"
+                    ]
+                  },
+                  {
+                    "==": [
+                      {
+                        "var": "span.kind"
+                      },
+                      "server"
+                    ]
+                  },
+                  {
+                    "==": [
+                      {
+                        "var": "url.path"
+                      },
+                      "/health"
+                    ]
+                  }
+                ]
+              },
+              {
+                "and": [
+                  {
+                    "==": [
+                      {
+                        "var": "service.name"
+                      },
+                      "weather"
+                    ]
+                  },
+                  {
+                    "==": [
+                      {
+                        "var": "otel.scope.name"
+                      },
+                      "io.opentelemetry.jdbc"
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          "off",
+          "on"
+        ]
+      },
       "metadata": {
         "description": "Per-span drop flag, evaluated against the semconv context; false = the span is not created (Demo 2)"
       }
@@ -43,29 +101,11 @@
         "tenth": 0.1,
         "none": 0.0
       },
+      "metadata": {
+        "description": "Sample ratio for root spans, 0.0-1.0 (Demo 3)"
+      },
       "targeting": {
         "if": [
-          {
-            "and": [
-              {
-                "==": [
-                  {
-                    "var": "deployment.environment.name"
-                  },
-                  "production"
-                ]
-              },
-              {
-                "==": [
-                  {
-                    "var": "service.name"
-                  },
-                  "weather"
-                ]
-              }
-            ]
-          },
-          "all",
           {
             "==": [
               {
@@ -77,9 +117,6 @@
           "tenth",
           "all"
         ]
-      },
-      "metadata": {
-        "description": "Sample ratio for root spans, 0.0-1.0 (Demo 3)"
       }
     },
     "weatherUpstreamFailure": {

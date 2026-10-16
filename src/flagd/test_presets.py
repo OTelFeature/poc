@@ -51,27 +51,38 @@ DEFAULTS = {"otelEnabled": True, "telemetryLevel": "FULL", "recordSpan": True, "
             "weatherUpstreamFailure": 0.0}
 
 # Per preset: (span, flag) -> expected value. Anything not listed must be the default.
+def _production(service: str | None = None) -> list[str]:
+    return [
+        span for span, attrs in SPANS.items()
+        if attrs.get("deployment.environment.name") == "production"
+        and (service is None or attrs["service.name"] == service)
+    ]
+
+
+# Presets are cumulative: each beat keeps the previous beat's rules.
+QUIET_NOISE = {
+    ("geocode /health", "recordSpan"): False,
+    ("weather jdbc", "recordSpan"): False,
+}
+
 EXPECTED = {
     "00-baseline": {},
     "01-otel-off": {(span, "otelEnabled"): False for span in SPANS},
-    "02-quiet-noise": {
-        ("geocode /health", "recordSpan"): False,
-        ("weather jdbc", "recordSpan"): False,
-    },
+    "02-quiet-noise": QUIET_NOISE,
     # The ratio resolves for every span, but only root spans use it.
     "03-semconv-rules": {
-        (span, "traceSampleRatio"): 0.1
-        for span, attrs in SPANS.items()
-        if attrs["service.name"] == "geocode" and attrs.get("deployment.environment.name") == "production"
+        **QUIET_NOISE,
+        **{(span, "traceSampleRatio"): 0.1 for span in _production()},
+    },
+    "03a-weather-full": {
+        **QUIET_NOISE,
+        **{(span, "traceSampleRatio"): 0.1 for span in _production("geocode")},
     },
     # 03 plus fault injection. The flag is the application's own (weather
     # evaluates it without span context), so it is the same for every span.
     "03b-incident": {
-        **{
-            (span, "traceSampleRatio"): 0.1
-            for span, attrs in SPANS.items()
-            if attrs["service.name"] == "geocode" and attrs.get("deployment.environment.name") == "production"
-        },
+        **QUIET_NOISE,
+        **{(span, "traceSampleRatio"): 0.1 for span in _production()},
         **{(span, "weatherUpstreamFailure"): 0.3 for span in SPANS},
     },
 }
