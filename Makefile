@@ -198,3 +198,45 @@ SPEC_LINT_ARGS ?= --strict
 .PHONY: spec-lint
 spec-lint:
 	docker run --rm -u "$$(id -u):$$(id -g)" -v "$(CURDIR)":/w -w /w $(SPEC_LINT_IMAGE) sh ci/spec-lint.sh $(SPEC_LINT_ARGS)
+
+# ── Measurement harness (bench/, OTelFeature/poc#27, UC-003, TC-003) ───
+# Needs only Docker. Its own compose project on the pinned releases, the
+# stage's normal traffic (BENCH_RATE raises it). Four runs, each after a
+# warm-up: baseline, a targeted rule that never matches (the decision cost,
+# UC-003 BR-006), Demo 2 (02-quiet-noise) with weather in processor mode,
+# and the same in sampler mode. Prints per-service tables and saves them to
+# bench/.results/. Takes about 4 x (BENCH_WARMUP + BENCH_SECONDS) seconds.
+#
+#   make bench
+#   make bench BENCH_SECONDS=300 BENCH_RATE=5
+BENCH_PROJECT := otelfeature-bench
+BENCH := docker compose -p $(BENCH_PROJECT) -f compose.yaml -f compose.e2e.yaml -f compose.bench.yaml
+BENCH_WARMUP ?= 45
+BENCH_SECONDS ?= 120
+BENCH_RATE ?= 1
+export BENCH_RATE
+BENCH_TOOL = $(BENCH) --profile bench run --rm bench
+
+.PHONY: bench bench-down
+
+bench:
+	$(BENCH) --profile bench build
+	OTELFEATURE_ENFORCEMENT=processor $(BENCH) up -d --wait --wait-timeout 180
+	@mkdir -p bench/.results
+	@set -e; \
+	run() { \
+		OTELFEATURE_ENFORCEMENT=$$3 $(BENCH) up -d --wait --wait-timeout 180 weather; \
+		$(BENCH_TOOL) apply $$2; \
+		$(BENCH_TOOL) measure $$1 --mode $$3 --warmup $(BENCH_WARMUP) --seconds $(BENCH_SECONDS); \
+	}; \
+	trap '$(BENCH) --profile bench down -v --remove-orphans' EXIT; \
+	run baseline baseline processor; \
+	run noop noop processor; \
+	run quiet-noise-processor quiet-noise processor; \
+	run quiet-noise-sampler quiet-noise sampler; \
+	out=bench/.results/report-$$(date -u +%Y%m%dT%H%M%SZ).md; \
+	$(BENCH_TOOL) report | tee $$out; \
+	echo "saved $$out"
+
+bench-down:
+	$(BENCH) --profile bench down -v --remove-orphans

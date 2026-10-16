@@ -1,0 +1,61 @@
+# Measurement harness (`make bench`, OTelFeature/poc#27, UC-003, TC-003).
+# Layered on the e2e override, so it shares its pinned images, the flag
+# volume and the collector writing every span to a file:
+#
+#   docker compose -p otelfeature-bench -f compose.yaml -f compose.e2e.yaml -f compose.bench.yaml
+#
+# Differences from e2e: the load generator runs (the stage's normal traffic,
+# `BENCH_RATE` raises it), the extra instances (staging twins, hard floors)
+# are off so they don't share the CPU, and a `bench` service measures.
+
+networks:
+  default:
+    name: otelfeature-bench
+
+services:
+  load-generator:
+    profiles: !reset []
+    environment:
+      - REQUEST_RATE=${BENCH_RATE:-1}
+      - DURATION=120m
+
+  geocode-staging:
+    profiles: [never]
+  weather-staging:
+    profiles: [never]
+  geocode-sdk-disabled:
+    profiles: [never]
+  weather-sdk-disabled:
+    profiles: [never]
+  geocode-always-off:
+    profiles: [never]
+  weather-always-off:
+    profiles: [never]
+
+  # bench/bench.py on the e2e runner image: applies presets (the e2e flag
+  # helper), reads container stats from the Docker API (socket, read-only)
+  # and the collector's span file, and keeps its results in a volume.
+  bench:
+    profiles: [bench]
+    image: otelfeature-e2e-runner
+    build:
+      context: .
+      dockerfile: ci/Dockerfile
+    entrypoint: ["python", "/bench/bench.py"]
+    volumes:
+      - ./bench:/bench:ro
+      - ./tests/e2e:/e2e/tests:ro
+      - ./src/flagd/presets:/presets:ro
+      - e2e-flags:/flags
+      - e2e-out:/out:ro
+      - bench-results:/results
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    environment:
+      BENCH_PROJECT: otelfeature-bench
+      FLAGD_OFREP_URL: http://flagd:8016
+      E2E_FLAGS_FILE: /flags/flagd.json
+      E2E_PRESETS_DIR: /presets
+      E2E_SPANS_FILE: /out/spans.jsonl
+
+volumes:
+  bench-results:

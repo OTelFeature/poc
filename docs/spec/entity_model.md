@@ -366,7 +366,7 @@ Measurement harness (`make bench`, UC-003, TC-003):
 
 | Variable | Default | Meaning |
 |---|---|---|
-| `BENCH_WARMUP` | `30` | Seconds of traffic before each measured window |
+| `BENCH_WARMUP` | `45` | Seconds of traffic before each measured window |
 | `BENCH_SECONDS` | `120` | Length of each measured window |
 | `BENCH_RATE` | `1` | Requests per second per service and endpoint from the load generator (`1` = the stage load) |
 
