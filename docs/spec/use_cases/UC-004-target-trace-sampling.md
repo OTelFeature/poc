@@ -28,7 +28,7 @@
 4. The service samples the root span by bucketing the trace id against the ratio.
 5. A trace that enters `weather` from `geocode` falls in the same bucket in both services, so it is either complete or absent.
 6. The dashboard shows about one in ten production traces and all staging traces.
-7. The operator adds a second rule that sets 1.0 for `service.name` = `weather` in production.
+7. The operator adds a second rule that sets 0.5 for `service.name` = `weather` in production, so `weather` is sampled more than the rest but not fully (it leaves room for the error-rate rule in UC-005 to raise it to 1.0).
 8. The dashboard shows all `weather` production traces and about one in ten `geocode` production traces.
 
 ## Alternative Flows

@@ -23,7 +23,7 @@
 | 1 | Check resource | Spans in Aspire carry the environment set by the service | `production`, `staging` | [UC-004](../use_cases/UC-004-target-trace-sampling.md) |
 | 2 | Apply env rule | Apply the semconv-rules preset | production → 0.1, else 1.0 | [UC-004](../use_cases/UC-004-target-trace-sampling.md) |
 | 3 | Verify volume | Production trace volume about 10% of requests; staging 100% | - | - |
-| 4 | Apply service rule | Apply the weather-full preset: adds `weather` production → 1.0 | `03a-weather-full`, `service.name=weather` | [UC-004](../use_cases/UC-004-target-trace-sampling.md) |
+| 4 | Apply service rule | Apply the weather-boost preset: adds `weather` production → 0.5 | `03a-weather-boost`, `service.name=weather` | [UC-004](../use_cases/UC-004-target-trace-sampling.md) |
 | 5 | Verify volume | `weather` production 100%, `geocode` production about 10% | - | - |
 | 6 | Verify completeness | Every sampled `geocode` → `weather` trace contains spans from both services | - | - |
 

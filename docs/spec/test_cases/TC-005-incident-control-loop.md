@@ -51,7 +51,7 @@
 
 ## Note on the stage preset
 
-On stage, `03b-incident` builds on `03a-weather-full` (UC-008 BR-006, OQ-10), so `weather` already samples at 1.0 and the sampling jump is not visible there. This test case therefore starts from `03-semconv-rules` plus the incident rules (error-rate rule and `weatherUpstreamFailure`), so the rise from 0.1 to 1.0 can be checked.
+On stage, `03b-incident` builds on `03a-weather-boost` (UC-008 BR-006), which sets `weather` to 0.5. The check is therefore a rise from 0.5 to 1.0 while the fault is active and a return to 0.5 after it, from the stage preset itself, with no reset.
 
 ## Postconditions
 

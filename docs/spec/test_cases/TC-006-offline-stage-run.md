@@ -26,7 +26,7 @@
 | 3 | Verify healthy | End-to-end traces appear; client spans show the stub as `server.address` | - | - |
 | 4 | Demo 1 | Apply tracing-off preset, then baseline | `01-otel-off` | [UC-001](../use_cases/UC-001-switch-tracing-off-and-on.md) |
 | 5 | Demo 2 | Apply quiet-noise preset | `02-quiet-noise` | [UC-002](../use_cases/UC-002-drop-noisy-spans.md) |
-| 6 | Demo 3 | Apply semconv-rules preset, then weather-full, then incident | `03-semconv-rules`, `03a-weather-full`, `03b-incident` | [UC-004](../use_cases/UC-004-target-trace-sampling.md) |
+| 6 | Demo 3 | Apply semconv-rules preset, then weather-full, then incident | `03-semconv-rules`, `03a-weather-boost`, `03b-incident` | [UC-004](../use_cases/UC-004-target-trace-sampling.md) |
 | 7 | Reset | Restore baseline | `make demo-reset` | [UC-008](../use_cases/UC-008-run-demo-on-stage.md) |
 
 ## Validation
@@ -38,6 +38,10 @@
 5. **Baseline healthy (OTelFeature/poc#35):** both services export server, client and database spans; every trace tree is connected; the resource carries `service.name` and `deployment.environment.name`. [e2e: `test_baseline`]
 6. **Presets apply (OTelFeature/poc#35):** every preset the suite uses is applied the way `make flag PRESET=…` applies it, so a preset that does not parse or does not take effect fails the suite. [e2e: all tests]
 7. **Flip is really applied (OTelFeature/poc#26, OTelFeature/poc#35):** every flag-file write leaves a strictly newer mtime (flagd ignores a rewrite with an unchanged mtime), and the flip counts only after flagd serves the new value over OFREP (port 8016); spans are counted after that barrier, never before. Three flips within one second end in the last preset's state. [e2e: all tests, through the flag-flip helper]
+
+## Stage progression in CI
+
+The e2e suite runs this whole sequence as one ordered test, `test_stage_progression` (OTelFeature/poc#35): presets 00 → 01 → 02 → 03 → 03a → 03b in order, **no resets**, asserting the expected spans and sampling after each flip. A preset that only works after a reset fails CI.
 
 ## Postconditions
 

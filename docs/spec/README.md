@@ -217,12 +217,12 @@ stack (see [traceability.md](traceability.md#merge-order)).
 
 - **Presets are cumulative** (Simon, 2026-10-16, OTelFeature/poc#26, PR
   OTelFeature/poc#41). Each preset in `src/flagd/presets/` keeps the rules of
-  the one before it, so `03-semconv-rules`, `03a-weather-full` and
+  the one before it, so `03-semconv-rules`, `03a-weather-boost` and
   `03b-incident` keep `02-quiet-noise`'s drop rules. Demo 3 is split in two:
   `03-semconv-rules` sets production `traceSampleRatio` to 0.1 (UC-004 step 6)
-  and `03a-weather-full` adds the `weather` 1.0 override (step 7). Order:
+  and `03a-weather-boost` adds a `weather` 0.5 override (step 7). Order:
   `00-baseline` → `01-otel-off` → `02-quiet-noise` → `03-semconv-rules` →
-  `03a-weather-full` → `03b-incident`. Details in the
+  `03a-weather-boost` → `03b-incident`. Details in the
   [entity model](entity_model.md#flag_preset) and UC-008 BR-006.
 - **flagd reloads a flag file only when its mtime strictly increases.**
   Coarse Linux timestamps can make a fast rewrite invisible. Preset scripts
@@ -272,7 +272,7 @@ row so references stay valid.
 | OQ-7 | How does Python know a rule reads only resource and scope keys, so it may decide per tracer? | **Resolved (Simon, 2026-10-16):** Python reads the rule and decides once per tracer only when every key it reads is present on the tracer (resource and scope keys); `fractional` (reads `targetingKey`) and `missing_some` are handled; an OpenFeature global or transaction context, or API-level hooks, force per-span. See FR-007, UC-002 A2 and BR-007 | OTelFeature/poc#12 | UC-002 A2 |
 | OQ-8 | Which flag carries the Demo 2 drop rules? | **Resolved (Simon, 2026-10-16):** the per-span boolean flag `recordSpan` (default `true`, key override `OTELFEATURE_RECORD_SPAN_FLAG_NAME`). See FR-023, UC-002 BR-006, [flags](entity_model.md#flags) | Speakers, with OTelFeature/otelfeature-instrument#14, OTelFeature/otelfeature-java-extension#27 | UC-002 BR-006, entity model |
 | OQ-9 | Demo 3 script line: "when someone asks why did we stop collecting this, the answer is in the trace" no longer holds for telemetry decisions, because the extensions record none of their own decisions on spans (FR-014). Recommended rewording: "the flag decisions show up in your traces", demonstrated with the application's own `weatherUpstreamFailure` evaluation (OTelFeature/poc#30). | **Open** (recommendation only, not decided) | Speakers | UC-007, TC-005, script |
-| OQ-10 | Which preset does `03b-incident` build on? The presets are cumulative (UC-008 BR-006), but if `03b-incident` includes `03a-weather-full`'s override, `weather` already samples at 1.0 and the control loop (UC-005) shows no change. PR OTelFeature/poc#42 currently builds it on `03-semconv-rules` (as PR OTelFeature/poc#41 had it, before the split). | **Resolved (Simon, 2026-10-16):** strictly linear: `03b-incident` builds on `03a-weather-full`. Accepted consequence: on stage `weather` already samples at 1.0, so the incident shows the errors (and the error rate in the context) but no sampling jump. The automated control-loop check (TC-005) therefore runs from `03-semconv-rules` plus the incident rules, not from the stage preset. | Speakers, before OTelFeature/poc#42 merges | UC-005, UC-006, UC-008 BR-006, TC-005, TC-006 |
+| OQ-10 | Which preset does `03b-incident` build on? The presets are cumulative (UC-008 BR-006), but if `03b-incident` includes `03a-weather-boost`'s override, `weather` already samples at 1.0 and the control loop (UC-005) shows no change. PR OTelFeature/poc#42 currently builds it on `03-semconv-rules` (as PR OTelFeature/poc#41 had it, before the split). | **Resolved (Simon, 2026-10-16):** the demo is a progression with no resets, so `03b-incident` builds on `03a-weather-boost`. `03a` sets `weather` to **0.5** (not 1.0), so the error-rate rule in `03b` visibly raises it from 0.5 to 1.0 when the fault is injected. | Speakers, before OTelFeature/poc#42 merges | UC-005, UC-006, UC-008 BR-006, TC-005, TC-006 |
 
 ## Validation
 

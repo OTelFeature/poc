@@ -79,9 +79,9 @@ A named, complete `flagd.json` for one stage state (OTelFeature/poc#26).
 **Presets are cumulative** (Simon, 2026-10-16, OTelFeature/poc#26, PR
 OTelFeature/poc#41). Each Demo 2 and Demo 3 preset keeps the rules of the
 preset before it, so a later beat never brings back what an earlier beat
-dropped: `03-semconv-rules`, `03a-weather-full` and `03b-incident` keep
+dropped: `03-semconv-rules`, `03a-weather-boost` and `03b-incident` keep
 `02-quiet-noise`'s `recordSpan` rules. Stage order: `00-baseline` →
-`01-otel-off` → `02-quiet-noise` → `03-semconv-rules` → `03a-weather-full`
+`01-otel-off` → `02-quiet-noise` → `03-semconv-rules` → `03a-weather-boost`
 → `03b-incident`. `01-otel-off` is the exception: it is the baseline with
 `otelEnabled` off. `00-baseline` is identical to `flagd.json`. See UC-008
 BR-006.
@@ -92,7 +92,7 @@ BR-006.
 | `01-otel-off` | `otelEnabled` → `off` (on top of the baseline) | Demo 1 |
 | `02-quiet-noise` | `recordSpan` off for `geocode` `SERVER` spans on `url.path=/health` and for `weather` spans with `otel.scope.name=io.opentelemetry.jdbc` | Demo 2 |
 | `03-semconv-rules` | `traceSampleRatio` 0.1 for production, 1.0 otherwise | Demo 3, UC-004 step 6 |
-| `03a-weather-full` | `traceSampleRatio` 1.0 for `weather` in production | Demo 3, UC-004 step 7 |
+| `03a-weather-boost` | `traceSampleRatio` 0.5 for `weather` in production (the rest stays 0.1) | Demo 3, UC-004 step 7 |
 | `03b-incident` | `weatherUpstreamFailure` → `incident` (OTelFeature/poc#28, PR OTelFeature/poc#42) | Demo 3 incident |
 
 ### TELEMETRY_POLICY
