@@ -198,3 +198,61 @@ SPEC_LINT_ARGS ?= --strict
 .PHONY: spec-lint
 spec-lint:
 	docker run --rm -u "$$(id -u):$$(id -g)" -v "$(CURDIR)":/w -w /w $(SPEC_LINT_IMAGE) sh ci/spec-lint.sh $(SPEC_LINT_ARGS)
+
+# ── Measurement harness (bench/, OTelFeature/poc#27, UC-003, TC-003) ───
+# Needs only Docker. Its own compose project on the pinned releases with the
+# stage's configuration and normal traffic (BENCH_RATE multiplies the
+# business requests and the health checks). Six runs, each from freshly
+# created geocode, weather and load generator, warmed up first:
+#   baseline, noop (a targeted rule that never matches: the decision cost,
+#   UC-003 BR-006) and 02-quiet-noise (Demo 2), each with weather in
+#   processor mode and again in sampler mode (decision D3).
+# Prints per-service tables and saves them, with the raw results, to
+# bench/.results/. Takes about 6 x (BENCH_WARMUP + BENCH_SECONDS) seconds.
+#
+#   make bench
+#   make bench BENCH_SECONDS=600 BENCH_RATE=5
+BENCH_PROJECT := otelfeature-bench
+BENCH := docker compose -p $(BENCH_PROJECT) -f compose.yaml -f compose.e2e.yaml -f compose.bench.yaml
+BENCH_WARMUP ?= 120
+BENCH_SECONDS ?= 240
+BENCH_RATE ?= 1
+BENCH_HEALTHCHECK_RATE := $(shell echo $$((2 * $(BENCH_RATE))))
+export BENCH_RATE BENCH_HEALTHCHECK_RATE
+BENCH_TOOL = $(BENCH) --profile bench run --rm -e BENCH_SETTINGS="warm-up $(BENCH_WARMUP) s, BENCH_RATE=$(BENCH_RATE)" bench
+
+.PHONY: bench bench-down
+
+# bash: dash doesn't run an EXIT trap on Ctrl-C.
+bench: SHELL := /bin/bash
+bench:
+	$(BENCH) --profile bench build
+	@mkdir -p bench/.results
+	@set -e; \
+	cleanup() { \
+		rc=$$?; \
+		if [ $$rc -ne 0 ]; then $(BENCH) logs --no-color --tail=200 > bench/.results/failed-run.log 2>&1 || true; \
+			echo "bench failed ($$rc); logs in bench/.results/failed-run.log"; fi; \
+		$(BENCH) --profile bench down -v --remove-orphans; \
+	}; \
+	trap cleanup EXIT; \
+	trap 'exit 130' INT TERM; \
+	OTELFEATURE_ENFORCEMENT=processor $(BENCH) up -d --wait --wait-timeout 180; \
+	run() { \
+		OTELFEATURE_ENFORCEMENT=$$3 $(BENCH) up -d --wait --wait-timeout 180 --force-recreate geocode weather load-generator; \
+		$(BENCH_TOOL) apply $$2; \
+		$(BENCH_TOOL) measure $$1 --mode $$3 --warmup $(BENCH_WARMUP) --seconds $(BENCH_SECONDS); \
+	}; \
+	run baseline baseline processor; \
+	run noop noop processor; \
+	run quiet-noise-processor quiet-noise processor; \
+	run baseline-sampler baseline sampler; \
+	run noop-sampler noop sampler; \
+	run quiet-noise-sampler quiet-noise sampler; \
+	out=bench/.results/report-$$(date -u +%Y%m%dT%H%M%SZ).md; \
+	$(BENCH_TOOL) report > $$out; \
+	cat $$out; \
+	echo "saved $$out"
+
+bench-down:
+	$(BENCH) --profile bench down -v --remove-orphans
