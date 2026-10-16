@@ -1,4 +1,27 @@
-.PHONY: build start start-live start-staging prepare-offline stop flag flags demo-reset validate-flags
+.PHONY: build start start-live start-staging prepare-offline stop flag flags demo-reset validate-flags extension-sources
+
+# ── Extension source (FR-026, UC-008 A3) ───────────────────────────────
+# By default geocode and weather use the pinned, released extensions. To
+# rehearse with unreleased code, build them from git refs:
+#
+#   make start-staging EXT_REF=main
+#   make start OTELFEATURE_INSTRUMENT_REF=feat/x OTELFEATURE_EXTENSION_REF=v0.4.0
+#
+# A ref counts only from the command line or the environment (the e2e
+# defaults further down don't switch the stage stack to git). Images keep
+# what they were built from until rebuilt: `make build` goes back to pinned.
+ifneq ($(EXT_REF),)
+OTELFEATURE_INSTRUMENT_REF := $(EXT_REF)
+OTELFEATURE_EXTENSION_REF := $(EXT_REF)
+endif
+INSTRUMENT_FROM_GIT := $(or $(EXT_REF),$(filter command line environment,$(origin OTELFEATURE_INSTRUMENT_REF)))
+EXTENSION_FROM_GIT := $(or $(EXT_REF),$(filter command line environment,$(origin OTELFEATURE_EXTENSION_REF)))
+STAGE_FROM_GIT := $(INSTRUMENT_FROM_GIT)$(EXTENSION_FROM_GIT)
+
+build start: export OTELFEATURE_INSTRUMENT_SOURCE := $(if $(INSTRUMENT_FROM_GIT),git,lock)
+build start: export OTELFEATURE_EXTENSION_SOURCE := $(if $(EXTENSION_FROM_GIT),git,release)
+build start: export OTELFEATURE_INSTRUMENT_REF := $(OTELFEATURE_INSTRUMENT_REF)
+build start: export OTELFEATURE_EXTENSION_REF := $(OTELFEATURE_EXTENSION_REF)
 
 PRESET_DIR := src/flagd/presets
 PRESETS := $(sort $(basename $(notdir $(wildcard $(PRESET_DIR)/*.json))))
@@ -29,6 +52,7 @@ start-staging: export COMPOSE_PROFILES := staging
 start-staging: start
 
 start:
+	$(if $(STAGE_FROM_GIT),docker compose build geocode weather $(if $(filter staging,$(COMPOSE_PROFILES)),geocode-staging weather-staging))
 	docker compose up -d
 	@printf '%s\n' ''
 	@printf '%s\n' '               ██████████████████████████████████████████████████             '
@@ -70,6 +94,23 @@ start:
 	@printf '%s\n' "                  -d '{\"city\": \"linz\", \"country\": \"austria\"}'"
 	@printf '%s\n' '         - Aspire Dashboard: http://localhost:18888'
 	@printf '%s\n' '         - Staging twins (make start-staging): geocode :8002, weather :8003'
+	@$(MAKE) --no-print-directory extension-sources
+
+# Which extension each running app container was built with (image labels).
+extension-sources:
+	@printf '%s\n' '' '         Extensions in the running images:'
+	@for svc in geocode weather geocode-staging weather-staging; do \
+		id=$$(docker compose --profile staging ps -q $$svc 2>/dev/null); \
+		[ -n "$$id" ] || continue; \
+		label() { docker inspect -f "{{index .Config.Labels \"io.otelfeature.extension.$$1\"}}" $$id; }; \
+		case "$$(label source)" in \
+			git) desc="git $$(label ref)" ;; \
+			lock) desc="pinned (uv.lock)" ;; \
+			release) desc="pinned release $$(label version)" ;; \
+			*) desc="unknown (image built before the labels; make build)" ;; \
+		esac; \
+		printf '         - %s: %s\n' "$$svc" "$$desc"; \
+	done
 
 stop:
 	docker compose --profile staging down

@@ -1,5 +1,6 @@
 # Selects where otelfeature's extension comes from; see the stages below.
 ARG OTELFEATURE_EXTENSION_SOURCE=release
+ARG OTELFEATURE_EXTENSION_VERSION=v0.3.1
 
 # ── OTel agent download ─────────────────────────────────────────────
 # Separate stage so the runtime image doesn't need wget/curl installed.
@@ -25,7 +26,7 @@ RUN wget -q -O /opentelemetry-javaagent.jar \
 # (declared at the top: an ARG used in FROM must come before the first FROM)
 
 FROM alpine:3.24 AS extension-release
-ARG OTELFEATURE_EXTENSION_VERSION=v0.3.1
+ARG OTELFEATURE_EXTENSION_VERSION
 RUN wget -q -O /otelfeature-java-extension.jar \
     https://github.com/OTelFeature/otelfeature-java-extension/releases/download/${OTELFEATURE_EXTENSION_VERSION}/otelfeature-java-extension.jar
 
@@ -52,6 +53,14 @@ RUN gradle build -x test --no-daemon
 
 # ── Runtime stage ───────────────────────────────────────────────────
 FROM eclipse-temurin:25-jre-alpine@sha256:3c0a9084927a221ccd1d007fcaf614465672c0af37aaa834c5184483afe56d61
+
+# Which otelfeature-java-extension this image carries (`make start` prints it).
+ARG OTELFEATURE_EXTENSION_SOURCE
+ARG OTELFEATURE_EXTENSION_VERSION
+ARG OTELFEATURE_EXTENSION_REF=main
+LABEL io.otelfeature.extension.source="${OTELFEATURE_EXTENSION_SOURCE}" \
+      io.otelfeature.extension.ref="${OTELFEATURE_EXTENSION_REF}" \
+      io.otelfeature.extension.version="${OTELFEATURE_EXTENSION_VERSION}"
 
 WORKDIR /app
 

@@ -132,6 +132,7 @@ make build            # docker compose build (staging twins included)
 make start            # docker compose up -d, external APIs stubbed
 make start-live       # same, but geocode/weather call the real Nominatim and Open-Meteo
 make start-staging    # also start the staging twins (compose profile `staging`)
+make start-staging EXT_REF=main  # same, with both extensions built from git (unreleased code)
 make prepare-offline  # pull + build everything, so `make start` later needs no network
 make stop             # docker compose down (staging included)
 

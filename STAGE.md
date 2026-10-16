@@ -7,20 +7,30 @@ pushes the change to both services and they apply it to the next span. Aspire
 
 > [!IMPORTANT]
 > The `weatherUpstreamFailure` part of 03b works with the stack as it is:
-> weather's own code evaluates it. Presets 01–03b otherwise need extension
-> releases that understand `otelEnabled`,
-> `recordSpan`, `traceSampleRatio` and the semconv evaluation context
-> (otelfeature-instrument and otelfeature-java-extension, not released yet).
-> Until `src/geocode` and `src/weather` are bumped to those versions, the
-> pinned extensions ignore these flags and every preset looks like baseline.
-> `geocode` runs with `OTEL_SEMCONV_STABILITY_OPT_IN=http`, so its server
-> spans carry `url.path` at start (the old conventions only set `http.target`).
+> weather's own code evaluates it. Every other preset needs extension versions
+> that understand `otelEnabled`, `recordSpan`, `traceSampleRatio` and the
+> semconv evaluation context. Those are on the extensions' `main` but **not
+> released yet**, so the pinned images ignore these flags and every preset
+> looks like baseline. Until the releases exist, build the extensions from
+> git (FR-026), while online:
+>
+> ```sh
+> make start-staging EXT_REF=main
+> ```
+>
+> `make start` lists the extension each running image was built with (`git
+> main`, or the pinned version). The images keep that build: plain `make
+> start` reuses them, offline too. `make build` goes back to the pinned
+> versions. `geocode` runs with `OTEL_SEMCONV_STABILITY_OPT_IN=http`, so its
+> server spans carry `url.path` at start (the old conventions only set
+> `http.target`).
 
 ## Before the talk (online)
 
 | Step | Command | Expect |
 |---|---|---|
 | Pull and build everything | `make prepare-offline` | No errors |
+| Until the releases exist: build from git | `make start-staging EXT_REF=main` | `geocode: git main`, `weather: git main` in the start banner |
 | Start empty, with staging | `docker compose --profile staging down -v` then `make start-staging` | 4 app containers + 2 k6 |
 | Baseline flags, fresh traffic | `make demo-reset` | `flagd.json is now 00-baseline` |
 

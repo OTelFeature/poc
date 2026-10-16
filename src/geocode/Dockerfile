@@ -40,6 +40,12 @@ FROM instrument-${OTELFEATURE_INSTRUMENT_SOURCE} AS deps
 
 FROM python:3.14-slim-bookworm AS runtime
 
+# Which otelfeature-instrument this image carries (`make start` prints it).
+ARG OTELFEATURE_INSTRUMENT_SOURCE
+ARG OTELFEATURE_INSTRUMENT_REF=main
+LABEL io.otelfeature.extension.source="${OTELFEATURE_INSTRUMENT_SOURCE}" \
+      io.otelfeature.extension.ref="${OTELFEATURE_INSTRUMENT_REF}"
+
 WORKDIR /app
 
 COPY --from=deps /app/.venv /app/.venv

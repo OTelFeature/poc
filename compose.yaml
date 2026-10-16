@@ -12,6 +12,11 @@ volumes:
 x-geocode: &geocode
   build:
     context: ./src/geocode
+    # Extension source (FR-026): the version pinned in uv.lock, unless the
+    # Makefile asks for a git ref (make start EXT_REF=...).
+    args:
+      OTELFEATURE_INSTRUMENT_SOURCE: ${OTELFEATURE_INSTRUMENT_SOURCE:-lock}
+      OTELFEATURE_INSTRUMENT_REF: ${OTELFEATURE_INSTRUMENT_REF:-main}
   healthcheck:
     test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
     interval: 2s
@@ -47,6 +52,11 @@ x-geocode-env: &geocode-env
 x-weather: &weather
   build:
     context: ./src/weather
+    # Extension source (FR-026): the pinned release, unless the Makefile
+    # asks for a git ref (make start EXT_REF=...).
+    args:
+      OTELFEATURE_EXTENSION_SOURCE: ${OTELFEATURE_EXTENSION_SOURCE:-release}
+      OTELFEATURE_EXTENSION_REF: ${OTELFEATURE_EXTENSION_REF:-main}
   # The JVM plus agent takes a while; k6 waits for this.
   healthcheck:
     test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://localhost:8001/health"]
