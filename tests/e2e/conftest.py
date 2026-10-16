@@ -184,9 +184,9 @@ EXTENSION_ATTRS = ("otelfeature.sample_ratio",)
 def no_extension_attributes(spans):
     """FR-014 / UC-007 BR-001 over every span the session exported, checked
     once the last test is done: no geocode or weather span carries attributes
-    the extensions would have written. Session-wide, so each CI shard checks
-    all of its own tests' spans (sampled down and up), and no violating trace
-    can hide behind a barrier. flagd's own spans (flagSync) carry
+    the extensions would have written. Session-wide, so it covers every
+    test's spans (sampled down and up) whichever tests run, and no violating
+    trace can hide behind a barrier. flagd's own spans (flagSync) carry
     feature_flag.* attributes of their own and are left out."""
     yield
     time.sleep(QUIET_SECONDS)  # let the last test's spans reach the file

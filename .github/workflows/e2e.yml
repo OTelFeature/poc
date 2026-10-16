@@ -36,7 +36,7 @@ concurrency:
 
 jobs:
   e2e:
-    name: e2e (java ${{ matrix.enforcement }}, ${{ matrix.shard }})
+    name: e2e (java ${{ matrix.enforcement }})
     runs-on: ubuntu-latest
     timeout-minutes: 30
     strategy:
@@ -44,16 +44,6 @@ jobs:
       matrix:
         # Decision D3: both Java enforcement modes must pass the same beats.
         enforcement: [processor, sampler]
-        # Shards, each a job with its own stack, so the slowest job finishes
-        # in under 4 minutes (NFR-015, OTelFeature/poc#70). `stage` takes the
-        # long beats (control loop, stage progression); `core` everything
-        # else, so a new test file lands there without a change here.
-        shard: [core, stage]
-        include:
-          - shard: core
-            tests: --ignore=test_tc005_control_loop.py --ignore=test_tc006_stage_progression.py
-          - shard: stage
-            tests: test_tc005_control_loop.py test_tc006_stage_progression.py
     env:
       # Pinned releases unless a git ref is passed explicitly (C-013). The
       # *_SOURCE values mirror the Makefile; the bake step reads them from
@@ -65,7 +55,7 @@ jobs:
       OTELFEATURE_ENFORCEMENT: ${{ matrix.enforcement }}
       # Nightly also runs the statistical (slow) tests, and the whole suite
       # three times in a row to catch flakes (#35 acceptance criterion).
-      PYTEST_ARGS: ${{ github.event_name == 'schedule' && '-v --count 3 --repeat-scope session' || '-v -m "not slow"' }} ${{ matrix.tests }}
+      PYTEST_ARGS: ${{ github.event_name == 'schedule' && '-v --count 3 --repeat-scope session' || '-v -m "not slow"' }}
     steps:
       - uses: actions/checkout@v7
 
@@ -100,7 +90,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v7.0.2
         with:
-          name: e2e-${{ matrix.enforcement }}-${{ matrix.shard }}
+          name: e2e-${{ matrix.enforcement }}
           path: tests/e2e/.artifacts/
           # The folder name starts with a dot: without this, upload-artifact
           # skips it as hidden and nothing is uploaded, even on failure.
