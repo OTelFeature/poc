@@ -27,8 +27,12 @@ too.
 
 `geocode` reads `NOMINATIM_URL`, `weather` reads `OPEN_METEO_GEOCODING_URL`
 and `OPEN_METEO_FORECAST_URL`. Compose defaults all three to this stub;
-`make start-live` sets them to the real endpoints. Postgres caches results
-either way, so after a live run the stub sees fewer calls.
+`make start-live` sets them to the real endpoints for that invocation only;
+a later `make start` or `docker compose up -d <service>` goes back to the
+stub. Put the three variables in `.env` to stay live.
+
+Postgres caches results with no expiry, so the stub (or the real API) is
+only called on a cache miss. `docker compose down -v` empties the cache.
 
 ## Configuration
 

@@ -158,8 +158,10 @@ curl -s -X POST http://localhost:8001/weather \
 
 The default stack needs no network once its images exist. `geocode` and
 `weather` call [stub-apis](src/stub-apis) instead of Nominatim and Open-Meteo,
-and nothing else in the stack reaches outside the compose network (the
-optional Datadog export just fails quietly).
+and nothing else in the stack needs to reach outside the compose network.
+One exception: the collector's optional Datadog exporter is always in the
+pipelines and, without `DD_SITE`/`DD_API_KEY`, logs export errors (which
+also show up in Aspire as collector logs). Ignore them.
 
 1. While online: `make prepare-offline`. This pulls every image and builds
    `geocode` and `weather` (their builds download dependencies, the OTel Java
@@ -168,9 +170,18 @@ optional Datadog export just fails quietly).
    `make build` or `docker compose up --build` without network.
 
 The outgoing `CLIENT` spans still show a real HTTP call, with
-`server.address` = `stub-apis` and 20–120 ms of latency. To demo against the
-real APIs instead, use `make start-live` (and keep the request rate within
+`server.address` = `stub-apis` and 20–120 ms of latency. They only appear on
+a cache miss, and the Postgres volume survives `make stop`. To show them
+again after a rehearsal, start from an empty cache with
+`docker compose down -v`.
+
+To demo against the real APIs instead, use `make start-live` (and keep the
+request rate within
 [Nominatim's usage policy](https://operations.osmfoundation.org/policies/nominatim/)).
+Live mode lasts only for that invocation: a later `make start` or
+`docker compose up -d <service>` recreates the services with the stub URLs.
+To make it stick, put `NOMINATIM_URL`, `OPEN_METEO_GEOCODING_URL` and
+`OPEN_METEO_FORECAST_URL` in `.env` (gitignored).
 
 Each service has its own README with configuration details:
 [geocode](src/geocode/README.md), [weather](src/weather/README.md),
