@@ -32,10 +32,10 @@
 
 1. **Flag defined (OTelFeature/poc#10):** `traceSampleRatio` exists in `src/flagd/flagd.json`, default 1.0.
 2. **Clamping (OTelFeature/poc#10, OTelFeature/otelfeature-instrument#22):** a value above 1.0 clamps to 1.0; a negative value, NaN, infinity or a non-number falls back to the startup ratio, logged once; no exception on the hot path.
-3. **Parent-based consistency (OTelFeature/poc#10):** decisions are consistent within one trace.
+3. **Parent-based consistency (OTelFeature/poc#10):** decisions are consistent within one trace. [e2e, partly: `test_tc004_cross_service`, across services]
 4. **Environment from service (OTelFeature/poc#25):** the collector only inserts `deployment.environment.name` when missing; a rule on it affects only matching instances. [e2e, partly: `test_baseline` checks that the resource carries the key; `test_tc004_target_sampling` checks that a rule on it affects only matching instances]
 5. **Docs (OTelFeature/poc#10):** READMEs document the entry-point caveat and the `jaeger_remote` comparison.
-6. **Trace roots only (OTelFeature/poc#10):** only trace roots evaluate `traceSampleRatio`; a span with a parent (local or remote) follows the parent's decision, and a mid-trace flip does not split a trace.
+6. **Trace roots only (OTelFeature/poc#10):** only trace roots evaluate `traceSampleRatio`; a span with a parent (local or remote) follows the parent's decision, and a mid-trace flip does not split a trace. [e2e, partly: `test_tc004_cross_service`, across services]
 7. **Cross-service consistency (OTelFeature/poc#10):** two services in the same language with the same ratio make the same decision for the same trace id; `fractional` variants bucket on the trace id, the same in every language. The READMEs document that the plain ratio can differ between Java and Python for the same trace id (UC-004 BR-008).
 8. **Hard floors (OTelFeature/poc#10):** with `OTEL_TRACES_SAMPLER=always_off`, `traceSampleRatio=1.0` samples nothing, and a sampled parent is not followed; with `parentbased_always_off`, no root is sampled locally and sampled parents are followed. [e2e, partly: `test_hard_floors` covers `always_off`]
 9. **Unknown sampler name (Python, OTelFeature/poc#10):** an unknown `OTEL_TRACES_SAMPLER` (for example `jaeger_remote`) logs a warning and uses 1.0 as the startup ratio.
@@ -54,4 +54,4 @@
 - **Matrix:** runs in both Java enforcement modes (`processor`, `sampler`).
 - **Extension code:** the pinned released versions (C-006): otelfeature-instrument v0.3.0, otelfeature-java-extension v0.4.0. A git ref can be passed explicitly to check unreleased extension code (C-013).
 - **Step 6:** `test_tc004_cross_service` (OTelFeature/poc#59) asserts completeness, not the 10% volume. At baseline a `/forecast` trace has spans from both services, `weather`'s server span is a child of `geocode`'s HTTP client span, and the tree is connected. With `geocode` at 0.0 and `weather` at 1.0 in production, `/forecast` traces are absent from both services while direct `POST /weather` traces are sampled: the entry point decides (UC-004 BR-003, A2).
-- **Not automated:** items 1 to 3, 5 to 7 and 9 are extension unit tests or docs checks.
+- **Not automated:** items 1, 2, 5, 7 and 9 are extension unit tests or docs checks; items 3 and 6 are extension unit tests and, across services, partly `test_tc004_cross_service`.

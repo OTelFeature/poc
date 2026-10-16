@@ -39,11 +39,14 @@ const HEALTHCHECK_RATE = HEALTHCHECK_RATE_RAW === '' ? 2 : Number(HEALTHCHECK_RA
 
 // The cross-service path (FR-026): geocode's POST /forecast calls weather,
 // so these traces span both services and geocode decides their sampling.
-// Deliberately rare: one request per interval keeps a weather incident from
-// pushing geocode's own error rate over 5% (UC-005 A7). 0 turns it off.
-const FORECAST_INTERVAL_SECONDS = __ENV.FORECAST_INTERVAL_SECONDS === undefined || __ENV.FORECAST_INTERVAL_SECONDS === ''
-  ? 10
-  : Number(__ENV.FORECAST_INTERVAL_SECONDS);
+// Deliberately rare: every 15 s puts at most one request into any 10 s
+// error-rate interval, so a weather incident can't push geocode's own error
+// rate over 5% (UC-005 A7). 0 turns it off.
+const FORECAST_INTERVAL_RAW = (__ENV.FORECAST_INTERVAL_SECONDS || '').trim();
+if (FORECAST_INTERVAL_RAW !== '' && !/^\d+$/.test(FORECAST_INTERVAL_RAW)) {
+  throw new Error(`FORECAST_INTERVAL_SECONDS must be a whole number >= 0, got "${__ENV.FORECAST_INTERVAL_SECONDS}"`);
+}
+const FORECAST_INTERVAL_SECONDS = FORECAST_INTERVAL_RAW === '' ? 15 : Number(FORECAST_INTERVAL_RAW);
 
 const scenarios = {
   geocode: {

@@ -206,9 +206,11 @@ def test_tc004_cross_service(step: Step, flags: Flags):
         return None if n >= 5 else f"direct /weather: {n}/5 traced, expected all"
 
     wait_until(direct_sampled, timeout=10.0)
-    # A weather server span with a parent comes from /forecast (direct calls
-    # and Docker's healthchecks are roots), so any of them is a leak.
+    # Without k6, weather's only /weather requests in this window are the
+    # tagged direct ones and the ones /forecast makes. Any other /weather
+    # server span is a leak, root or not (a root would mean geocode stopped
+    # propagating its unsampled context).
     leaked = step.quiet(lambda s: s.step == forecast_tag
-                        or (s.service == "weather" and s.kind == "server" and not s.is_root
-                            and s.resource.get("service.instance.id") == "weather"))
+                        or (s.resource.get("service.instance.id") == "weather" and s.kind == "server"
+                            and s.attrs.get("url.path") == "/weather" and s.step != weather_tag))
     assert not leaked, f"/forecast traced although geocode decided 0.0:\n{describe(leaked)}"

@@ -50,7 +50,8 @@ resolves the coordinates, then calls `weather`'s `POST /weather` (at
 
 The httpx instrumentation propagates the trace context, so these traces span
 both services, with `geocode` as the entry point that decides their sampling
-(`weather` follows the parent). If `weather` fails, this request fails with
+(`weather` follows the parent). An unknown location is a `404`, as on
+`/geocode`. If `weather` fails or can't be reached, this request fails with
 `502`.
 
 ### `GET /health`

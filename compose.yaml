@@ -131,7 +131,7 @@ services:
     environment:
       - GEOCODE_BASE_URL=http://geocode:8000
       - WEATHER_BASE_URL=http://weather:8001
-      - FORECAST_INTERVAL_SECONDS=10
+      - FORECAST_INTERVAL_SECONDS=15
       - REQUEST_INTERVAL_SECONDS=1
       - DURATION=15m
       - HEALTHCHECK_RATE=2
@@ -156,7 +156,7 @@ services:
     environment:
       - GEOCODE_BASE_URL=http://geocode-staging:8000
       - WEATHER_BASE_URL=http://weather-staging:8001
-      - FORECAST_INTERVAL_SECONDS=10
+      - FORECAST_INTERVAL_SECONDS=15
       - REQUEST_INTERVAL_SECONDS=1
       - DURATION=15m
       - HEALTHCHECK_RATE=2
