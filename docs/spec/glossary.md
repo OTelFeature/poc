@@ -8,7 +8,7 @@ here.
 
 | Term | Definition | Avoid |
 |---|---|---|
-| Operator | Whoever manages the flags for a service and runs the demo stack: an SRE, a platform engineer, or Simon or Juliano on stage. The spec has no separate speaker actor (Simon, 2026-10-16). | Speaker |
+| Operator | Whoever manages the flags for a service and runs the demo stack: an SRE, a platform engineer, or Simon or Juliano on stage. | Speaker |
 | Adopter | Someone running the extensions or the demo after the talk. | |
 | Maintainer | Someone who develops the extensions or the demo stack. | |
 | Extension | One of the two OTelFeature packages, `otelfeature-instrument` (Python) or `otelfeature-java-extension` (Java agent), that let flags steer span creation. | |

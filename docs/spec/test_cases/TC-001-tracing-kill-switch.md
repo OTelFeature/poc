@@ -14,7 +14,7 @@
 ## Preconditions
 
 - Stack running from `make start` with the baseline `src/flagd/flagd.json`.
-- Both services on extension code containing OTelFeature/poc#8 and OTelFeature/poc#9: a release on the stage stack (C-006), each extension's `main` or another git ref in the end-to-end suite (C-013).
+- Both services on extension code containing OTelFeature/poc#8 and OTelFeature/poc#9: the version pinned in the demo stack (C-006: releases are the target; today `weather` uses a released JAR and `geocode` a commit pinned in `uv.lock`), each extension's `main` or another git ref in the end-to-end suite (C-013).
 
 ## Flow
 
@@ -53,5 +53,5 @@
 - **How:** flips by copying the `01-otel-off` and baseline presets over `flagd.json`; spans are read from the collector's `file` exporter, not Aspire; the test sends its own traffic (load generator off).
 - **Hard floors:** `test_hard_floors` uses a separate override that starts one service with `OTEL_SDK_DISABLED=true`, then with `OTEL_TRACES_SAMPLER=always_off`, and asserts that it exports no spans whatever the flags say.
 - **Matrix:** runs in both Java enforcement modes (`processor`, `sampler`).
-- **Extension code:** built from git refs (each extension's `main`, where both chains are merged) until the releases in the preconditions exist (C-013).
+- **Extension code:** built from git refs (each extension's `main`, where both chains are merged) until the releases C-006 requires exist (C-013).
 - **Not automated:** items 1, 3, 4, 5, 8, 9 and 10 stay in the extension unit tests or are docs checks.

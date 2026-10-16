@@ -41,15 +41,6 @@
 4. The operator switches the hook off again after debugging, because a targeted flag adds up to one event per span.
 5. Use case ends.
 
-### A3: Operator sets the hook variable on the Java service
-
-**Trigger:** The operator starts `weather` (Java) with `OTELFEATURE_OPENFEATURE_TRACING_HOOK=true` (step 4).
-
-**Flow:**
-
-1. The Java extension has no such hook (OTelFeature/otelfeature-java-extension#23, closed as not planned) and ignores the variable; no event is added.
-2. Use case ends.
-
 ### A2: Hook emits older attribute names
 
 **Trigger:** The pinned hook version does not emit the current `feature_flag` semantic conventions (step 2).
@@ -58,6 +49,15 @@
 
 1. The operator sees the evaluation under the older names; the names per SDK version are recorded in OTelFeature/poc#30 and the script is adjusted.
 2. Use case continues at step 3.
+
+### A3: Operator sets the hook variable on the Java service
+
+**Trigger:** The operator starts `weather` (Java) with `OTELFEATURE_OPENFEATURE_TRACING_HOOK=true` (step 4).
+
+**Flow:**
+
+1. The Java extension has no such hook (OTelFeature/otelfeature-java-extension#23, closed as not planned) and ignores the variable; no event is added.
+2. Use case ends.
 
 ## Postconditions
 

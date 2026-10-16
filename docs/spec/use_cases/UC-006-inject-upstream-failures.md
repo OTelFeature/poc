@@ -44,9 +44,10 @@
 
 **Flow:**
 
-1. A value at or below 0.0, or NaN, fails no request. A value at or above 1.0 fails every `/weather` request. A non-number is a type mismatch, so the OpenFeature client returns the default 0.0 and no request fails.
-2. No exception other than the injected HTTP 503 reaches the request.
-3. Use case continues at step 4.
+1. A value at or above 1.0, or +infinity, fails every `/weather` request with HTTP 503; use case continues at step 4.
+2. A value at or below 0.0, -infinity or NaN fails no request. A non-number is a type mismatch, so the OpenFeature client returns the default 0.0 and no request fails either.
+3. No exception other than the injected HTTP 503 reaches a request.
+4. In the cases of flow step 2, use case ends.
 
 ## Postconditions
 

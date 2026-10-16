@@ -328,7 +328,7 @@ own flags (OTelFeature/poc#30).
 | `feature_flag.*` attributes or events | no; only via the opt-in hook below |
 | `otelfeature.sample_ratio` | no |
 | tracestate `ot=th` (sampling threshold) | no |
-| Hook events for the extension's own evaluations | only with `OTELFEATURE_OPENFEATURE_TRACING_HOOK=true` (never default); evaluation exceptions are excluded |
+| Hook events for the extension's own evaluations | Python only, and only with `OTELFEATURE_OPENFEATURE_TRACING_HOOK=true` (never default); evaluation exceptions are excluded. Java has none (OTelFeature/otelfeature-java-extension#23, not planned) |
 
 Caveat of the opt-in hook: it writes to the span that is current at
 evaluation time, which is the **parent** of the span being decided. So

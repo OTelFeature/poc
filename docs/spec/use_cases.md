@@ -25,11 +25,11 @@ flowchart LR
 
     operator --> UC001
     operator --> UC002
+    operator --> UC003
     operator --> UC004
     operator --> UC005
-    operator --> UC007
-    operator --> UC003
     operator --> UC006
+    operator --> UC007
     operator --> UC008
     adopter --> UC009
 
