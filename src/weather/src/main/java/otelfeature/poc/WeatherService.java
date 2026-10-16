@@ -13,6 +13,7 @@ import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.http.HttpStatus;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -44,14 +45,17 @@ public class WeatherService {
 
     private static final Logger log = LoggerFactory.getLogger(WeatherService.class);
 
-    private static final String GEOCODING_API = "https://geocoding-api.open-meteo.com/v1/search";
-    private static final String FORECAST_API = "https://api.open-meteo.com/v1/forecast";
-
+    private final String geocodingApi;
+    private final String forecastApi;
     private final JdbcTemplate jdbcTemplate;
     private final HttpClient httpClient;
     private final JsonMapper jsonMapper;
 
-    public WeatherService(JdbcTemplate jdbcTemplate, JsonMapper jsonMapper) {
+    public WeatherService(JdbcTemplate jdbcTemplate, JsonMapper jsonMapper,
+                          @Value("${weather.open-meteo.geocoding-url}") String geocodingApi,
+                          @Value("${weather.open-meteo.forecast-url}") String forecastApi) {
+        this.geocodingApi = geocodingApi;
+        this.forecastApi = forecastApi;
         this.jdbcTemplate = jdbcTemplate;
         this.httpClient = HttpClient.newBuilder()
                 .connectTimeout(Duration.ofSeconds(10))
@@ -163,7 +167,7 @@ public class WeatherService {
         try {
             String url = String.format(
                     "%s?name=%s&country=%s&count=1&language=en&format=json",
-                    GEOCODING_API,
+                    geocodingApi,
                     URLEncoder.encode(city, StandardCharsets.UTF_8),
                     URLEncoder.encode(country, StandardCharsets.UTF_8));
 
@@ -199,7 +203,7 @@ public class WeatherService {
         try {
             String url = String.format(
                     "%s?latitude=%.4f&longitude=%.4f&current=temperature_2m,wind_speed_10m,weather_code",
-                    FORECAST_API, latitude, longitude);
+                    forecastApi, latitude, longitude);
 
             HttpRequest request = HttpRequest.newBuilder()
                     .uri(URI.create(url))

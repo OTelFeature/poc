@@ -103,6 +103,8 @@ curl -s http://localhost:8001/health
 | Environment variable          | Default           | Description                                         |
 |-------------------------------|-------------------|-----------------------------------------------------|
 | `WEATHER_PORT`                | `8001`            | Port the embedded Tomcat server listens on          |
+| `OPEN_METEO_GEOCODING_URL`    | `https://geocoding-api.open-meteo.com/v1/search` | Open-Meteo geocoding endpoint. Compose points it at [stub-apis](../stub-apis) unless started with `make start-live` |
+| `OPEN_METEO_FORECAST_URL`     | `https://api.open-meteo.com/v1/forecast` | Open-Meteo forecast endpoint, same as above |
 | `POSTGRES_HOST`               | `coordinates-db`  | Postgres host (shared with geocode)                  |
 | `POSTGRES_PORT`               | `5432`            | Postgres port                                       |
 | `POSTGRES_USER`               | `postgres`        | Postgres user                                        |

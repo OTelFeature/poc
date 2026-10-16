@@ -51,6 +51,7 @@ curl -s -X POST http://localhost:8000/geocode \
 | Environment variable          | Default                       | Description                                                                         |
 |-------------------------------|-------------------------------|-------------------------------------------------------------------------------------|
 | `GEOCODE_PORT`                | `8000`                        | Port uvicorn listens on                                                             |
+| `NOMINATIM_URL`               | `https://nominatim.openstreetmap.org/search` | Nominatim search endpoint. Compose points it at [stub-apis](../stub-apis) unless started with `make start-live` |
 | `NOMINATIM_USER_AGENT`        | `poc-otelfeature-geocode/1.0` | `User-Agent` header sent to Nominatim                                               |
 | `OTEL_SERVICE_NAME`           | -                             | Service name reported in telemetry                                                  |
 | `OTEL_EXPORTER_OTLP_ENDPOINT` | -                             | OTLP collector endpoint (OTLP/HTTP always)                                          |
