@@ -28,11 +28,11 @@ here.
 | Span decision | The outcome for one span start: record, drop, suppress, or delegate. Taken once, at start. | |
 | Enforcement point | Where an extension applies the telemetry policy to a span: the Java sampler, the Java span processor, or the Python tracer. | |
 | Enforcement mode | The Java choice between sampler and processor enforcement, set by `OTELFEATURE_ENFORCEMENT` (default `processor`). | |
-| Root span | A span with no valid parent, or an incoming request span (`SERVER`/`CONSUMER`) with a remote parent. Only root spans evaluate the trace sample ratio. | |
+| Root span | For drop rules: a span with no valid parent, or an incoming request span (`SERVER`/`CONSUMER`) with a remote parent; dropping it drops the whole request in that service. Not the same as the span that starts a trace, which is the only one that evaluates the trace sample ratio. | |
 | Leaf span | A span with no children of its own, such as a DB client span. | |
 | Drop | A span decision that leaves out the span and its whole subtree; downstream services receive `sampled=0`. | |
 | Suppress | A span decision that leaves out only this span; its children attach to the real parent and the trace stays sampled. | |
-| Trace sample ratio | The fraction of root spans that are sampled, from the `traceSampleRatio` flag (0.0 to 1.0). Every other span follows its parent. | |
+| Trace sample ratio | The fraction of new traces that are sampled, from the `traceSampleRatio` flag (0.0 to 1.0). Only the span that starts a trace (no parent at all) evaluates it; every span with a parent, local or remote, follows the parent's decision. | |
 | Error rate | A service's current HTTP server error rate, computed in process from `http.server.request.duration` and offered to rules as `otelfeature.http.server.error_rate`. | |
 | Control loop | The error-driven targeting rule that raises a failing service's trace sample ratio to 1.0 and lowers it once errors stop. | |
 | Hard floor | An env var setting no flag can override: `OTEL_SDK_DISABLED=true` and `OTEL_TRACES_SAMPLER=always_off`. Flags only reduce telemetry. | |
