@@ -125,7 +125,7 @@ The reader uses delta temporality, so each collection is its own window. The rat
 
 ### BR-003: Per service
 
-Each service computes its own rate; the rule raises sampling for the failing service only.
+Each service computes its own rate; the rule raises sampling for the failing service only. The e2e suite checks this for both languages: failures in `weather` (Java reader) and in `geocode` (Python reader, UC-006 A3), each time with the other service unchanged (TC-005 item 14).
 
 ### BR-004: Loop lives in the targeting rule
 

@@ -47,6 +47,7 @@
 11. **Repeatable (OTelFeature/poc#29):** steps 1 to 9 pass three times in a row.
 12. **Metrics export off (OTelFeature/otelfeature-instrument#15, OTelFeature/otelfeature-java-extension#31):** with `OTEL_METRICS_EXPORTER=none`, no error-rate reader is registered, the context never contains `otelfeature.http.server.error_rate` and the control-loop rule never matches; `none` mixed with another exporter logs a warning and keeps exporting (FR-024).
 13. **Loop end to end (OTelFeature/poc#35):** with `weatherUpstreamFailure=1.0`, `weather` samples at 1.0 within a bounded number of error-rate intervals; `geocode` sampling does not change; after reverting only `weatherUpstreamFailure` (the rule stays), `weather` returns to its ratio before the incident after an error-free interval (UC-005 steps 6 to 8, the loop letting go on its own). [e2e: `test_tc005_control_loop`]
+14. **Loop end to end in both languages (OTelFeature/poc#80):** the same with `geocodeUpstreamFailure=1.0` (UC-006 A3): `geocode`'s error rate, from the Python error-rate reader, raises its sampling to 1.0 while `weather` stays at its ratio; after the revert `geocode` is back at its ratio. [e2e: `test_tc005_control_loop`, parametrized over the failing service]
 
 ## Note on the stage preset
 
