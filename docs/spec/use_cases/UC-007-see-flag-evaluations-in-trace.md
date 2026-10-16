@@ -2,17 +2,17 @@
 
 ## Overview
 
-- **Use Case ID:** UC-007
-- **Use Case Name:** See flag evaluations in the trace
-- **Primary Actor:** Operator
-- **Secondary Actors:** weather, geocode, Aspire dashboard
-- **Goal:** Looking at one failed trace, the operator sees the application flag evaluation that caused the failure, recorded by the OpenFeature OpenTelemetry hook, so that the trace explains the incident. The telemetry extensions add nothing of their own to spans; their own evaluations can be recorded on demand for debugging a rule.
-- **Status:** Draft
-- **Requirements:** FR-014, FR-015, NFR-006, NFR-008
-- **Work Items:** OTelFeature/poc#30, OTelFeature/otelfeature-instrument#9, OTelFeature/otelfeature-java-extension#23 (closed as not planned, 2026-10-16: the extension writes no decision attributes, FR-014)
-- **Test Cases:** TC-005
-- **Script Beat:** Demo 3 ("the flag explains itself"; wording open, OQ-9)
-- **Open Questions:** OQ-4, OQ-9
+**Use Case ID:** UC-007  
+**Use Case Name:** See flag evaluations in the trace  
+**Primary Actor:** Operator  
+**Secondary Actors:** weather, geocode, Aspire dashboard  
+**Goal:** Looking at one failed trace, the operator sees the application flag evaluation that caused the failure, recorded by the OpenFeature OpenTelemetry hook, so that the trace explains the incident. The telemetry extensions add nothing of their own to spans; their own evaluations can be recorded on demand for debugging a rule.  
+**Status:** Draft  
+**Requirements:** FR-014, FR-015, NFR-006, NFR-008  
+**Work Items:** OTelFeature/poc#30, OTelFeature/otelfeature-instrument#9, OTelFeature/otelfeature-java-extension#23 (closed as not planned, 2026-10-16: the extension writes no decision attributes, FR-014)  
+**Test Cases:** TC-005  
+**Script Beat:** Demo 3 ("the flag explains itself"; wording open, OQ-9)  
+**Open Questions:** OQ-4, OQ-9  
 
 ## Preconditions
 
@@ -31,7 +31,7 @@
 
 ### A1: Operator debugs a telemetry rule with the opt-in hook
 
-**Trigger:** Step 4, the operator wants to see the extension's own evaluations and starts the service with `OTELFEATURE_OPENFEATURE_TRACING_HOOK=true`.
+**Trigger:** The operator wants to see the extension's own evaluations and starts the service with `OTELFEATURE_OPENFEATURE_TRACING_HOOK=true` (step 4).
 
 **Flow:**
 
@@ -43,7 +43,7 @@
 
 ### A2: Hook emits older attribute names
 
-**Trigger:** Step 2, the pinned hook version does not emit the current `feature_flag` semantic conventions.
+**Trigger:** The pinned hook version does not emit the current `feature_flag` semantic conventions (step 2).
 
 **Flow:**
 

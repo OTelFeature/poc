@@ -34,12 +34,20 @@ URL in the Dockerfiles, which re-resolves the ref on every build).
 
 In CI, [e2e.yml](../../.github/workflows/e2e.yml) runs `make e2e` for both
 Java enforcement modes on PRs, on `main` and nightly. The refs are
-`workflow_dispatch` inputs. Artifacts are uploaded on every run.
+`workflow_dispatch` inputs. Artifacts are uploaded on every run. The images
+are built first by `docker/bake-action` with the GitHub Actions layer cache
+(one cache scope per image; `make e2e E2E_SKIP_BUILD=1` then uses them). The nightly run also includes
+the `slow` statistical tests and runs everything three times in a row
+(`pytest --count 3 --repeat-scope session`: the whole suite, then again), the
+suite's flake check.
 
 ## How it works
 
 [compose.e2e.yaml](../../compose.e2e.yaml) changes the stack for testing:
 
+- **Metrics to a file too.** The services export metrics every second, and
+  the collector writes them to `/out/metrics.jsonl` (`MetricLog`), so a test
+  can check that metrics keep flowing while tracing is off.
 - **Spans to a file.** The collector ([collector.yaml](collector.yaml))
   writes every export request it receives, unprocessed, as one JSON line to
   `/out/spans.jsonl`. [spans.py](spans.py) tails that file. A test sees every
@@ -72,6 +80,15 @@ that point. Filter it by service and path, because Docker's healthchecks keep
 running. Taking the mark before the flip would let spans still in the 100 ms
 export queue leak into the window.
 
+### Staging instances and the error-rate window
+
+The e2e project always runs `geocode-staging` and `weather-staging` (same
+images, `deployment.environment.name=staging`, reachable by those names) for
+the environment rules of TC-004. Both extensions compute the error rate every
+2 s with a minimum of 5 requests (`OTELFEATURE_ERROR_RATE_INTERVAL`,
+`OTELFEATURE_ERROR_RATE_MIN_REQUESTS`) instead of 10 s / 10, so the control
+loop of TC-005 reacts within seconds.
+
 ### Hard-floor instances
 
 compose.e2e.yaml also starts `geocode-sdk-disabled`, `weather-sdk-disabled`,
@@ -84,12 +101,17 @@ vars.
 
 `wait_until(check, timeout)` polls a check that returns what is still
 missing (or `None`), and fails with that description when the timeout
-passes. The only deliberate wait is the absence window: `step.quiet(...)`
+passes. Tests that depend on the error rate (TC-005, the 03b beat) need
+continuous traffic, at least the minimum requests per 2 s interval, so they
+must not put an absence window between their batches. The only deliberate wait is the absence window: `step.quiet(...)`
 waits `QUIET_SECONDS` (2 s, `E2E_QUIET_SECONDS`) before it collects spans,
 because proving that nothing arrived takes some time.
 
 After a flip, `step.wait_tracing(service, traced=...)` is the behaviour
-barrier. It sends a probe request (its own header value) on every poll.
+barrier for "is this request traced at all". For a change *inside* a traced
+request (for example weather's DB spans), `step.wait_for_trace(send,
+satisfied)` sends a fresh request per poll and waits until one probe's trace
+satisfies the check. Both return the flip latency. `wait_tracing` sends a probe request (its own header value) on every poll.
 `traced=True` is done once any probe shows up. `traced=False` is done once
 the last three probes are older than `QUIET_SECONDS` and none of them
 showed up. It returns the flip latency (when the first probe with the new
@@ -135,7 +157,11 @@ requests until the new behaviour shows) before counting.
 | [flags.py](flags.py) | Preset application with the mtime and revision barrier |
 | [collector.yaml](collector.yaml) | e2e collector: OTLP in, JSON file out |
 | [test_baseline.py](test_baseline.py) | Baseline: complete traces from both services |
-| [test_tc001_kill_switch.py](test_tc001_kill_switch.py) | TC-001: `otelEnabled=false` and `telemetryLevel=OFF` stop all spans in both services; baseline brings complete traces back |
+| [test_tc001_kill_switch.py](test_tc001_kill_switch.py) | TC-001: `otelEnabled=false` and `telemetryLevel=OFF` stop all spans in both services while their metrics keep arriving; baseline brings complete traces back |
 | [test_hard_floors.py](test_hard_floors.py) | TC-001 V6 (spans only) / V7, TC-004 V8 (`always_off` half): `OTEL_SDK_DISABLED=true` and `OTEL_TRACES_SAMPLER=always_off` instances export nothing, even with flags on and a sampled `traceparent` |
+| [test_tc002_drop_noisy_spans.py](test_tc002_drop_noisy_spans.py) | TC-002: `02-quiet-noise` drops geocode `/health` (also a proxied one with a sampled `traceparent`, with a positive control at baseline) and weather's JDBC spans; everything else stays, trees connected; baseline restores both. Plus a non-stage variation the Java *sampler* can decide (weather root, DB leaves by `db.system`, a proxied `/geocode` with its downstream calls) |
+| [test_tc004_target_sampling.py](test_tc004_target_sampling.py) | TC-004: `traceSampleRatio` rules on `deployment.environment.name` and `service.name`, deterministic (0.0 / 1.0) against production and staging instances, built on `00-baseline` (the stage presets keep geocode's `/health` drop rule); `03-semconv-rules`' real 0.1 as a `slow` statistical test |
+| [test_tc005_control_loop.py](test_tc005_control_loop.py) | TC-005: `weatherUpstreamFailure` errors raise weather's error rate in its evaluation context, a rule on it samples weather fully while error-free geocode traffic stays unsampled; recovery from a measured 0.0 rate when the failures stop |
+| [test_tc006_stage_progression.py](test_tc006_stage_progression.py) | TC-006: the stage presets in stage order with no resets (00 → 01 → 02 → 03 → 03a → 03b → 03a), each beat checked for its core effect (tracing off/on, the drops, production sampled down with staging full, weather boosted to about half with geocode at 0.1, the incident's loop sampling weather fully). Statistical bands, on every PR. Plus three flips within one second ending in the last preset's state (V7) |
 | [checks.py](checks.py) | Shared trace-shape checks (complete request trace, DB and stub client spans) |
 | [../../ci/Dockerfile](../../ci/Dockerfile) | Runner image: Python, uv, locked test deps |

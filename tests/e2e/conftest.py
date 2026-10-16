@@ -12,11 +12,17 @@ import httpx
 import pytest
 
 from flags import Flags
-from spans import STEP_HEADER, SpanLog, wait_until
+from spans import STEP_HEADER, MetricLog, SpanLog, wait_until
 
 GEOCODE_URL = os.environ.get("GEOCODE_URL", "http://geocode:8000")
 WEATHER_URL = os.environ.get("WEATHER_URL", "http://weather:8001")
-URLS = {"geocode": GEOCODE_URL, "weather": WEATHER_URL}
+URLS = {
+    "geocode": GEOCODE_URL,
+    "weather": WEATHER_URL,
+    # Staging twins (deployment.environment.name=staging), TC-004.
+    "geocode-staging": os.environ.get("GEOCODE_STAGING_URL", "http://geocode-staging:8000"),
+    "weather-staging": os.environ.get("WEATHER_STAGING_URL", "http://weather-staging:8001"),
+}
 
 # How long an absence has to hold before it counts. Spans are exported
 # within ~200 ms (100 ms batch delay + 100 ms file flush), so this is
@@ -62,7 +68,7 @@ class Step:
         return self.spans.since(self.mark)
 
     def wait_tracing(self, service: str, traced: bool, path: str = "/health",
-                     timeout: float | None = None) -> float:
+                     timeout: float | None = None, send=None) -> float:
         """Barrier after a flag flip: wait until requests to `service` are
         (traced=True) or are no longer (traced=False) traced.
 
@@ -74,6 +80,9 @@ class Step:
         Returns the flip latency: when the first probe with the new
         behaviour was sent, counted from the call. The timeout defaults to
         FLIP_BUDGET_SECONDS (plus the settling time for traced=False).
+
+        `send(headers)` replaces the default probe (GET `path` on `service`),
+        for example to send several requests per poll.
         """
         if timeout is None:
             timeout = FLIP_BUDGET_SECONDS + (0 if traced else QUIET_SECONDS + 1.0)
@@ -83,8 +92,11 @@ class Step:
 
         def check() -> str | None:
             probe = f"probe-{uuid.uuid4().hex}"
-            r = self.http.get(f"{URLS[service]}{path}", headers={STEP_HEADER: probe})
-            assert r.status_code == 200, f"probe to {service}{path}: HTTP {r.status_code}"
+            if send is not None:
+                send({STEP_HEADER: probe})
+            else:
+                r = self.http.get(f"{URLS[service]}{path}", headers={STEP_HEADER: probe})
+                assert r.status_code == 200, f"probe to {service}{path}: HTTP {r.status_code}"
             probes.append((probe, time.monotonic()))
             self.spans.refresh()
             seen = {s.step for s in self.spans.spans if s.kind == "server" and s.step}
@@ -109,6 +121,42 @@ class Step:
         wait_until(check, timeout=timeout, interval=0.2)
         return latency[-1]
 
+    def wait_for_trace(self, send, satisfied, timeout: float | None = None) -> float:
+        """Barrier for a change that shows *inside* a traced request (rather
+        than whether the request is traced at all).
+
+        On every poll, `send(headers)` sends one fresh request carrying its
+        own probe header. `satisfied(spans)` gets the spans of each probe's
+        trace(s) so far and returns None once they show the new behaviour,
+        or a description of what is still missing. Returns the flip latency:
+        when the first satisfying probe was sent, counted from the call.
+        Probes sent before the flip keep failing, so they can't satisfy it.
+        """
+        if timeout is None:
+            timeout = FLIP_BUDGET_SECONDS
+        start = time.monotonic()
+        probes: list[tuple[str, float]] = []
+        latency: list[float] = []
+        last: list[str] = []
+
+        def check() -> str | None:
+            probe = f"probe-{uuid.uuid4().hex}"
+            send({STEP_HEADER: probe})
+            probes.append((probe, time.monotonic()))
+            for p, sent in probes:
+                spans = self.spans.for_step(p)
+                if not spans:
+                    continue  # not exported yet (or not traced at all)
+                problem = satisfied(spans)
+                if problem is None:
+                    latency.append(sent - start)
+                    return None
+                last[:] = [problem]  # report the newest probe that has spans
+            return last[0] if last else "no probe traced yet"
+
+        wait_until(check, timeout=timeout, interval=0.2)
+        return latency[-1]
+
     def quiet(self, where) -> list:
         """Spans matching `where` since the mark, after waiting QUIET_SECONDS."""
         time.sleep(QUIET_SECONDS)
@@ -125,6 +173,11 @@ class Step:
 @pytest.fixture(scope="session")
 def spans() -> SpanLog:
     return SpanLog(Path(os.environ.get("E2E_SPANS_FILE", "/out/spans.jsonl")))
+
+
+@pytest.fixture(scope="session")
+def metrics() -> MetricLog:
+    return MetricLog(Path(os.environ.get("E2E_METRICS_FILE", "/out/metrics.jsonl")))
 
 
 @pytest.fixture(scope="session")

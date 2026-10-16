@@ -48,7 +48,7 @@ class Flags:
         """Apply a preset from src/flagd/presets and wait until flagd serves it."""
         self.write(self.preset(name), timeout=timeout)
 
-    def write(self, config: dict, timeout: float = 5.0) -> None:
+    def write(self, config: dict, timeout: float = 5.0, wait: bool = True) -> None:
         revision = uuid.uuid4().hex
         config = json.loads(json.dumps(config))
         config["flags"][REVISION_FLAG] = {
@@ -64,7 +64,8 @@ class Flags:
         mtime = max(before + 1_000_000_000, os.stat(tmp).st_mtime_ns)
         os.utime(tmp, ns=(mtime, mtime))
         os.replace(tmp, self.flags_file)
-        wait_until(lambda: self._revision_problem(revision), timeout=timeout)
+        if wait:
+            wait_until(lambda: self._revision_problem(revision), timeout=timeout)
 
     def evaluate(self, key: str, context: dict | None = None):
         r = self.ofrep.post(f"/ofrep/v1/evaluate/flags/{key}", json={"context": context or {}})

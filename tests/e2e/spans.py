@@ -128,6 +128,69 @@ class SpanLog:
         return [s for s in self.spans if s.trace_id in ids]
 
 
+HTTP_SERVER_DURATION = "http.server.request.duration"
+
+
+def _http_request_count(metrics: list[dict]) -> int | None:
+    """Summed data-point count of http.server.request.duration, or None."""
+    total = None
+    for m in metrics:
+        if m.get("name") != HTTP_SERVER_DURATION:
+            continue
+        for dp in m.get("histogram", {}).get("dataPoints", []):
+            total = (total or 0) + int(dp.get("count", 0))
+    return total
+
+
+class MetricLog:
+    """Tails the collector's metrics file: one entry per resource per
+    export, as (service.instance.id, set of metric names, HTTP server
+    request count or None)."""
+
+    def __init__(self, path: Path):
+        self.path = path
+        self._offset = 0
+        self._partial = b""
+        self.exports: list[tuple[str, frozenset[str], int | None]] = []
+
+    def refresh(self) -> None:
+        if not self.path.exists():
+            return
+        if self.path.stat().st_size < self._offset:
+            self._offset, self._partial = 0, b""
+        with self.path.open("rb") as f:
+            f.seek(self._offset)
+            data = f.read()
+        self._offset += len(data)
+        *lines, self._partial = (self._partial + data).split(b"\n")
+        for line in lines:
+            if not line.strip():
+                continue
+            for rm in json.loads(line).get("resourceMetrics", []):
+                resource = _attrs(rm.get("resource", {}).get("attributes"))
+                metrics = [m for sm in rm.get("scopeMetrics", []) for m in sm.get("metrics", [])]
+                names = frozenset(m.get("name", "") for m in metrics)
+                self.exports.append((resource.get("service.instance.id", ""), names,
+                                     _http_request_count(metrics)))
+
+    def mark(self) -> int:
+        self.refresh()
+        return len(self.exports)
+
+    def since(self, mark: int) -> list[tuple[str, frozenset[str], int | None]]:
+        self.refresh()
+        return self.exports[mark:]
+
+    def request_count(self, instance: str, until: int | None = None) -> int | None:
+        """Latest cumulative HTTP server request count of `instance` in the
+        exports before position `until` (all if None)."""
+        self.refresh()
+        for inst, _, count in reversed(self.exports[:until]):
+            if inst == instance and count is not None:
+                return count
+        return None
+
+
 def _parse(request: dict) -> list[Span]:
     out = []
     for rs in request.get("resourceSpans", []):

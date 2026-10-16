@@ -2,16 +2,16 @@
 
 ## Overview
 
-- **Use Case ID:** UC-009
-- **Use Case Name:** Try the demo from the public repository
-- **Primary Actor:** Adopter
-- **Secondary Actors:** GitHub, demo stack
-- **Goal:** After the talk, an adopter clones the public demo repository and reproduces Demos 1 to 3 with only Docker installed, so that the talk's claims can be checked and the extensions evaluated.
-- **Status:** Draft
-- **Requirements:** FR-020, FR-021, FR-018, NFR-008
-- **Work Items:** OTelFeature/poc#31, OTelFeature/poc#14, OTelFeature/poc#15
-- **Test Cases:** TC-007
-- **Script Beat:** call to action ("repo and demo are on the slide")
+**Use Case ID:** UC-009  
+**Use Case Name:** Try the demo from the public repository  
+**Primary Actor:** Adopter  
+**Secondary Actors:** GitHub, demo stack  
+**Goal:** After the talk, an adopter clones the public demo repository and reproduces Demos 1 to 3 with only Docker installed, so that the talk's claims can be checked and the extensions evaluated.  
+**Status:** Draft  
+**Requirements:** FR-020, FR-021, FR-018, NFR-008  
+**Work Items:** OTelFeature/poc#31, OTelFeature/poc#14, OTelFeature/poc#15  
+**Test Cases:** TC-007  
+**Script Beat:** call to action ("repo and demo are on the slide")  
 
 ## Preconditions
 
@@ -30,7 +30,7 @@
 
 ### A1: No network access to the real APIs
 
-**Trigger:** Step 3, the adopter is offline after building.
+**Trigger:** The adopter is offline after building (step 3).
 
 **Flow:**
 

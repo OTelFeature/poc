@@ -12,7 +12,7 @@ volumes:
 x-geocode: &geocode
   build:
     context: ./src/geocode
-    # Extension source (FR-026): the version pinned in uv.lock, unless the
+    # Extension source (FR-027): the version pinned in uv.lock, unless the
     # Makefile asks for a git ref (make start EXT_REF=...).
     args:
       OTELFEATURE_INSTRUMENT_SOURCE: ${OTELFEATURE_INSTRUMENT_SOURCE:-lock}
@@ -52,7 +52,7 @@ x-geocode-env: &geocode-env
 x-weather: &weather
   build:
     context: ./src/weather
-    # Extension source (FR-026): the pinned release, unless the Makefile
+    # Extension source (FR-027): the pinned release, unless the Makefile
     # asks for a git ref (make start EXT_REF=...).
     args:
       OTELFEATURE_EXTENSION_SOURCE: ${OTELFEATURE_EXTENSION_SOURCE:-release}

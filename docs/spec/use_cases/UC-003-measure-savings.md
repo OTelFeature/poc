@@ -2,17 +2,17 @@
 
 ## Overview
 
-- **Use Case ID:** UC-003
-- **Use Case Name:** Measure the savings of a drop rule
-- **Primary Actor:** Speaker
-- **Secondary Actors:** OTel Collector, geocode, weather
-- **Goal:** The speaker gets per-service numbers for CPU, memory, spans per second and export bytes per second, before and after the Demo 2 rules, for both Java enforcement modes, so that the slide brackets are filled with measured values and the sampler-versus-processor decision is made on data.
-- **Status:** Draft
-- **Requirements:** FR-016, FR-008, NFR-005, NFR-006, NFR-011, C-006
-- **Work Items:** OTelFeature/poc#27, OTelFeature/otelfeature-java-extension#21
-- **Test Cases:** TC-003
-- **Script Beat:** Demo 2 ("CPU [X%] lower, memory [Y MB] lower, export bytes [Z%] lower"); input to decision D3
-- **Open Questions:** OQ-1, OQ-3, OQ-5
+**Use Case ID:** UC-003  
+**Use Case Name:** Measure the savings of a drop rule  
+**Primary Actor:** Speaker  
+**Secondary Actors:** OTel Collector, geocode, weather  
+**Goal:** The speaker gets per-service numbers for CPU, memory, spans per second and export bytes per second, before and after the Demo 2 rules, for both Java enforcement modes, so that the slide brackets are filled with measured values and the sampler-versus-processor decision is made on data.  
+**Status:** Draft  
+**Requirements:** FR-016, FR-008, NFR-005, NFR-006, NFR-011, C-006  
+**Work Items:** OTelFeature/poc#27, OTelFeature/otelfeature-java-extension#21  
+**Test Cases:** TC-003  
+**Script Beat:** Demo 2 ("CPU [X%] lower, memory [Y MB] lower, export bytes [Z%] lower"); input to decision D3  
+**Open Questions:** OQ-1, OQ-3, OQ-5  
 
 ## Preconditions
 
@@ -28,13 +28,14 @@
 4. The system runs the Demo 2 preset with `weather` in sampler mode and records the same values.
 5. The system measures the cost of one targeted span decision in each language.
 6. The system prints one table per service comparing the three runs and the decision cost.
-7. The speaker records the numbers for the script brackets and the D3 recommendation in OTelFeature/poc#27.
+7. The speaker runs a second measurement with the same command and compares the two tables.
+8. The speaker records the numbers for the script brackets and the D3 recommendation in OTelFeature/poc#27.
 
 ## Alternative Flows
 
 ### A1: Runs are not reproducible
 
-**Trigger:** Step 6, two runs of the same preset differ by more than 10% on a metric.
+**Trigger:** The two measurements differ by more than 10% on a metric for the same preset (step 7).
 
 **Flow:**
 
@@ -43,7 +44,7 @@
 
 ### A2: Savings are smaller than the decision cost
 
-**Trigger:** Step 6, the targeted decision costs more CPU than the dropped spans save.
+**Trigger:** The targeted decision costs more CPU than the dropped spans save (step 6).
 
 **Flow:**
 
@@ -52,7 +53,7 @@
 
 ### A3: Live view on stage
 
-**Trigger:** Step 1, the speaker needs the drop visible during the talk rather than as a table.
+**Trigger:** The speaker needs the drop visible during the talk rather than as a table (step 1).
 
 **Flow:**
 

@@ -46,6 +46,7 @@ The core ideas, as they apply here:
 |---|---|---|
 | Inception | [vision.md](vision.md) | Problem, stakeholders, goals, non-goals, decisions D1 to D6. Hand-written; everything else derives from it |
 | Inception | [requirements.md](requirements.md) | Catalog: functional (`FR-`), non-functional (`NFR-`), constraints (`C-`) |
+| Inception | [glossary.md](glossary.md) | Domain terms, one name per concept, with the synonyms to avoid |
 | Elaboration | [entity_model.md](entity_model.md) | Flags, `TelemetryPolicy`, evaluation-context contract, enforcement points |
 | Elaboration | [use_cases.md](use_cases.md) | Use case diagram (Mermaid) |
 | Construction | [use_cases/](use_cases) | One spec per use case, `UC-XXX-name.md` |
@@ -71,7 +72,7 @@ Use cases:
 
 - **Location.** AIUP puts the artifacts directly under `docs/`. They are under
   `docs/spec/` here so they don't mix with other docs. File names follow the
-  `aiup-core` 2.5.0 skills (`entity_model.md`; the diagram is `use_cases.md`, see below). The AIUP
+  `aiup-core` skills (`entity_model.md`; the diagram is `use_cases.md`, see below). The AIUP
   tutorial uses `docs/architecture/entity-model.md` and
   `docs/architecture/use-case-diagram.puml` instead; the plugin's names were
   picked because the plugin is what agents will run.
@@ -95,8 +96,8 @@ Use cases:
   phase. Both are ours, not AIUP's.
 - **Extra Overview fields in use cases.** `Requirements` and `Secondary Actors`
   are AIUP fields. `Work Items`, `Test Cases`, `Script Beat` and `Open
-  Questions` are ours. AIUP's `validate_use_case.py` may warn about them; it
-  has not been run against these files.
+  Questions` are ours. The spec lint keeps unknown Overview lines as they
+  are, so they pass.
 - **Entity model is a domain model, not a schema.** Entities use AIUP's
   attribute-table format and data types. The concrete flags, the
   evaluation-context contract and the enforcement points are added as
@@ -148,9 +149,11 @@ the affected requirement status.
    to the ones in the issue itself.
 5. If the code can't or shouldn't do what the spec says, change the spec in
    the same PR and say why in the PR description. Don't let them drift.
-6. Set the requirement `Status` (Open → In Progress → Implemented) and the use
-   case `Status` (Draft → Implemented) in the PR. A test case's checks passing
-   moves the requirement to Verified.
+6. Set the use case `Status` in the PR (Draft → Implemented once its flows
+   run on `main`, → Tested once its test case passes in the end-to-end
+   suite), then set each requirement it lists to the status its use cases
+   make it (see the Status rule in [requirements.md](requirements.md)). The
+   spec lint reports a mismatch as `REQ_STATUS_DRIFT`.
 7. Stay in your lane (see traceability.md). The extensions and `poc` are
    separate repos; a cross-repo issue is filed once per repo.
 8. Run tests with `make test` (in `poc`, also `make e2e`) inside WSL. They
@@ -248,6 +251,39 @@ and OTelFeature/otelfeature-java-extension#35, neither merged yet.
 - `poc`: the e2e runner image is `ci/Dockerfile` in this repo (uv and the
   pytest dependencies preinstalled).
 
+### Spec lint (AIUP `/spec-review`, part A)
+
+CI runs the deterministic AIUP spec lint on every pull request that touches
+`docs/spec/` and on `main` (`.github/workflows/spec-lint.yml`); it must pass.
+Locally, in WSL with Docker only:
+
+```sh
+make spec-lint                                   # same command as CI
+make spec-lint SPEC_LINT_ARGS=--update-baseline  # accept current findings
+make -s spec-lint SPEC_LINT_ARGS=--report > spec-report.html
+```
+
+- `ci/spec-lint.sh` fetches `spec_lint.py` and the sibling scripts it imports
+  (`validate_use_case.py`, `bpmn_paths.py`) from
+  AI-Unified-Process/marketplace at a pinned commit (aiup-core 2.28.0) and
+  runs them with `--docs docs/spec` in a pinned `python:3.12-slim` image.
+- It runs with `--strict`: an `ERROR` or a warning that is not in the
+  baseline fails the build. It first runs the linter's `--self-test`, so a
+  sibling script that fails to load fails the build instead of silently
+  skipping the use case checks.
+- "Must pass" is a review rule, not branch protection (this repo has none):
+  maintainers don't merge a spec PR with a red spec-lint check.
+- Accepted findings are in [`.spec-lint-baseline.json`](.spec-lint-baseline.json).
+  Fix a finding rather than adding it to the baseline; a baseline entry that
+  no longer matches is reported as `BASELINE_STALE` and should be removed with
+  `--update-baseline`. Baselined: FR-003 and FR-025 (no use case by design) and the weak word "fast" (NFR-003's term, TC-005, OQ-13).
+- Use case Overview lines end in two spaces (a Markdown line break, as in
+  AIUP's template). Editors must not trim them; `.editorconfig` says so.
+- The lint's diagram and actor checks read `use_cases.puml`; our diagram is
+  Mermaid ([use_cases.md](use_cases.md)), so those checks don't run here.
+- The semantic part of `/spec-review` (part B) is advisory and stays manual:
+  run `/spec-review UC-XXX` before the code for a use case starts.
+
 ### Local development
 
 Tests, builds and the stack run inside WSL (Ubuntu, WSL2) with Docker only.
@@ -273,13 +309,12 @@ row so references stay valid.
 | OQ-8 | Which flag carries the Demo 2 drop rules? | **Resolved (Simon, 2026-10-16):** the per-span boolean flag `recordSpan` (default `true`, key override `OTELFEATURE_RECORD_SPAN_FLAG_NAME`). See FR-023, UC-002 BR-006, [flags](entity_model.md#flags) | Speakers, with OTelFeature/otelfeature-instrument#14, OTelFeature/otelfeature-java-extension#27 | UC-002 BR-006, entity model |
 | OQ-9 | Demo 3 script line: "when someone asks why did we stop collecting this, the answer is in the trace" no longer holds for telemetry decisions, because the extensions record none of their own decisions on spans (FR-014). Recommended rewording: "the flag decisions show up in your traces", demonstrated with the application's own `weatherUpstreamFailure` evaluation (OTelFeature/poc#30). | **Open** (recommendation only, not decided) | Speakers | UC-007, TC-005, script |
 | OQ-10 | Which preset does `03b-incident` build on? The presets are cumulative (UC-008 BR-006), but if `03b-incident` includes `03a-weather-boost`'s override, `weather` already samples at 1.0 and the control loop (UC-005) shows no change. PR OTelFeature/poc#42 currently builds it on `03-semconv-rules` (as PR OTelFeature/poc#41 had it, before the split). | **Resolved (Simon, 2026-10-16):** the demo is a progression with no resets, so `03b-incident` builds on `03a-weather-boost`. `03a` sets `weather` to **0.5** (not 1.0), so the error-rate rule in `03b` visibly raises it from 0.5 to 1.0 when the fault is injected. | Speakers, before OTelFeature/poc#42 merges | UC-005, UC-006, UC-008 BR-006, TC-005, TC-006 |
+| OQ-11 | "Root span" has two meanings. For drop rules it includes an incoming `SERVER`/`CONSUMER` span with a remote parent (FR-006, UC-002 BR-003, `SPAN_DECISION.isRoot`); for the sample ratio only a span with no parent evaluates `traceSampleRatio` (TC-004 item 6, UC-004 BR-002). FR-009, the entity model (`TELEMETRY_POLICY.sampleRatio`, policy field resolution) and UC-004 steps 2 to 4 say "root spans" for the ratio. Qualify one of them (for example "trace root")? The [glossary](glossary.md) keeps them apart for now. | **Resolved (Simon, 2026-10-16):** rename the ratio sense. A **trace root** (no parent at all) is the only span that evaluates `traceSampleRatio`; **root span** keeps the drop-rule sense. Applied in FR-009, the entity model, UC-004, TC-004, ratio-parity.md and the [glossary](glossary.md) | Speakers | FR-009, entity model, UC-004, glossary |
+| OQ-12 | Requirement status vs use case status. All use cases are `Draft`, while 26 requirements are Implemented, In Progress or Verified; AIUP derives a requirement's status from its use cases, so the spec lint reports `REQ_STATUS_DRIFT` (baselined). Move use cases to `Implemented` where their requirements are, or keep requirement statuses hand-set? | **Resolved (Simon, 2026-10-16):** strict AIUP. UC-001 Tested, UC-002 and UC-006 Implemented, the rest Draft; every requirement's status is derived from its use cases, downgrades included. Rule in [requirements.md](requirements.md); drift now fails the spec lint | Simon | all use cases, requirements.md, `.spec-lint-baseline.json` |
+| OQ-13 | TC-005 says the e2e variant "runs fast" (spec lint `WEAK_WORD`, baselined). Replace it with a bound, for example "finishes within N s"? | **Resolved (Simon, 2026-10-16):** no bound needed; the `WEAK_WORD` finding stays in the spec-lint baseline | Simon | TC-005, `.spec-lint-baseline.json` |
+| OQ-14 | How does the Demo 3 incident end, and is its margin wide enough? (a) Going back to `03a-weather-boost` removes the fault *and* the error-rate rule, so `weather` returns to 0.5 at once: the loop never visibly lets go (UC-005 A6). A preset with the rule kept and the fault off would show the release one or two intervals later (UC-005 steps 6 to 8). (b) On the stage load the error rate is about 9% (only `POST /weather` fails; health checks count), so in about one 10 s interval in seven it stays under 5% and `weather` dips back to 0.5; an incident share of 0.5, a lower `HEALTHCHECK_RATE` or a lower threshold would widen it. Raised in PR OTelFeature/poc#56 (there as OQ-11). | **Open**; current presets: (a) immediate return, (b) 0.3 share, documented in STAGE.md | Speakers | UC-005, UC-006, UC-008 BR-006, TC-005 |
 
 ## Validation
 
-No AIUP tooling was run against these files. To check use case structure with
-the AIUP plugin installed, run its script from a Python image (C-014):
-
-```sh
-docker run --rm -v "$PWD":/w -w /w python:3.12-slim \
-  python3 scripts/validate_use_case.py docs/spec/use_cases/UC-*.md
-```
+See [Spec lint](#spec-lint-aiup-spec-review-part-a): `make spec-lint` checks
+these files with the AIUP tooling, and CI runs it on every spec PR.
