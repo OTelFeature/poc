@@ -12,11 +12,13 @@ instances, in the same window, are the positive control.
 
 from __future__ import annotations
 
+import uuid
+
 import pytest
 
 from checks import APP_SERVICES
 from conftest import URLS, Step
-from spans import describe, wait_until
+from spans import STEP_HEADER, describe, wait_until
 
 PORTS = {"geocode": 8000, "weather": 8001}
 FLOORS = ("sdk-disabled", "always-off")
@@ -26,15 +28,16 @@ SAMPLED_PARENT = "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
 
 
 @pytest.mark.parametrize("floor", FLOORS)
-def test_hard_floor(step: Step, floor: str):
+def test_hard_floors(step: Step, floor: str):
     instances = {f"{service}-{floor}" for service in APP_SERVICES}
+    floor_step = f"floor-{uuid.uuid4().hex}"
     step.remark()
 
     for service in APP_SERVICES:
         url = f"http://{service}-{floor}:{PORTS[service]}"
-        assert step.health(url).status_code == 200
-        r = step.http.get(f"{url}/health", headers={"traceparent": SAMPLED_PARENT})
-        assert r.status_code == 200
+        for headers in ({STEP_HEADER: floor_step},
+                        {STEP_HEADER: floor_step, "traceparent": SAMPLED_PARENT}):
+            assert step.http.get(f"{url}/health", headers=headers).status_code == 200
         # Positive control: the normal instance, same flags, same window.
         assert step.health(URLS[service]).status_code == 200
 
@@ -47,6 +50,8 @@ def test_hard_floor(step: Step, floor: str):
 
     wait_until(control_problem, timeout=10.0)
 
+    # Caught three ways, so a changed resource can't hide a leak.
     leaked = step.quiet(lambda s: s.resource.get("service.instance.id") in instances
+                        or s.step == floor_step
                         or s.trace_id == SAMPLED_PARENT.split("-")[1])
     assert not leaked, f"spans exported despite the {floor} floor:\n{describe(leaked)}"
