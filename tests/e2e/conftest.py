@@ -16,7 +16,13 @@ from spans import STEP_HEADER, SpanLog, wait_until
 
 GEOCODE_URL = os.environ.get("GEOCODE_URL", "http://geocode:8000")
 WEATHER_URL = os.environ.get("WEATHER_URL", "http://weather:8001")
-URLS = {"geocode": GEOCODE_URL, "weather": WEATHER_URL}
+URLS = {
+    "geocode": GEOCODE_URL,
+    "weather": WEATHER_URL,
+    # Staging twins (deployment.environment.name=staging), TC-004.
+    "geocode-staging": os.environ.get("GEOCODE_STAGING_URL", "http://geocode-staging:8000"),
+    "weather-staging": os.environ.get("WEATHER_STAGING_URL", "http://weather-staging:8001"),
+}
 
 # How long an absence has to hold before it counts. Spans are exported
 # within ~200 ms (100 ms batch delay + 100 ms file flush), so this is

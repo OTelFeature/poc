@@ -30,11 +30,17 @@ volumes:
 x-geocode-e2e-env: &geocode-e2e-env
   OTEL_BSP_SCHEDULE_DELAY: "100"
   OTEL_INSTRUMENTATION_HTTP_CAPTURE_HEADERS_SERVER_REQUEST: x-e2e-step
+  # Short error-rate window for the control-loop test (TC-005); seconds.
+  OTELFEATURE_ERROR_RATE_INTERVAL: "2"
+  OTELFEATURE_ERROR_RATE_MIN_REQUESTS: "5"
 
 x-weather-e2e-env: &weather-e2e-env
   OTEL_BSP_SCHEDULE_DELAY: "100"
   OTEL_INSTRUMENTATION_HTTP_SERVER_CAPTURE_REQUEST_HEADERS: x-e2e-step
   OTELFEATURE_ENFORCEMENT: ${OTELFEATURE_ENFORCEMENT:-processor}
+  # Java takes a duration here (Python: seconds).
+  OTELFEATURE_ERROR_RATE_INTERVAL: 2s
+  OTELFEATURE_ERROR_RATE_MIN_REQUESTS: "5"
 
 x-geocode-floor: &geocode-floor
   extends: {file: compose.yaml, service: geocode}
@@ -68,13 +74,29 @@ services:
         OTELFEATURE_EXTENSION_REF: ${OTELFEATURE_EXTENSION_REF:-main}
     environment: *weather-e2e-env
 
+  # Staging twins (TC-004), always on in the e2e project: same image as
+  # geocode, deployment.environment.name=staging.
   geocode-staging:
+    profiles: !reset []
+    image: otelfeature-e2e-geocode
+    build: !reset null
+    pull_policy: never
     container_name: !reset null
     ports: !reset []
+    environment:
+      <<: *geocode-e2e-env
 
+  # Staging twins (TC-004), always on in the e2e project: same image as
+  # weather, deployment.environment.name=staging.
   weather-staging:
+    profiles: !reset []
+    image: otelfeature-e2e-weather
+    build: !reset null
+    pull_policy: never
     container_name: !reset null
     ports: !reset []
+    environment:
+      <<: *weather-e2e-env
 
   stub-apis:
     container_name: !reset null
