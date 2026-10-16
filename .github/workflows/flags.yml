@@ -7,6 +7,7 @@ on:
     paths:
       - "src/flagd/**"
       - "ci/**"
+      - ".dockerignore"
       - "tests/e2e/pyproject.toml"
       - "tests/e2e/uv.lock"
       - "Makefile"
@@ -16,6 +17,7 @@ on:
     paths:
       - "src/flagd/**"
       - "ci/**"
+      - ".dockerignore"
       - "tests/e2e/pyproject.toml"
       - "tests/e2e/uv.lock"
       - "Makefile"
@@ -36,7 +38,7 @@ jobs:
       # dependency layer is rebuilt only when the base image or the lock
       # files change.
       - name: Build the toolchain image (layer cache)
-        uses: docker/build-push-action@v7
+        uses: docker/build-push-action@v7.4.0
         with:
           context: .
           file: ci/Dockerfile

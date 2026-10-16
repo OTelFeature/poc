@@ -122,8 +122,9 @@ flowchart LR
 ## Requirements
 
 - Docker and Docker Compose
-- [uv](https://docs.astral.sh/uv/) (only needed for local, non-container
-  development of `geocode`)
+- Nothing else for `make test`, `make shell` and `make e2e`: they run in
+  the toolchain image (`ci/Dockerfile`). [uv](https://docs.astral.sh/uv/) is
+  optional, only for working on `geocode` outside a container.
 
 ## Running
 
@@ -233,7 +234,7 @@ Each service has its own README with configuration details:
 ```
 compose.yaml              # service definitions and wiring
 compose.e2e.yaml          # override for the end-to-end suite (make e2e)
-ci/Dockerfile             # e2e runner image
+ci/Dockerfile             # toolchain image (make test, make shell, make e2e)
 STAGE.md                  # stage runbook: one command per script beat
 Makefile                  # build/start/stop shortcuts around docker compose
 src/
