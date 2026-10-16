@@ -21,8 +21,9 @@ tracer = trace.get_tracer(__name__)
 # Fault injection (FR-012, UC-006 A3, OTelFeature/poc#80): the share of
 # /geocode requests (and so /forecast) that fail with 503, from the number
 # flag geocodeUpstreamFailure. Evaluated through geocode's own client on the
-# OpenFeature API otelfeature-instrument already set a flagd provider on;
-# no hooks on it, so the extension's evaluations stay unrecorded (FR-014).
+# OpenFeature API otelfeature-instrument already set a flagd provider on.
+# No API-level (global) hooks: those would also see the extension's own
+# evaluations, which must stay unrecorded (FR-014).
 # A missing flag (the stage presets don't define it) resolves to 0.0.
 FAULT_FLAG = "geocodeUpstreamFailure"
 flags = openfeature_api.get_client("geocode")
@@ -30,10 +31,13 @@ flags = openfeature_api.get_client("geocode")
 
 def maybe_fail() -> None:
     share = flags.get_float_value(FAULT_FLAG, 0.0)
-    if math.isnan(share) or share <= 0.0:
+    # flagd accepts a boolean variant for a float flag (bool is an int);
+    # non-numbers act as 0.0 (UC-006 A2).
+    if isinstance(share, bool) or math.isnan(share) or share <= 0.0:
         return
     if share >= 1.0 or random.random() < share:
         raise HTTPException(status_code=503, detail=f"Injected upstream failure ({FAULT_FLAG}={share})")
+
 
 app = FastAPI(title="geocode")
 

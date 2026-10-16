@@ -6,7 +6,7 @@
 **Use Case Name:** Inject upstream failures  
 **Primary Actor:** Operator  
 **Secondary Actors:** flagd, weather, geocode, Aspire dashboard  
-**Goal:** The operator makes a chosen fraction of `/weather` requests fail through a feature flag evaluated in the application's own code, so that an incident can be started and stopped on demand, the same way the OTel Demo does it.  
+**Goal:** The operator makes a chosen fraction of `/weather` requests (or, for the e2e suite, `geocode`'s requests, A3) fail through a feature flag evaluated in the application's own code, so that an incident can be started and stopped on demand, the same way the OTel Demo does it.  
 **Status:** Implemented  
 **Requirements:** FR-012, NFR-004  
 **Work Items:** OTelFeature/poc#28, OTelFeature/poc#80  
@@ -80,7 +80,7 @@ The failure flag is evaluated by the application, not by the telemetry extension
 
 ### BR-002: Value range
 
-The value is the share of `/weather` requests that fail, from 0.0 (none) to 1.0 (all), both bounds inclusive. Values outside the range act as the nearest bound; NaN and non-numbers act as 0.0 (A2). This is the behaviour of `FaultInjection` today; it is documented, not changed.
+The value is the share of `/weather` requests (for `geocodeUpstreamFailure`: `POST /geocode` requests) that fail, from 0.0 (none) to 1.0 (all), both bounds inclusive. Values outside the range act as the nearest bound; NaN and non-numbers act as 0.0 (A2). This is the behaviour of `FaultInjection` today; it is documented, not changed. `geocode` applies the same rules (A3).
 
 ### BR-003: The incident fails half of `/weather`
 
@@ -88,4 +88,4 @@ Decided by Simon, 2026-10-16 (OQ-14 b): the incident preset `03b-incident` sets 
 
 ### BR-004: `geocode`'s fault flag is for the e2e suite
 
-`geocodeUpstreamFailure` exists so the control loop (UC-005) also runs end to end for the Python error-rate reader (OTelFeature/poc#80). The stage presets don't define it, so on stage it resolves to its default 0.0 (A1). `geocode` evaluates it through a client of its own on the OpenFeature API the Python extension also uses, with no hooks attached, so the extension's evaluations stay unrecorded (FR-014, UC-007 BR-006).
+`geocodeUpstreamFailure` exists so the control loop (UC-005) also runs end to end for the Python error-rate reader (OTelFeature/poc#80). The stage presets don't define it, so on stage it resolves to its default 0.0 (A1). `geocode` evaluates it through a client of its own on the OpenFeature API the Python extension also uses, with no API-level (global) hooks, since those would also record the extension's evaluations (FR-014, UC-007 BR-006).

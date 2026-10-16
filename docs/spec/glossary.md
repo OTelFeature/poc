@@ -12,7 +12,7 @@ here.
 | Adopter | Someone running the extensions or the demo after the talk. | |
 | Maintainer | Someone who develops the extensions or the demo stack. | |
 | Extension | One of the two OTelFeature packages, `otelfeature-instrument` (Python) or `otelfeature-java-extension` (Java agent), that let flags steer span creation. | |
-| Application | The service's own code, as opposed to the extension that instruments it; it may evaluate its own flags (`weatherUpstreamFailure`). | |
+| Application | The service's own code, as opposed to the extension that instruments it; it may evaluate its own flags (`weatherUpstreamFailure`; `geocodeUpstreamFailure` in the e2e suite). | |
 | Service | An instrumented process, identified by its OTel resource (`service.name`, `deployment.environment.name`). | |
 | Flag | An OpenFeature flag served by flagd. Every flag has a key, a type and named variants. | toggle |
 | Variant | One named value of a flag, such as `off` for `otelEnabled`. | |
@@ -38,7 +38,7 @@ here.
 | Hard floor | An env var setting no flag can override: `OTEL_SDK_DISABLED=true` and `OTEL_TRACES_SAMPLER=always_off`. Flags only reduce telemetry. | |
 | Fail open | On any flag failure (provider not ready, flag missing, wrong type or value) the policy falls back to the startup env vars, that is stock OTel behaviour. | |
 | Static-flag fast path | When every flag the policy reads resolves with reason `STATIC`, a span decision is one volatile read with no flag evaluation. | |
-| Fault injection | Making a share of `/weather` requests fail on demand with the `weatherUpstreamFailure` flag, to cause an incident. | |
+| Fault injection | Making a share of `/weather` requests fail on demand with the `weatherUpstreamFailure` flag, to cause an incident (in the e2e suite also `geocode`'s, with `geocodeUpstreamFailure`). | |
 | Offline stage mode | The demo stack running with no network, external APIs replaced by stubs. | |
 | Script beat | One step of the talk script that a demo performs (Demo 1, Demo 2, Demo 3). | |
 | End-to-end suite | The automated tests that run the script beats against the real stack in GitHub Actions (NFR-015). | |

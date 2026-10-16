@@ -54,6 +54,7 @@ the end-to-end suite and the toolchain images.
 | OTelFeature/poc#30 | OpenFeature OTel hooks in the apps | P1 | FR-015 | UC-007 | TC-005 |
 | OTelFeature/poc#31 | Public repo | P1 | FR-020 | UC-009 | TC-007 |
 | OTelFeature/poc#32 | Fallback video | P2 | C-008 | UC-008 | TC-006 |
+| OTelFeature/poc#80 | Control loop e2e for the Python reader | P1 | FR-012, FR-013 | UC-005, UC-006 | TC-005 |
 | OTelFeature/poc#33 | OTel Demo footage | P1 | C-007 | UC-008 | TC-006 |
 | OTelFeature/poc#38 | k6 health-check scenario, split out of OTelFeature/poc#23 (answers OQ-5) | P0 | FR-006 (Demo 2 traffic) | UC-002 | TC-002 |
 | OTelFeature/poc#59 | Cross-service path: `geocode` calls `weather` | P1 | FR-026 | UC-004 | TC-004 |
@@ -159,6 +160,7 @@ nothing was left in scope. A Java opt-in tracing hook would be a new issue.
 | OTelFeature/poc#41 | OTelFeature/poc#26 | FR-019, NFR-004 | UC-008 | TC-006 |
 | OTelFeature/poc#42 | OTelFeature/poc#28 | FR-012 | UC-006 | TC-005 |
 | OTelFeature/poc#43 | OTelFeature/poc#35, phase 1 | NFR-015, C-013 | UC-008 (BR-005) | TC-006 |
+| OTelFeature/poc#82 | OTelFeature/poc#80 | FR-012 | UC-005, UC-006 | TC-005 |
 
 PR #41 still has one `03-semconv-rules` preset that resets `recordSpan`, and
 PR #42 builds `03b-incident` on it. Both follow the cumulative-preset

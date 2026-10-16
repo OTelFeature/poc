@@ -61,8 +61,9 @@ requests, and so of `POST /forecast`, fail with `503` before the cache lookup
 (FR-012, UC-006 A3). It exists so the e2e suite can run the control loop for
 the Python error-rate reader (OTelFeature/poc#80); the stage presets don't
 define it, so there it resolves to 0.0. `geocode` evaluates it with its own
-OpenFeature client on the API otelfeature-instrument set up, without hooks,
-so the extension's own evaluations stay unrecorded.
+OpenFeature client on the API otelfeature-instrument set up. No API-level
+(global) hooks are registered, since those would also record the extension's
+own evaluations (FR-014).
 
 ### `GET /health`
 
