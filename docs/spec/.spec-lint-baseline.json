@@ -1,0 +1,33 @@
+{
+  "version": 1,
+  "findings": [
+    {
+      "fingerprint": "11601eac5ad120485676289a8c5808e55af88338",
+      "code": "FR_UNCOVERED",
+      "path": "requirements.md",
+      "element": "FR-003",
+      "message": "functional requirement FR-003 is not referenced by any use case"
+    },
+    {
+      "fingerprint": "74500078068a11f67b28f55f25d97adfd382ed35",
+      "code": "FR_UNCOVERED",
+      "path": "requirements.md",
+      "element": "FR-025",
+      "message": "functional requirement FR-025 is not referenced by any use case"
+    },
+    {
+      "fingerprint": "f218ca2f7ade165930a06f35bf8e254e03a290bf",
+      "code": "WEAK_WORD",
+      "path": "requirements.md",
+      "element": "NFR-003",
+      "message": "weak word 'fast': make it measurable, definite, or remove it"
+    },
+    {
+      "fingerprint": "644bb72b9876f0a3c9965f10b7975f0e329f20f5",
+      "code": "WEAK_WORD",
+      "path": "test_cases/TC-005-incident-control-loop.md",
+      "element": "TC-005",
+      "message": "weak word 'fast': make it measurable, definite, or remove it"
+    }
+  ]
+}

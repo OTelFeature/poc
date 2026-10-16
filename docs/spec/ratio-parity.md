@@ -37,7 +37,7 @@ sequenceDiagram
     participant G as geocode (Python)
     participant W as weather (Java)
     K->>G: POST /geocode (no traceparent)
-    Note over G: root span → Python formula decides<br/>at traceSampleRatio=0.1 → sampled
+    Note over G: trace root → Python formula decides<br/>at traceSampleRatio=0.1 → sampled
     G->>W: HTTP call, traceparent …-01 (sampled)
     Note over W: has a parent → follows it<br/>Java formula never runs
     W-->>G: response

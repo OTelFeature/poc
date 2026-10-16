@@ -2,16 +2,16 @@
 
 ## Overview
 
-- **Use Case ID:** UC-001
-- **Use Case Name:** Switch tracing off and on at runtime
-- **Primary Actor:** Operator
-- **Secondary Actors:** flagd, geocode, weather, Aspire dashboard
-- **Goal:** The operator stops all span creation in every service with one boolean flag and starts it again, without a restart, so that span ingest drops to zero during an incident and recovers cleanly afterwards.
-- **Status:** Draft
-- **Requirements:** FR-001, FR-002, FR-004, NFR-001, NFR-003, NFR-004, NFR-008, C-001, C-004, C-011
-- **Work Items:** OTelFeature/poc#8, OTelFeature/poc#9, OTelFeature/otelfeature-java-extension#21 (sampler mode)
-- **Test Cases:** TC-001
-- **Script Beat:** Demo 1
+**Use Case ID:** UC-001  
+**Use Case Name:** Switch tracing off and on at runtime  
+**Primary Actor:** Operator  
+**Secondary Actors:** flagd, geocode, weather, Aspire dashboard  
+**Goal:** The operator stops all span creation in every service with one boolean flag and starts it again, without a restart, so that span ingest drops to zero during an incident and recovers cleanly afterwards.  
+**Status:** Tested  
+**Requirements:** FR-001, FR-002, FR-004, NFR-001, NFR-003, NFR-004, NFR-008, C-001, C-004, C-011  
+**Work Items:** OTelFeature/poc#8, OTelFeature/poc#9, OTelFeature/otelfeature-java-extension#21 (sampler mode)  
+**Test Cases:** TC-001  
+**Script Beat:** Demo 1  
 
 ## Preconditions
 
@@ -35,7 +35,7 @@
 
 ### A1: Operator uses the telemetryLevel OFF variant
 
-**Trigger:** Step 1, the operator sets `telemetryLevel` to `OFF` instead of changing `otelEnabled`.
+**Trigger:** The operator sets `telemetryLevel` to `OFF` instead of changing `otelEnabled` (step 1).
 
 **Flow:**
 
@@ -44,7 +44,7 @@
 
 ### A2: flagd is unreachable or the flag is missing
 
-**Trigger:** Step 2, the services cannot get a ruleset, or `otelEnabled` is not defined.
+**Trigger:** The services cannot get a ruleset, or `otelEnabled` is not defined (step 2).
 
 **Flow:**
 
@@ -55,7 +55,7 @@
 
 ### A3: Java service runs in processor mode
 
-**Trigger:** Step 4, `weather` runs with `OTELFEATURE_ENFORCEMENT=processor`.
+**Trigger:** `weather` runs with `OTELFEATURE_ENFORCEMENT=processor` (step 4).
 
 **Flow:**
 
@@ -65,7 +65,7 @@
 
 ### A4: A request is in flight while the flag flips
 
-**Trigger:** Step 4, a trace started before the flip is still running.
+**Trigger:** A trace started before the flip is still running (step 4).
 
 **Flow:**
 
@@ -75,7 +75,7 @@
 
 ### A5: Tracing is switched off by an env var
 
-**Trigger:** Step 6, the service runs with `OTEL_SDK_DISABLED=true` or `OTEL_TRACES_SAMPLER=always_off`.
+**Trigger:** The service runs with `OTEL_SDK_DISABLED=true` or `OTEL_TRACES_SAMPLER=always_off` (step 6).
 
 **Flow:**
 
