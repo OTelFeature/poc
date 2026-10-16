@@ -86,10 +86,16 @@ class Traffic:
             assert r.status_code == 200, f"{other}/health: HTTP {r.status_code}"
 
 
-# What the OpenFeature OTel hook pinned in weather emits (UC-007 BR-004:
-# dev.openfeature.contrib.hooks:otel 3.3.1, semantic conventions 1.28).
-HOOK_EVENT = "feature_flag"
-HOOK_KEY, HOOK_VARIANT, HOOK_PROVIDER = "feature_flag.key", "feature_flag.variant", "feature_flag.provider_name"
+# What the OpenFeature OTel hook pinned in each service emits (UC-007 BR-004,
+# OQ-4): weather's Java hook dev.openfeature.contrib.hooks:otel 3.3.1 the
+# semantic conventions 1.28 names, geocode's Python hook
+# openfeature-hooks-opentelemetry 0.3.1 the current ones.
+# (event name, key, variant, provider name)
+HOOK_NAMES = {
+    "weather": ("feature_flag", "feature_flag.key", "feature_flag.variant", "feature_flag.provider_name"),
+    "geocode": ("feature_flag.evaluation", "feature_flag.key", "feature_flag.result.variant",
+                "feature_flag.provider.name"),
+}
 
 # Written by the extensions? They must not (FR-014, UC-007 BR-001).
 EXTENSION_ATTRS = ("otelfeature.sample_ratio",)
@@ -106,22 +112,28 @@ def _failing_and_traced(service: str):
     return check
 
 
-def _flag_explains_failure(trace) -> str | None:
-    """TC-005 steps 6-7 / UC-007: a span of the failed request carries the
-    hook's evaluation event for weatherUpstreamFailure."""
-    if problem := _failing_and_traced("weather")(trace):
-        return problem
-    events = [(s, attrs) for s in trace for name, attrs in s.events
-              if name == HOOK_EVENT and attrs.get(HOOK_KEY) == "weatherUpstreamFailure"]
-    if not events:
-        names = sorted({name for s in trace for name, _ in s.events})
-        return f"no {HOOK_EVENT!r} event for weatherUpstreamFailure (events seen: {names}):\n{describe(trace)}"
-    span, attrs = events[0]
-    if span.service != "weather":
-        return f"hook event on a {span.service} span"
-    if attrs.get(HOOK_VARIANT) != "outage" or not attrs.get(HOOK_PROVIDER):
-        return f"hook event attributes {attrs}, want variant 'outage' and a provider name"
-    return None
+def _flag_explains_failure(service: str):
+    """TC-005 steps 6-7 / UC-007 (A2 for geocode): a span of the failed
+    request carries the hook's evaluation event for the service's fault flag,
+    under the names that service's hook writes."""
+    flag = FAULT_FLAGS[service]
+    event, key, variant, provider = HOOK_NAMES[service]
+
+    def check(trace) -> str | None:
+        if problem := _failing_and_traced(service)(trace):
+            return problem
+        events = [(s, attrs) for s in trace for name, attrs in s.events
+                  if name == event and attrs.get(key) == flag]
+        if not events:
+            names = sorted({name for s in trace for name, _ in s.events})
+            return f"no {event!r} event for {flag} (events seen: {names}):\n{describe(trace)}"
+        span, attrs = events[0]
+        if span.service != service:
+            return f"hook event on a {span.service} span"
+        if attrs.get(variant) != "outage" or not attrs.get(provider):
+            return f"hook event attributes {attrs}, want {variant}='outage' and a {provider}"
+        return None
+    return check
 
 
 @pytest.mark.parametrize("failing", ["weather", "geocode"])
@@ -146,10 +158,8 @@ def test_tc005_control_loop(step: Step, flags: Flags, failing: str):
     print(f"{failing} sampled up {latency:.1f}s after the failures started")
 
     # Still sampled a few intervals later, with traffic going on (not a
-    # one-off). For weather, the trace also says which flag failed it
-    # (steps 6-7, UC-007; geocode registers no hook, UC-007 BR-006).
-    check = _flag_explains_failure if failing == "weather" else _failing_and_traced(failing)
-    step.wait_for_trace(traffic, check, timeout=LOOP_TIMEOUT)
+    # one-off), and the trace says which flag failed it (steps 6-7, UC-007).
+    step.wait_for_trace(traffic, _flag_explains_failure(failing), timeout=LOOP_TIMEOUT)
 
     # FR-014 / UC-007 BR-001, over every span exported so far in the session
     # (both services, sampled down and up): no span carries attributes the
