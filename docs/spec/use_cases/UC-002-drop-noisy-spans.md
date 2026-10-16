@@ -7,7 +7,7 @@
 **Primary Actor:** Operator  
 **Secondary Actors:** flagd, geocode, weather, Aspire dashboard  
 **Goal:** The operator writes one `recordSpan` targeting rule per noise source (health-check requests in `geocode`, database spans in `weather`) so that those spans are never created, while every other span in both services is kept.  
-**Status:** Implemented  
+**Status:** Tested  
 **Requirements:** FR-004, FR-005, FR-006, FR-007, FR-008, FR-023, NFR-002, NFR-003, NFR-005, NFR-007, C-003, C-004, C-011  
 **Work Items:** OTelFeature/poc#22, OTelFeature/otelfeature-instrument#7, OTelFeature/otelfeature-java-extension#20, OTelFeature/otelfeature-java-extension#21, OTelFeature/otelfeature-instrument#14, OTelFeature/otelfeature-java-extension#27, OTelFeature/poc#12, OTelFeature/poc#9  
 **Test Cases:** TC-002  
