@@ -114,7 +114,7 @@ curl -s http://localhost:8001/health
 | `OTEL_RESOURCE_ATTRIBUTES` | - | Compose sets `deployment.environment.name` (`production`, or `staging` for the staging twin), `service.namespace=otelfeature` and `service.version`; flag rules can target them |
 | `OTEL_EXPORTER_OTLP_ENDPOINT`  | -                 | OTLP collector endpoint                             |
 | `OTEL_EXPORTER_OTLP_PROTOCOL`  | -                 | OTLP protocol (`http/protobuf`, `grpc`, etc.)       |
-| `FLAGD_HOST`                  | `flagd`           | flagd host (the extension's telemetry flags, and `weatherUpstreamFailure`) |
+| `FLAGD_HOST`                  | `flagd`           | flagd host for the extension's telemetry flags and for `weatherUpstreamFailure` (the app's own default is `localhost`; compose sets `flagd`). `FLAGD_PORT` and `FLAGD_COMPILE_TARGETING` apply to both clients too |
 | `FLAGD_PORT`                  | `8015`            | flagd gRPC **sync** port (in-process resolver)      |
 | `FLAGD_COMPILE_TARGETING`     | `auto`            | flagd targeting-rule compile mode. Set to `disabled` — the agent's extension classloader can't see `javax.tools`, so the `auto` probe crashes the agent at startup (`NoClassDefFoundError`) |
 
@@ -122,8 +122,10 @@ curl -s http://localhost:8001/health
 
 `weather` reads one feature flag in its own code: `weatherUpstreamFailure`,
 a number from 0.0 to 1.0 (OTelFeature/poc#28). That share of `/weather`
-requests fails with HTTP 503 ("Injected upstream failure") before the cache
-lookup, as if the upstream weather API were down. The server span gets
+requests fails with HTTP 503 before the cache lookup, so the error rate is
+steady whatever the cache holds (a real upstream outage would spare cache
+hits). The reason ("Injected upstream failure") is in the exception event on
+the span, not in the response body. The server span gets
 status ERROR, and the span metrics count it as an error. That is the input
 for Demo 3's incident beat (`make flag PRESET=03b-incident`, 0.3).
 
@@ -131,7 +133,10 @@ for Demo 3's incident beat (`make flag PRESET=03b-incident`, 0.3).
 uses the OpenFeature Java SDK with the flagd provider (in-process resolver,
 same `FLAGD_HOST`/`FLAGD_PORT` as the extension). It is a normal application
 client, separate from the agent extension's isolated OpenFeature instance.
-Until flagd is reachable, or if the flag is missing, nothing fails.
+Until flagd is first reachable, or if the flag is missing, nothing fails. If
+flagd goes away later, the provider keeps serving the last value it synced.
+The flag is evaluated without an evaluation context, so it applies to
+`weather` and `weather-staging` alike.
 
 Because this client lives in the application, the Java agent instruments its
 gRPC calls to flagd: expect a `flagd.sync.v1.FlagSyncService/GetMetadata`

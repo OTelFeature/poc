@@ -22,8 +22,11 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-jdbc'
     implementation 'org.springframework.boot:spring-boot-starter-jackson'
     runtimeOnly 'org.postgresql:postgresql'
-    // Application-level feature flags (fault injection). Same versions as
-    // otelfeature-java-extension uses for its own, isolated client.
+    // Application-level feature flags (fault injection). SDK and provider
+    // match otelfeature-java-extension's own (isolated) client. flagd-core is
+    // pinned because the provider asks for a range ([2.0.0,3.0.0)); gRPC,
+    // protobuf and Jackson versions are managed by Spring Boot.
     implementation 'dev.openfeature:sdk:1.23.0'
     implementation 'dev.openfeature.contrib.providers:flagd:0.14.2'
+    implementation 'dev.openfeature.contrib.tools:flagd-core:2.0.4'
 }
