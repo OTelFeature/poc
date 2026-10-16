@@ -69,12 +69,44 @@ class Traffic:
             assert r.status_code == 200, f"geocode /health: HTTP {r.status_code}"
 
 
+# What the OpenFeature OTel hook pinned in weather emits (UC-007 BR-004:
+# dev.openfeature.contrib.hooks:otel 3.3.1, semantic conventions 1.28).
+HOOK_EVENT = "feature_flag"
+HOOK_KEY, HOOK_VARIANT, HOOK_PROVIDER = "feature_flag.key", "feature_flag.variant", "feature_flag.provider_name"
+
+# Written by the extensions? They must not (FR-014, UC-007 BR-001).
+EXTENSION_ATTRS = ("otelfeature.sample_ratio",)
+
+
 def _failing_and_traced(trace) -> str | None:
     server = next((s for s in trace if s.kind == "server" and s.service == "weather"), None)
     if server is None:
         return "no weather server span"
     if server.status != "error":
         return f"weather server span status {server.status}, want error:\n{describe(trace)}"
+    return None
+
+
+def _flag_explains_failure(trace) -> str | None:
+    """TC-005 steps 6-7 / UC-007: a span of the failed request carries the
+    hook's evaluation event for weatherUpstreamFailure, and no span carries
+    attributes the extensions would have written."""
+    if problem := _failing_and_traced(trace):
+        return problem
+    events = [(s, attrs) for s in trace for name, attrs in s.events
+              if name == HOOK_EVENT and attrs.get(HOOK_KEY) == "weatherUpstreamFailure"]
+    if not events:
+        names = sorted({name for s in trace for name, _ in s.events})
+        return f"no {HOOK_EVENT!r} event for weatherUpstreamFailure (events seen: {names}):\n{describe(trace)}"
+    span, attrs = events[0]
+    if span.service != "weather":
+        return f"hook event on a {span.service} span"
+    if attrs.get(HOOK_VARIANT) != "outage" or not attrs.get(HOOK_PROVIDER):
+        return f"hook event attributes {attrs}, want variant 'outage' and a provider name"
+    written = [(s, k) for s in trace for k in s.attrs
+               if k.startswith("feature_flag.") or k in EXTENSION_ATTRS]
+    if written:
+        return f"span attributes the extensions must not write: {[(str(s), k) for s, k in written]}"
     return None
 
 
@@ -98,8 +130,9 @@ def test_tc005_control_loop(step: Step, flags: Flags):
     print(f"weather sampled up {latency:.1f}s after the failures started")
 
     # Still sampled a few intervals later, with traffic going on (not a
-    # one-off): a fresh failing request is traced again.
-    step.wait_for_trace(traffic, _failing_and_traced, timeout=LOOP_TIMEOUT)
+    # one-off): a fresh failing request is traced again, and the trace says
+    # which flag failed it (steps 6-7, UC-007).
+    step.wait_for_trace(traffic, _flag_explains_failure, timeout=LOOP_TIMEOUT)
 
     # geocode had error-free traffic all along (rate 0.0): none of it traced.
     leaked = [s for s in step.spans.for_step(traffic.geocode_tag)]

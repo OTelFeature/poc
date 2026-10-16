@@ -29,4 +29,6 @@ dependencies {
     implementation 'dev.openfeature:sdk:1.23.0'
     implementation 'dev.openfeature.contrib.providers:flagd:0.14.2'
     implementation 'dev.openfeature.contrib.tools:flagd-core:2.0.4'
+    // OpenFeature OpenTelemetry hook: flag evaluations as span events (UC-007).
+    implementation 'dev.openfeature.contrib.hooks:otel:3.3.1'
 }

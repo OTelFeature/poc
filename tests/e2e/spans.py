@@ -51,6 +51,8 @@ class Span:
     scope: str
     attrs: dict = field(hash=False, compare=False)
     resource: dict = field(hash=False, compare=False)
+    # Span events as (name, attributes).
+    events: tuple = field(default=(), hash=False, compare=False)
 
     @property
     def service(self) -> str:
@@ -207,6 +209,8 @@ def _parse(request: dict) -> list[Span]:
                     status=STATUS.get(sp.get("status", {}).get("code", 0), "unset"),
                     scope=scope,
                     attrs=_attrs(sp.get("attributes")),
+                    events=tuple((e.get("name", ""), _attrs(e.get("attributes")))
+                                 for e in sp.get("events", [])),
                     resource=resource,
                 ))
     return out
