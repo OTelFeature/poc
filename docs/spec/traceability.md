@@ -54,6 +54,7 @@ the end-to-end suite and the toolchain images.
 | OTelFeature/poc#30 | OpenFeature OTel hooks in the apps | P1 | FR-015 | UC-007 | TC-005 |
 | OTelFeature/poc#31 | Public repo | P1 | FR-020 | UC-009 | TC-007 |
 | OTelFeature/poc#32 | Fallback video | P2 | C-008 | UC-008 | TC-006 |
+| OTelFeature/poc#70 | Faster builds and e2e suite | P2 | NFR-015, NFR-016 | none (tooling) | TC-001, TC-002, TC-004, TC-005, TC-006 (Automation sections) |
 | OTelFeature/poc#33 | OTel Demo footage | P1 | C-007 | UC-008 | TC-006 |
 | OTelFeature/poc#38 | k6 health-check scenario, split out of OTelFeature/poc#23 (answers OQ-5) | P0 | FR-006 (Demo 2 traffic) | UC-002 | TC-002 |
 | OTelFeature/poc#59 | Cross-service path: `geocode` calls `weather` | P1 | FR-026 | UC-004 | TC-004 |
