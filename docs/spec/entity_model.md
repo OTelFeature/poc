@@ -341,10 +341,11 @@ own flags (OTelFeature/poc#30).
 | tracestate `ot=th` (sampling threshold) | no |
 | Hook events for the extension's own evaluations | only with `OTELFEATURE_OPENFEATURE_TRACING_HOOK=true` (never default); evaluation exceptions are excluded. Python: `feature_flag.evaluation` (current names); Java (OTelFeature/otelfeature-java-extension#39, `main` after v0.4.0): event `feature_flag` with the semconv 1.28 names (UC-007 BR-004) |
 
-Caveat of the opt-in hook: it writes to the span that is current at
-evaluation time, which is the **parent** of the span being decided. So
-decisions for new roots (including every `traceSampleRatio` decision) and for
-dropped spans record nothing.
+Caveat of the opt-in hook: it writes to the span that is current on the
+thread at evaluation time, usually the **parent** of the span being decided.
+So decisions for new roots started with no span current (including every
+`traceSampleRatio` decision for an incoming request) and for dropped spans
+record nothing (UC-007 BR-003).
 
 ### Configuration
 
