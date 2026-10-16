@@ -15,8 +15,8 @@
 
 ## Preconditions
 
-- UC-004 is in place: production samples at 0.1.
-- The control-loop rule is active on `traceSampleRatio`: 1.0 when `otelfeature.http.server.error_rate` is above 0.05, else the environment rule.
+- UC-004 is in place: production `weather` samples at 0.5 and the rest of production at 0.1 (`03a-weather-boost`).
+- The control-loop rule is active on `traceSampleRatio`, ahead of the other ratio rules: 1.0 when `otelfeature.http.server.error_rate` is above 0.05, else the other rules (`03b-incident`, entity model FLAG_PRESET).
 - Each extension reads its service's `http.server.request.duration` metric in process, through a delta reader, every collection interval (`OTELFEATURE_ERROR_RATE_INTERVAL`, default 10 seconds).
 - The demo stack sets `OTEL_SEMCONV_STABILITY_OPT_IN=http` for `geocode`, so the metric carries `error.type`. The extension documents this but does not set it.
 
@@ -26,10 +26,10 @@
 2. `weather` answers a share of `/weather` requests with an error; the HTTP server metric records them with `error.type`.
 3. At the next collection, `weather` computes the error rate as error requests divided by all requests in the interval and puts it into its evaluation context.
 4. The control-loop rule matches for `weather`; its sample ratio resolves to 1.0.
-5. The dashboard shows `weather` trace volume rise to all requests within one to two collection intervals, while `geocode` stays at its environment ratio.
+5. The dashboard shows the traces that start in `weather` rise from about half to all requests within one to two collection intervals, while `geocode` stays at its environment ratio. Cross-service traces follow `geocode`'s decision (UC-004 BR-003).
 6. The speaker removes the injected failures.
 7. At the next collection with no errors, `weather`'s error rate falls below the threshold.
-8. The rule no longer matches; `weather` returns to the environment ratio.
+8. The rule no longer matches; `weather` returns to the ratio of the other rules (0.5 on stage).
 
 ## Alternative Flows
 
@@ -40,7 +40,7 @@
 **Flow:**
 
 1. The error-rate key is left out of the context, even if every one of those requests failed.
-2. The rule does not match; the environment rule applies.
+2. The rule does not match; the other ratio rules apply.
 3. Use case continues at step 5.
 
 ### A2: Spans are sampled at zero
@@ -77,20 +77,20 @@
 **Flow:**
 
 1. No metrics SDK is installed, so the error-rate reader was never registered; the service logs this once at startup.
-2. The error-rate key is never in the context; the control-loop rule never matches and the environment rule applies (FR-024).
-3. Use case continues at step 5, with `weather` staying at its environment ratio.
+2. The error-rate key is never in the context; the control-loop rule never matches and the other ratio rules apply (FR-024).
+3. Use case continues at step 5, with `weather` staying at its ratio before the incident.
 
 ## Postconditions
 
 ### Success Postconditions
 
-- `weather` sampled at 1.0 while its error rate was above 5% and returned to the environment ratio afterwards.
+- `weather` sampled at 1.0 while its error rate was above 5% and returned to its ratio before the incident (0.5 on stage) afterwards.
 - `geocode` sampling did not change.
 - The metric export to the collector is unchanged by the extra in-process reader.
 
 ### Failure Postconditions
 
-- If the error rate cannot be computed, the key is absent and sampling follows the environment rule.
+- If the error rate cannot be computed, the key is absent and sampling follows the other ratio rules.
 
 ## Business Rules
 

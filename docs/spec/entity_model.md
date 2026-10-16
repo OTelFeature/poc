@@ -93,7 +93,7 @@ BR-006.
 | `02-quiet-noise` | `recordSpan` off for `geocode` `SERVER` spans on `url.path=/health` and for `weather` spans with `otel.scope.name=io.opentelemetry.jdbc` | Demo 2 |
 | `03-semconv-rules` | `traceSampleRatio` 0.1 for production, 1.0 otherwise | Demo 3, UC-004 step 6 |
 | `03a-weather-boost` | `traceSampleRatio` 0.5 for `weather` in production (the rest stays 0.1) | Demo 3, UC-004 step 7 |
-| `03b-incident` | `weatherUpstreamFailure` → `incident` (OTelFeature/poc#28, PR OTelFeature/poc#42) | Demo 3 incident |
+| `03b-incident` | `weatherUpstreamFailure` → `incident` (OTelFeature/poc#28, PR OTelFeature/poc#42), and the control-loop rule first in `traceSampleRatio`: 1.0 when `otelfeature.http.server.error_rate` > 0.05, else `03a-weather-boost`'s rules (UC-005, OTelFeature/poc#29, PR OTelFeature/poc#56). Decided by Simon, 2026-10-16: the rule is in this preset only; going back to `03a-weather-boost` removes the fault and the rule | Demo 3 incident |
 
 ### TELEMETRY_POLICY
 
@@ -123,6 +123,14 @@ An instrumented process, identified by its OTel resource.
 | language | `telemetry.sdk.language` | String | 10 | Not Null, Values: python, java |
 
 **Constraints:** (serviceName, deploymentEnvironment) unique.
+
+**Request paths in the demo stack.** The load generator calls `POST /geocode`
+and `POST /weather` directly, so each service is the entry point (trace root)
+of those traces and decides their sampling itself. The cross-service path
+(FR-026, OTelFeature/poc#59, not built yet) adds a `geocode` endpoint that
+calls `weather` over HTTP: there `geocode` is the entry point and `weather`
+follows the parent's decision (UC-004 BR-003). Until then no trace spans both
+services; they share only the `coordinates-db` table.
 
 ### ENFORCEMENT_POINT
 
@@ -191,7 +199,7 @@ Nothing about the decision is written onto the span (FR-014).
 | `otelEnabled` | boolean | `on`=true, `off`=false | `on` | extension | on `main`: Python OTelFeature/otelfeature-instrument#10, Java OTelFeature/otelfeature-java-extension#24; in `flagd.json` with PR OTelFeature/poc#41 | OTelFeature/poc#8 |
 | `telemetryLevel` | string | `full`=FULL, `io`=IO, `off`=OFF | `full` | extension | FULL/IO released; OFF on `main` (Python #10, Java #24), not released | OTelFeature/poc#8 |
 | `recordSpan` | boolean | `on`=true, `off`=false | `on` | extension | on `main`: Python OTelFeature/otelfeature-instrument#18, Java OTelFeature/otelfeature-java-extension#29 (landed via #33); carries the Demo 2 drop rules (OQ-8) | OTelFeature/otelfeature-instrument#14, OTelFeature/otelfeature-java-extension#27 |
-| `traceSampleRatio` | number | e.g. `all`=1.0, `tenth`=0.1, `none`=0.0 | `all` | extension | on `main`: Python OTelFeature/otelfeature-instrument#13, Java OTelFeature/otelfeature-java-extension#30 (landed via #33); in `flagd.json` with PR OTelFeature/poc#41 | OTelFeature/poc#10 |
+| `traceSampleRatio` | number | `all`=1.0, `half`=0.5 (PR OTelFeature/poc#56), `tenth`=0.1, `none`=0.0 | `all` | extension | on `main`: Python OTelFeature/otelfeature-instrument#13, Java OTelFeature/otelfeature-java-extension#30 (landed via #33); in `flagd.json` with PR OTelFeature/poc#41 | OTelFeature/poc#10 |
 | `weatherUpstreamFailure` | number | `none`=0.0, `incident`=0.3, `outage`=1.0 (e2e) | `none` | application (`weather`) | in PR OTelFeature/poc#42 | OTelFeature/poc#28 |
 | `signalsEnabled` | object | per signal | all on | extension | deferred, out of scope (P2) | OTelFeature/poc#11 |
 
@@ -232,7 +240,7 @@ that rewrite flag files, and the e2e flag-flip helper (NFR-004, TC-006).
 | `enabled` | `otelEnabled != false` and `telemetryLevel != OFF`, unless the hard floor applies | `true`; `false` when `OTEL_SDK_DISABLED=true`, and then no flag can make it `true` |
 | `suppressInternal` | `telemetryLevel == IO` | `false` |
 | `recordSpan` | `recordSpan` flag, per span; only read while `enabled` | `true` |
-| `sampleRatio` | `traceSampleRatio`, clamped to 0.0..1.0; non-numeric falls back; trace roots only | From `OTEL_TRACES_SAMPLER` / `OTEL_TRACES_SAMPLER_ARG`, parsed like the SDK: the ratio for `traceidratio`/`parentbased_traceidratio`, 0.0 for `always_off`/`parentbased_always_off`, else 1.0. Python: an unknown name falls back to 1.0 with a warning (C-012) |
+| `sampleRatio` | `traceSampleRatio`; above 1.0 clamped to 1.0; negative, NaN, infinity or non-numeric falls back, logged once (NFR-001); trace roots only | From `OTEL_TRACES_SAMPLER` / `OTEL_TRACES_SAMPLER_ARG`, parsed like the SDK: the ratio for `traceidratio`/`parentbased_traceidratio`, 0.0 for `always_off`/`parentbased_always_off`, else 1.0. Python: an unknown name falls back to 1.0 with a warning (C-012) |
 
 Precedence: hard floors > `otelEnabled`/`telemetryLevel=OFF` > `recordSpan` >
 `traceSampleRatio`. A lower level never re-enables what a higher one turned

@@ -17,7 +17,7 @@
 ## Preconditions
 
 - The speaker has pulled and built all images while online.
-- Presets exist for each demo state: baseline, tracing off, quiet noise, semconv rules, weather full, incident (BR-006).
+- Presets exist for each demo state: baseline, tracing off, quiet noise, semconv rules, weather boost, incident (BR-006).
 - A fallback video exists for each demo.
 
 ## Main Success Scenario
@@ -26,14 +26,14 @@
 2. The speaker starts the stack; both services call the stubbed external APIs.
 3. The speaker resets to the baseline preset; traffic flows and traces appear.
 4. For each script beat, the speaker runs the one command that applies that beat's preset.
-5. The dashboard shows the effect within 2 seconds.
+5. The dashboard shows the beat's flag change within 2 seconds (NFR-004). The control-loop effect of `03b-incident` (`weather` from 0.5 to 1.0) follows within one to two error-rate intervals (NFR-014); its errors show within 2 seconds.
 6. After the last beat, the speaker resets to baseline.
 
 ## Alternative Flows
 
 ### A1: A live step fails
 
-**Trigger:** The expected effect does not appear (step 5).
+**Trigger:** The expected effect does not appear within its bound (step 5).
 
 **Flow:**
 
@@ -83,7 +83,7 @@ Each demo beat runs as an automated end-to-end test in CI, with the same presets
 
 ### BR-006: Presets are cumulative, in a fixed order
 
-Decided by Simon, 2026-10-16 (OTelFeature/poc#26, PR OTelFeature/poc#41). Each preset keeps the rules of the preset before it, so a later beat never brings back spans an earlier beat dropped: `03-semconv-rules`, `03a-weather-boost` and `03b-incident` keep `02-quiet-noise`'s drop rules. `01-otel-off` is the baseline with tracing off. Demo 3 has two presets: `03-semconv-rules` (production `traceSampleRatio` 0.1, UC-004 step 6) and `03a-weather-boost` (adds `weather` at 1.0, UC-004 step 7). The stage order is `00-baseline` → `01-otel-off` → `02-quiet-noise` → `03-semconv-rules` → `03a-weather-boost` → `03b-incident`. The demo is a **progression**: speakers never reset on stage. `03b-incident` builds on `03a-weather-boost`, which sets `weather` to 0.5, so the error-rate rule visibly raises it from 0.5 to 1.0 when the fault is injected (OQ-10 resolved, Simon, 2026-10-16). The e2e suite runs the same progression in order without resets (`test_stage_progression`, OTelFeature/poc#35). See the [entity model](../entity_model.md#flag_preset).
+Decided by Simon, 2026-10-16 (OTelFeature/poc#26, PR OTelFeature/poc#41). Each preset keeps the rules of the preset before it, so a later beat never brings back spans an earlier beat dropped: `03-semconv-rules`, `03a-weather-boost` and `03b-incident` keep `02-quiet-noise`'s drop rules. `01-otel-off` is the baseline with tracing off. Demo 3 has two presets: `03-semconv-rules` (production `traceSampleRatio` 0.1, UC-004 step 6) and `03a-weather-boost` (adds `weather` at 0.5, UC-004 step 7). The stage order is `00-baseline` → `01-otel-off` → `02-quiet-noise` → `03-semconv-rules` → `03a-weather-boost` → `03b-incident`. The demo is a **progression**: speakers never reset on stage. `03b-incident` builds on `03a-weather-boost`, which sets `weather` to 0.5, so the error-rate rule visibly raises it from 0.5 to 1.0 when the fault is injected (OQ-10 resolved, Simon, 2026-10-16). The e2e suite runs the same progression in order without resets (`test_stage_progression`, OTelFeature/poc#35). See the [entity model](../entity_model.md#flag_preset).
 
 ### BR-007: A flip counts only once flagd serves it
 
