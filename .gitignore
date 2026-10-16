@@ -5,3 +5,4 @@ __pycache__/
 *.pyc
 build/
 tests/e2e/.artifacts/
+bench/.results/

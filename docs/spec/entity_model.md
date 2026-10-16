@@ -362,6 +362,14 @@ dropped spans record nothing.
 | `OTEL_METRICS_EXPORTER` | `otlp` | both | Honoured like the SDK (FR-024). `none`: no metrics SDK, so the error-rate reader is not registered, `otelfeature.http.server.error_rate` is absent and error-rate rules never match. Java: OTelFeature/otelfeature-java-extension#31; Python: OTelFeature/otelfeature-instrument#15 |
 | `OTEL_TRACES_EXPORTER` | `otlp` | both | Honoured like the SDK (FR-025). `none`: nothing is exported; the tracer, the flag policy and context propagation keep working and the recording CPU cost remains. Java: SDK autoconfigure; Python: OTelFeature/otelfeature-instrument#19 |
 
+Measurement harness (`make bench`, UC-003, TC-003):
+
+| Variable | Default | Meaning |
+|---|---|---|
+| `BENCH_WARMUP` | `120` | Seconds of traffic before each measured window, after the run recreated `geocode`, `weather` and the load generator |
+| `BENCH_SECONDS` | `240` | Length of each measured window |
+| `BENCH_RATE` | `1` | Multiplies the load generator's business requests (`POST /geocode`, `POST /weather`) and health checks (`1` = the stage load); the `/forecast` path stays at one per 15 s. Demo 2 savings are quoted at `1`, because the share of health checks decides them |
+
 Exporter values: only an exact `none` switches export off (case and
 surrounding whitespace ignored). `none` mixed with other values logs a warning
 and keeps exporting. Python exports any other value over OTLP/HTTP.

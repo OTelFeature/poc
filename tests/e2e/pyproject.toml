@@ -11,6 +11,8 @@ dependencies = [
     # uses. Version in step with src/geocode/uv.lock.
     "check-jsonschema==0.38.2",
     "openfeature-provider-flagd==0.5.2",
+    # Measurement harness (bench/): OTLP protobuf sizes per service.
+    "opentelemetry-proto==1.45.1",
 ]
 
 [tool.uv]

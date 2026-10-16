@@ -26,6 +26,10 @@ const REQUEST_INTERVAL_SECONDS = Number(__ENV.REQUEST_INTERVAL_SECONDS) || 5;
 
 const DURATION = __ENV.DURATION || '1h';
 
+// Requests per interval for the geocode and weather scenarios: 1 is the
+// stage load; the measurement harness raises it with BENCH_RATE (UC-003).
+const REQUEST_RATE = Number(__ENV.REQUEST_RATE) || 1;
+
 // Health checks: GET /health on both services, like a kubelet probe, so
 // Demo 2 has health-check spans to drop (OTelFeature/poc#38). Requests per
 // second, per service; 0 turns the scenario off. k6 sends no traceparent, so
@@ -52,20 +56,20 @@ const scenarios = {
   geocode: {
     exec: 'geocode',
     executor: 'constant-arrival-rate',
-    rate: 1,
+    rate: REQUEST_RATE,
     timeUnit: `${REQUEST_INTERVAL_SECONDS}s`,
     duration: DURATION,
     preAllocatedVUs: 2,
-    maxVUs: 5,
+    maxVUs: 20,
   },
   weather: {
     exec: 'weather',
     executor: 'constant-arrival-rate',
-    rate: 1,
+    rate: REQUEST_RATE,
     timeUnit: `${REQUEST_INTERVAL_SECONDS}s`,
     duration: DURATION,
     preAllocatedVUs: 2,
-    maxVUs: 5,
+    maxVUs: 20,
   },
 };
 
