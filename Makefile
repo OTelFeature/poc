@@ -1,4 +1,4 @@
-.PHONY: build start start-live prepare-offline stop
+.PHONY: build start start-live start-staging prepare-offline stop
 
 # Real API endpoints, used only by `make start-live`. Plain `make start` talks
 # to the stub-apis container so the stack runs with no network at all.
@@ -12,13 +12,18 @@ build:
 # Run once while online: pulls every image and builds the services, so that
 # `make start` afterwards needs no network (it never rebuilds on its own).
 prepare-offline:
-	docker compose pull --ignore-buildable
-	docker compose build
+	docker compose --profile staging pull --ignore-buildable
+	docker compose --profile staging build
 
 start-live: export NOMINATIM_URL := $(LIVE_NOMINATIM_URL)
 start-live: export OPEN_METEO_GEOCODING_URL := $(LIVE_OPEN_METEO_GEOCODING_URL)
 start-live: export OPEN_METEO_FORECAST_URL := $(LIVE_OPEN_METEO_FORECAST_URL)
 start-live: start
+
+# Adds geocode-staging, weather-staging and a second k6 next to the
+# production pair (deployment.environment.name=staging vs production).
+start-staging: export COMPOSE_PROFILES := staging
+start-staging: start
 
 start:
 	docker compose up -d
@@ -63,4 +68,4 @@ start:
 	@printf '%s\n' '         - Aspire Dashboard: http://localhost:18888'
 
 stop:
-	docker compose down
+	docker compose --profile staging down

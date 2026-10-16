@@ -111,6 +111,7 @@ curl -s http://localhost:8001/health
 | `POSTGRES_PWD`                | `password`        | Postgres password                                    |
 | `POSTGRES_DB`                 | `coordinates`     | Postgres database name                              |
 | `OTEL_SERVICE_NAME`           | -                 | Service name reported in telemetry                  |
+| `OTEL_RESOURCE_ATTRIBUTES` | - | Compose sets `deployment.environment.name` (`production`, or `staging` for the staging twin), `service.namespace=otelfeature` and `service.version`; flag rules can target them |
 | `OTEL_EXPORTER_OTLP_ENDPOINT`  | -                 | OTLP collector endpoint                             |
 | `OTEL_EXPORTER_OTLP_PROTOCOL`  | -                 | OTLP protocol (`http/protobuf`, `grpc`, etc.)       |
 | `FLAGD_HOST`                  | `flagd`           | flagd host (for `telemetryLevel` flag evaluation)  |

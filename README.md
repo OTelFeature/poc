@@ -130,8 +130,9 @@ flowchart LR
 make build            # docker compose build
 make start            # docker compose up -d, external APIs stubbed
 make start-live       # same, but geocode/weather call the real Nominatim and Open-Meteo
+make start-staging    # also start the staging twins (compose profile `staging`)
 make prepare-offline  # pull + build everything, so `make start` later needs no network
-make stop             # docker compose down
+make stop             # docker compose down (staging included)
 ```
 
 Once started:
@@ -154,6 +155,29 @@ curl -s -X POST http://localhost:8001/weather \
   -d '{"city": "linz", "country": "austria"}'
 ```
 
+### Resource attributes and environments
+
+`geocode` and `weather` set their own semantic-convention resource
+attributes through `OTEL_RESOURCE_ATTRIBUTES` in
+[compose.yaml](compose.yaml):
+
+| Attribute | Value |
+|---|---|
+| `service.name` | `geocode` / `weather` (`OTEL_SERVICE_NAME`) |
+| `service.namespace` | `otelfeature` |
+| `service.version` | `0.1.0` (the version in `pyproject.toml` / `build.gradle`) |
+| `deployment.environment.name` | `production`, or `staging` for the staging twins |
+
+The flag decisions happen in the SDK, so rules on these attributes only work
+if the service itself sets them. The collector's `resource` processor only
+*inserts* `deployment.environment.name=otelfeature` for senders that don't set
+one (flagd, k6, docker stats); it never overwrites a service's value.
+
+`make start-staging` (or `docker compose --profile staging up -d`) adds
+`geocode-staging` (port 8002), `weather-staging` (port 8003) and a second k6
+instance driving them, so Aspire shows four services split by
+`deployment.environment.name`.
+
 ### Running on stage
 
 The default stack needs no network once its images exist. `geocode` and
@@ -164,7 +188,7 @@ pipelines and, without `DD_SITE`/`DD_API_KEY`, logs export errors (which
 also show up in Aspire as collector logs). Ignore them.
 
 1. While online: `make prepare-offline`. This pulls every image and builds
-   `geocode` and `weather` (their builds download dependencies, the OTel Java
+   `geocode` and `weather` (and their staging twins) (their builds download dependencies, the OTel Java
    agent and the otelfeature extension, so they can't run offline).
 2. Offline: `make start`. It never rebuilds on its own; don't run
    `make build` or `docker compose up --build` without network.

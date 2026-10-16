@@ -6,66 +6,102 @@ networks:
 volumes:
   coordinates-db-data:
 
+# Shared definitions for geocode/weather and their staging twins (compose
+# profile `staging`). The YAML merge key `<<:` copies a mapping; keys written
+# next to it win. Lists don't merge, so `environment` is a mapping here.
+x-geocode: &geocode
+  build:
+    context: ./src/geocode
+  depends_on: &app-depends-on
+    otel-collector:
+      condition: service_started
+    coordinates-db:
+      condition: service_healthy
+    flagd:
+      condition: service_started
+    stub-apis:
+      condition: service_healthy
+
+x-geocode-env: &geocode-env
+  FLAGD_HOST: flagd
+  GEOCODE_PORT: "8000"
+  NOMINATIM_URL: ${NOMINATIM_URL:-http://stub-apis:8080/search}
+  OTEL_SERVICE_NAME: geocode
+  OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4318
+  OTEL_EXPORTER_OTLP_PROTOCOL: http/protobuf
+  POSTGRES_HOST: coordinates-db
+  POSTGRES_PORT: "5432"
+  POSTGRES_USER: postgres
+  POSTGRES_PWD: password
+  POSTGRES_DB: coordinates
+
+x-weather: &weather
+  build:
+    context: ./src/weather
+  depends_on: *app-depends-on
+
+x-weather-env: &weather-env
+  WEATHER_PORT: "8001"
+  OPEN_METEO_GEOCODING_URL: ${OPEN_METEO_GEOCODING_URL:-http://stub-apis:8080/v1/search}
+  OPEN_METEO_FORECAST_URL: ${OPEN_METEO_FORECAST_URL:-http://stub-apis:8080/v1/forecast}
+  OTEL_SERVICE_NAME: weather
+  OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4318
+  OTEL_EXPORTER_OTLP_PROTOCOL: http/protobuf
+  OTEL_INSTRUMENTATION_COMMON_EXPERIMENTAL_CONTROLLER_TELEMETRY_ENABLED: "true"
+  POSTGRES_HOST: coordinates-db
+  POSTGRES_PORT: "5432"
+  POSTGRES_USER: postgres
+  POSTGRES_PWD: password
+  POSTGRES_DB: coordinates
+  FLAGD_HOST: flagd
+  FLAGD_PORT: "8015"
+  FLAGD_COMPILE_TARGETING: disabled
+
 services:
+  # Each service sets its own semconv resource attributes, so the SDK-side
+  # flag decision sees them (the collector only fills in what's missing).
+  # service.version matches `version` in src/geocode/pyproject.toml and
+  # src/weather/build.gradle.
   geocode:
-    build:
-      context: ./src/geocode
+    <<: *geocode
     container_name: geocode
     ports:
       - 8000:8000
     environment:
-      - FLAGD_HOST=flagd
-      - GEOCODE_PORT=8000
-      - NOMINATIM_URL=${NOMINATIM_URL:-http://stub-apis:8080/search}
-      - OTEL_SERVICE_NAME=geocode
-      - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4318
-      - OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf
-      - POSTGRES_HOST=coordinates-db
-      - POSTGRES_PORT=5432
-      - POSTGRES_USER=postgres
-      - POSTGRES_PWD=password
-      - POSTGRES_DB=coordinates
-    depends_on:
-      otel-collector:
-        condition: service_started
-      coordinates-db:
-        condition: service_healthy
-      flagd:
-        condition: service_started
-      stub-apis:
-        condition: service_healthy
+      <<: *geocode-env
+      OTEL_RESOURCE_ATTRIBUTES: deployment.environment.name=production,service.namespace=otelfeature,service.version=0.1.0
 
   weather:
-    build:
-      context: ./src/weather
+    <<: *weather
     container_name: weather
     ports:
       - 8001:8001
     environment:
-      - WEATHER_PORT=8001
-      - OPEN_METEO_GEOCODING_URL=${OPEN_METEO_GEOCODING_URL:-http://stub-apis:8080/v1/search}
-      - OPEN_METEO_FORECAST_URL=${OPEN_METEO_FORECAST_URL:-http://stub-apis:8080/v1/forecast}
-      - OTEL_SERVICE_NAME=weather
-      - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4318
-      - OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf
-      - OTEL_INSTRUMENTATION_COMMON_EXPERIMENTAL_CONTROLLER_TELEMETRY_ENABLED=true
-      - POSTGRES_HOST=coordinates-db
-      - POSTGRES_PORT=5432
-      - POSTGRES_USER=postgres
-      - POSTGRES_PWD=password
-      - POSTGRES_DB=coordinates
-      - FLAGD_HOST=flagd
-      - FLAGD_PORT=8015
-      - FLAGD_COMPILE_TARGETING=disabled
-    depends_on:
-      otel-collector:
-        condition: service_started
-      coordinates-db:
-        condition: service_healthy
-      flagd:
-        condition: service_started
-      stub-apis:
-        condition: service_healthy
+      <<: *weather-env
+      OTEL_RESOURCE_ATTRIBUTES: deployment.environment.name=production,service.namespace=otelfeature,service.version=0.1.0
+
+  # Staging twins: same image and config, deployment.environment.name=staging.
+  # Only started with `--profile staging` (`make start-staging`). Their
+  # images build from the same context, so the second build is all cache hits.
+  geocode-staging:
+    <<: *geocode
+    profiles: [staging]
+    container_name: geocode-staging
+    ports:
+      - 8002:8000
+    environment:
+      <<: *geocode-env
+      OTEL_RESOURCE_ATTRIBUTES: deployment.environment.name=staging,service.namespace=otelfeature,service.version=0.1.0
+
+  weather-staging:
+    <<: *weather
+    profiles: [staging]
+    container_name: weather-staging
+    ports:
+      - 8003:8001
+    environment:
+      <<: *weather-env
+      OTEL_RESOURCE_ATTRIBUTES: deployment.environment.name=staging,service.namespace=otelfeature,service.version=0.1.0
 
   load-generator:
     image: grafana/k6:2.3.0
@@ -88,6 +124,29 @@ services:
       weather:
         condition: service_started
   
+  # Second k6 instance for the staging profile, same script and rate.
+  load-generator-staging:
+    profiles: [staging]
+    image: grafana/k6:2.3.0
+    container_name: load-generator-staging
+    command: run --out opentelemetry /scripts/load-test.js
+    volumes:
+      - ./src/load-generator/load-test.js:/scripts/load-test.js
+    environment:
+      - GEOCODE_BASE_URL=http://geocode-staging:8000
+      - WEATHER_BASE_URL=http://weather-staging:8001
+      - REQUEST_INTERVAL_SECONDS=1
+      - DURATION=15m
+      - K6_OTEL_GRPC_EXPORTER_ENDPOINT=otel-collector:4317
+      - K6_OTEL_GRPC_EXPORTER_INSECURE=true
+      - K6_OTEL_SERVICE_NAME=load-generator-staging
+      - K6_NO_USAGE_REPORT=true
+    depends_on:
+      geocode-staging:
+        condition: service_started
+      weather-staging:
+        condition: service_started
+
   # Offline stand-in for Nominatim and Open-Meteo (see src/stub-apis).
   # geocode and weather point at it unless `make start-live` overrides the
   # URLs above. Stdlib-only script on the image geocode is built from, so
