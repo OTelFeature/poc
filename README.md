@@ -230,6 +230,63 @@ Each service has its own README with configuration details:
 [stub-apis](src/stub-apis/README.md),
 [otel-collector](src/otel-collector/README.md).
 
+## Which `OTEL_*` env vars can be live flags
+
+**The env var is the default, the flag is the live override.** Each setting
+starts from its standard `OTEL_*` env var, read the way the SDK or the Java
+agent reads it. A flag changes it while the service runs, and if the flag
+can't be evaluated, the env var value applies again. There are two
+exceptions, the **hard floors**: with `OTEL_SDK_DISABLED=true` or
+`OTEL_TRACES_SAMPLER=always_off` the env var wins, and no flag turns tracing
+back on. Flags only ever reduce telemetry.
+
+Not every env var can work this way. Most are read once, while the SDK is
+built, and nothing reads them again.
+
+| Tier | Env vars | Live flag | Why |
+|---|---|---|---|
+| **Live flag** | `OTEL_SDK_DISABLED` | `otelEnabled`, `telemetryLevel=OFF` | Suppresses spans instead of disabling the SDK; `true` is a hard floor |
+| **Live flag** | `OTEL_TRACES_SAMPLER`, `OTEL_TRACES_SAMPLER_ARG` | `traceSampleRatio` | The env vars give the fallback ratio; `always_off` is a hard floor |
+| **Live flag, approximated** | `OTEL_INSTRUMENTATION_<name>_ENABLED` | a `recordSpan` or `telemetryLevel` rule on `otel.scope.name` | Scope filtering: the instrumentation stays installed, only its spans are left out |
+| **Startup only, honoured** | `OTEL_TRACES_EXPORTER=none`, `OTEL_METRICS_EXPORTER=none` | none | Both extensions honour `none` at startup, like the SDK. A live per-signal switch (`signalsEnabled`, [#11](https://github.com/OTelFeature/poc/issues/11)) was closed as not planned |
+| **Startup only** | `OTEL_LOGS_EXPORTER` | none | The SDK or agent reads it; logs are out of scope here |
+| **Feasible, deferred** | `OTEL_SPAN_ATTRIBUTE_VALUE_LENGTH_LIMIT`, `OTEL_ATTRIBUTE_COUNT_LIMIT` | none | Fixed in the span limits when the provider is built. An exporter-side truncating wrapper could approximate them ("clamp it now"), with different semantics |
+| **Feasible, deferred** | `OTEL_BSP_SCHEDULE_DELAY`, `OTEL_METRIC_EXPORT_INTERVAL` | none | Changing them live means rebuilding the processor or reader mid-flight, with a flush; small payoff |
+| **Feasible, deferred** | `OTEL_PROPAGATORS` | none | Easy (a delegating propagator), but no incident calls for flipping propagators live |
+| **Excluded: security** | `OTEL_EXPORTER_OTLP_ENDPOINT`, `OTEL_EXPORTER_OTLP_HEADERS` | none, by decision | See below |
+| **Cannot be a flag** | `OTEL_SERVICE_NAME`, `OTEL_RESOURCE_ATTRIBUTES` | none | The resource is fixed when the providers are built |
+| **Cannot be a flag** | `OTEL_EXPORTER_OTLP_PROTOCOL` | none | Chooses the exporter implementation at startup |
+| **Cannot be a flag** | `OTEL_JAVAAGENT_ENABLED` | none | Decides whether the agent, and so the extension, loads at all |
+| **Cannot be a flag** | `OTEL_PYTHON_DISABLED_INSTRUMENTATIONS` | none | Decides at launch which libraries get patched; the scope rule above is the live alternative |
+| **Cannot be a flag** | `OTEL_SEMCONV_STABILITY_OPT_IN` | none | Instrumentations pick their attribute and metric names when installed |
+
+The env vars in the last tier are consumed before there is anything to
+re-evaluate. A flag for one of them would only take effect at the next
+restart, and at a restart the env var already does the job.
+
+**Why the OTLP endpoint is excluded.** A live endpoint flag is technically
+feasible (rebuild the exporter, flush), but it should not ship. A flag that
+redirects a whole fleet's telemetry to an arbitrary endpoint is a
+data-exfiltration primitive, and flagd rulesets usually have weaker access
+control than deployment config. The headers carry credentials. If it is ever
+built, it may only choose from an allowlist of endpoints fixed at startup.
+
+**Out of scope: startup-time flags.** Reading configuration from flagd at
+bootstrap would give central configuration without a redeploy per service,
+though not without a restart. That is a different product, and this project
+does not pursue it.
+
+Details per language:
+[otelfeature-instrument](https://github.com/OTelFeature/otelfeature-instrument#configuration)
+(Python; see also [one policy, one read](https://github.com/OTelFeature/otelfeature-instrument#one-policy-one-read)
+and [muting an instrumentation](https://github.com/OTelFeature/otelfeature-instrument#muting-an-instrumentation-once-per-tracer))
+and
+[otelfeature-java-extension](https://github.com/OTelFeature/otelfeature-java-extension#configuration)
+(Java; see also [sampling ratio](https://github.com/OTelFeature/otelfeature-java-extension#sampling-ratio-tracesampleratio)
+and [dropping single spans](https://github.com/OTelFeature/otelfeature-java-extension#dropping-single-spans-recordspan)).
+The spec keeps the reference table in
+[docs/spec/entity_model.md](docs/spec/entity_model.md#otel_-env-vars-and-live-flags).
+
 ## Repository layout
 
 ```
