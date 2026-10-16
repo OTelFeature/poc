@@ -239,6 +239,14 @@ stage never builds from git refs; unreleased code gets a pre-release
   before counting spans; OFREP only verifies, services evaluate in process
   (C-002). See
   [flag file reload](entity_model.md#flag-file-reload).
+- **Docker is the only dependency** (NFR-017, OTelFeature/poc#91). `main`
+  publishes multi-arch images (`ghcr.io/otelfeature/poc-geocode`,
+  `poc-weather`, `poc-stub-apis`; tags `main`, `sha-<short>`), so the stage
+  and adopters run `docker compose pull` and `docker compose up -d` and build
+  nothing. The `flag` compose service (`docker compose run --rm flag
+  <preset>`) applies a preset like `make flag` and confirms over OFREP that
+  flagd serves it (each preset names itself in its flag-set metadata). The
+  e2e suite still builds the code under test.
 
 ### Toolchain images (OTelFeature/otelfeature-instrument#20, OTelFeature/otelfeature-java-extension#32)
 

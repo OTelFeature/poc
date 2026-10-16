@@ -8,15 +8,15 @@
 **Secondary Actors:** flagd, demo stack, Aspire dashboard  
 **Goal:** The operator runs Demos 1 to 3 from a laptop without network access, moving between states with one command per script beat and resetting between rehearsals, so that the live demo cannot be broken by venue Wi-Fi or a typo in a JSON file.  
 **Status:** Draft  
-**Requirements:** FR-018, FR-019, FR-010, NFR-004, NFR-012, NFR-015, C-006, C-007, C-008, C-009  
-**Work Items:** OTelFeature/poc#24, OTelFeature/poc#26, OTelFeature/poc#25, OTelFeature/poc#32, OTelFeature/poc#33, OTelFeature/poc#35, OTelFeature/poc#64, OTelFeature/poc#74  
+**Requirements:** FR-018, FR-019, FR-010, NFR-004, NFR-012, NFR-015, NFR-017, C-006, C-007, C-008, C-009  
+**Work Items:** OTelFeature/poc#24, OTelFeature/poc#26, OTelFeature/poc#25, OTelFeature/poc#32, OTelFeature/poc#33, OTelFeature/poc#35, OTelFeature/poc#64, OTelFeature/poc#74, OTelFeature/poc#91  
 **Test Cases:** TC-006  
 **Script Beat:** all demos; cold open uses OTel Demo footage (D1)  
 **Open Questions:** none (OQ-10 resolved)  
 
 ## Preconditions
 
-- The operator has pulled and built all images while online, with the pinned extension releases (C-006).
+- The operator has pulled all images while online: the prebuilt `geocode`, `weather` and `stub-apis` images published from `main`, which carry the pinned extension releases (C-006, NFR-017), and the third-party images (BR-008).
 - Presets exist for each demo state: baseline, tracing off, quiet noise, semconv rules, weather boost, incident (BR-006).
 - A fallback video exists for each demo.
 
@@ -25,7 +25,7 @@
 1. The operator disconnects the laptop from the network.
 2. The operator starts the stack; both services call the stubbed external APIs.
 3. The operator resets to the baseline preset; traffic flows and traces appear.
-4. For each script beat, the operator runs the one command that applies that beat's preset.
+4. For each script beat, the operator runs the one command that applies that beat's preset; the command reports once flagd serves it (BR-007).
 5. The dashboard shows the beat's flag change within 2 seconds (NFR-004). The control-loop effect of `03b-incident` (`weather` from 0.5 to 1.0) follows within one to two error-rate intervals (NFR-014); its errors show within 2 seconds.
 6. After the last beat, the operator resets to baseline.
 
@@ -48,6 +48,15 @@
 
 1. Both services call Nominatim and Open-Meteo; request rates stay within their usage policies.
 2. Use case continues at step 3.
+
+### A3: Prebuilt images unavailable
+
+**Trigger:** Before going offline (step 1), the prebuilt images cannot be pulled, for example because the registry refuses the pull, or the operator needs a local code change.
+
+**Flow:**
+
+1. The operator builds the images from source while online (`docker compose --profile staging build`), with the same pinned extension releases (C-006).
+2. Use case continues at step 1.
 
 ## Postconditions
 
@@ -87,4 +96,8 @@ Decided by Simon, 2026-10-16 (OTelFeature/poc#26, PR OTelFeature/poc#41). Each p
 
 ### BR-007: A flip counts only once flagd serves it
 
-flagd reloads a flag file only when its mtime strictly increases, so every preset command leaves the file with a newer mtime, and an automated run checks that flagd serves the new value before it counts spans. The check reads the value over flagd's OFREP endpoint and only verifies it; the services still evaluate in process over gRPC sync (C-002, NFR-004, [flag file reload](../entity_model.md#flag-file-reload)).
+flagd reloads a flag file only when its mtime strictly increases, so every preset command leaves the file with a newer mtime, and an automated run checks that flagd serves the new value before it counts spans. The check reads the value over flagd's OFREP endpoint and only verifies it; the services still evaluate in process over gRPC sync (C-002, NFR-004, [flag file reload](../entity_model.md#flag-file-reload)). The stage's flag command (`docker compose run --rm flag <preset>`) does the same check: every preset names itself in its flag-set metadata, and the command reports success only once flagd's OFREP answer carries that name, or fails after its timeout (OTelFeature/poc#91).
+
+### BR-008: The stage pulls, it does not build
+
+The stage runs the images published from `main` (NFR-017), so the operator's laptop needs Docker only and no build can fail on the day. `POC_IMAGE_TAG` selects them: `main` by default, or the `sha-<short>` tag of the commit that was rehearsed, so the stage runs exactly the rehearsed images. Building from source is the fallback (A3), never the default (Simon, 2026-10-16, OTelFeature/poc#91).

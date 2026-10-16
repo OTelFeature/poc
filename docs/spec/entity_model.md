@@ -75,6 +75,7 @@ A named, complete `flagd.json` for one stage state (OTelFeature/poc#26).
 | name | Preset name, also the file name in `src/flagd/presets/` | String | 50 | Not Null, Unique |
 | scriptBeat | Talk beat the preset belongs to | String | 100 | Not Null |
 | schemaValid | Validates against `https://flagd.dev/schema/v0/flags.json` | Boolean | 1 | Not Null |
+| metadata.preset | The preset's own name in the flag-set `metadata`; flagd merges it into the metadata of every OFREP answer, so a flip can be confirmed without an extra flag (OTelFeature/poc#91) | String | 50 | Not Null, equals `name` |
 
 **Presets are cumulative** (Simon, 2026-10-16, OTelFeature/poc#26, PR
 OTelFeature/poc#41). Each Demo 2 and Demo 3 preset keeps the rules of the
@@ -230,7 +231,8 @@ OTelFeature/poc#41: two plain `cp`s in a row lost the second flip.
 Every writer of a watched flag file therefore:
 
 1. **Bumps the mtime.** It leaves the file with an mtime strictly newer than
-   before. Stage tooling (`make flag`, `make demo-reset`) goes through
+   before. Stage tooling (`make flag`, `make demo-reset` and the `flag`
+   compose service, `docker compose run --rm flag <preset>`) goes through
    `src/flagd/apply-preset.sh`: write a temp file, set its mtime to
    `max(old, now) + 1 s`, rename it over the target (atomic, so no reader
    sees a half-written file). Test helpers do the same in their language; the
@@ -240,6 +242,11 @@ Every writer of a watched flag file therefore:
    OFREP (port 8016) until flagd serves the new value (the e2e suite adds a
    per-write revision flag for this), with a timeout that fails the run. OFREP
    only verifies the served value; the services evaluate in process (C-002).
+   The `flag` compose service confirms a preset by its own name: it polls
+   OFREP until the answer's metadata carries `preset` = the preset it wrote
+   (FLAG_PRESET `metadata.preset`), and exits non-zero after
+   `FLAG_CONFIRM_TIMEOUT` seconds. `make flag` only writes; it counts no
+   spans and does not confirm.
 
 This applies to the preset scripts, `make demo-reset`, the extension tests
 that rewrite flag files, and the e2e flag-flip helper (NFR-004, TC-006).
@@ -384,3 +391,30 @@ OTelFeature/otelfeature-java-extension#31 and landing PR #33). Java has no
 tracing-hook setting: OTelFeature/otelfeature-java-extension#23 was closed as
 not planned (2026-10-16), since the extension writes nothing onto spans
 (FR-014). An opt-in hook for Java would be a new issue.
+
+Demo stack (`compose.yaml`, NFR-017, OTelFeature/poc#91):
+
+| Variable | Default | Meaning |
+|---|---|---|
+| `POC_IMAGE_TAG` | `main` | Tag of the prebuilt `geocode`, `weather` and `stub-apis` images that `docker compose pull` and `up` use: `main`, or a `sha-<short commit>` to pin exactly the images of one commit (for example the rehearsed ones). Ignored by the e2e suite, which builds its own images |
+| `FLAG_CONFIRM_TIMEOUT` | `10` | Seconds the `flag` compose service waits for flagd to serve the preset it wrote before it fails |
+| `FLAGD_OFREP_URL` | `http://flagd:8016` | flagd's OFREP endpoint that the `flag` service and the e2e flag helper confirm a write against |
+
+### Prebuilt images
+
+Published by `.github/workflows/images.yml` on every push to `main` and on
+manual runs; pull requests build them for both platforms without pushing
+(NFR-017, OTelFeature/poc#91).
+
+| Image | Built from | Platforms | Tags | Pinned versions in the labels |
+|---|---|---|---|---|
+| `ghcr.io/otelfeature/poc-geocode` | `src/geocode` | `linux/amd64`, `linux/arm64` | `main`, `sha-<short>` | `io.github.otelfeature.instrument.version`: the `otelfeature-instrument` tag in `uv.lock` (C-006) |
+| `ghcr.io/otelfeature/poc-weather` | `src/weather` | `linux/amd64`, `linux/arm64` | `main`, `sha-<short>` | `io.github.otelfeature.java-extension.version`: `OTELFEATURE_EXTENSION_VERSION` (C-006); `io.opentelemetry.javaagent.version`: `OTEL_AGENT_VERSION` |
+| `ghcr.io/otelfeature/poc-stub-apis` | `src/stub-apis` | `linux/amd64`, `linux/arm64` | `main`, `sha-<short>` | none |
+
+Every image also carries `org.opencontainers.image.source` (the repository),
+`org.opencontainers.image.revision` (the full commit) and
+`org.opencontainers.image.created`. A manual run on a branch other than
+`main` pushes only `sha-<short>`. Images are always built from the pinned
+releases; a git-ref build (C-013) is for the e2e suite only and is never
+published.
