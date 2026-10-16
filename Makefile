@@ -14,14 +14,16 @@ ifneq ($(EXT_REF),)
 OTELFEATURE_INSTRUMENT_REF := $(EXT_REF)
 OTELFEATURE_EXTENSION_REF := $(EXT_REF)
 endif
-INSTRUMENT_FROM_GIT := $(or $(EXT_REF),$(filter command line environment,$(origin OTELFEATURE_INSTRUMENT_REF)))
-EXTENSION_FROM_GIT := $(or $(EXT_REF),$(filter command line environment,$(origin OTELFEATURE_EXTENSION_REF)))
+# An empty value doesn't count (make start OTELFEATURE_INSTRUMENT_REF=).
+GIVEN = $(and $($(1)),$(filter command line environment environment override,$(origin $(1))))
+INSTRUMENT_FROM_GIT := $(or $(EXT_REF),$(call GIVEN,OTELFEATURE_INSTRUMENT_REF))
+EXTENSION_FROM_GIT := $(or $(EXT_REF),$(call GIVEN,OTELFEATURE_EXTENSION_REF))
 STAGE_FROM_GIT := $(INSTRUMENT_FROM_GIT)$(EXTENSION_FROM_GIT)
 
-build start: export OTELFEATURE_INSTRUMENT_SOURCE := $(if $(INSTRUMENT_FROM_GIT),git,lock)
-build start: export OTELFEATURE_EXTENSION_SOURCE := $(if $(EXTENSION_FROM_GIT),git,release)
-build start: export OTELFEATURE_INSTRUMENT_REF := $(OTELFEATURE_INSTRUMENT_REF)
-build start: export OTELFEATURE_EXTENSION_REF := $(OTELFEATURE_EXTENSION_REF)
+build start prepare-offline: export OTELFEATURE_INSTRUMENT_SOURCE := $(if $(INSTRUMENT_FROM_GIT),git,lock)
+build start prepare-offline: export OTELFEATURE_EXTENSION_SOURCE := $(if $(EXTENSION_FROM_GIT),git,release)
+build start prepare-offline: export OTELFEATURE_INSTRUMENT_REF := $(OTELFEATURE_INSTRUMENT_REF)
+build start prepare-offline: export OTELFEATURE_EXTENSION_REF := $(OTELFEATURE_EXTENSION_REF)
 
 PRESET_DIR := src/flagd/presets
 PRESETS := $(sort $(basename $(notdir $(wildcard $(PRESET_DIR)/*.json))))
@@ -37,6 +39,7 @@ build:
 
 # Run once while online: pulls every image and builds the services, so that
 # `make start` afterwards needs no network (it never rebuilds on its own).
+# Takes EXT_REF / the ref variables too; without them it builds pinned.
 prepare-offline:
 	docker compose --profile staging pull --ignore-buildable
 	docker compose --profile staging build
@@ -52,7 +55,7 @@ start-staging: export COMPOSE_PROFILES := staging
 start-staging: start
 
 start:
-	$(if $(STAGE_FROM_GIT),docker compose build geocode weather $(if $(filter staging,$(COMPOSE_PROFILES)),geocode-staging weather-staging))
+	$(if $(STAGE_FROM_GIT),docker compose --profile staging build geocode weather geocode-staging weather-staging)
 	docker compose up -d
 	@printf '%s\n' ''
 	@printf '%s\n' '               ██████████████████████████████████████████████████             '
@@ -155,6 +158,7 @@ validate-flags:
 #   make e2e
 #   make e2e OTELFEATURE_INSTRUMENT_REF=feat/x OTELFEATURE_EXTENSION_REF=v0.4.0
 #   make e2e OTELFEATURE_ENFORCEMENT=sampler PYTEST_ARGS="-k baseline -x"
+#   make e2e EXT_REF=feat/x  # both refs at once, as for the stage stack
 #   make e2e E2E_KEEP=1      # leave the stack up afterwards (make e2e-down)
 #
 # Logs and the collected spans land in tests/e2e/.artifacts/.

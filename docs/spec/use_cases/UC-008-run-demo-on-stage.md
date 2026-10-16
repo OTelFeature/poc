@@ -55,7 +55,7 @@
 
 **Flow:**
 
-1. While online, the speaker starts the stack with an extension git ref: `make start-staging EXT_REF=main` (or a ref per extension: `OTELFEATURE_INSTRUMENT_REF`, `OTELFEATURE_EXTENSION_REF`).
+1. While online, the speaker prepares and starts the stack with an extension git ref: `make prepare-offline EXT_REF=main`, then `make start-staging EXT_REF=main` (or a ref per extension: `OTELFEATURE_INSTRUMENT_REF`, `OTELFEATURE_EXTENSION_REF`).
 2. The stack builds `geocode` with otelfeature-instrument and `weather` with otelfeature-java-extension from that ref, and starts.
 3. `make start` prints the extension source of the running images (`git <ref>` or the pinned version).
 4. Use case continues at step 1; from here the stack needs no network.

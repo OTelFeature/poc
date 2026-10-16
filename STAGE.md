@@ -15,13 +15,15 @@ pushes the change to both services and they apply it to the next span. Aspire
 > git (FR-026), while online:
 >
 > ```sh
+> make prepare-offline EXT_REF=main
 > make start-staging EXT_REF=main
 > ```
 >
 > `make start` lists the extension each running image was built with (`git
 > main`, or the pinned version). The images keep that build: plain `make
 > start` reuses them, offline too. `make build` goes back to the pinned
-> versions. `geocode` runs with `OTEL_SEMCONV_STABILITY_OPT_IN=http`, so its
+> versions, and so does `make prepare-offline` without `EXT_REF`. A ref build
+needs the network: offline, run plain `make start-staging`. `geocode` runs with `OTEL_SEMCONV_STABILITY_OPT_IN=http`, so its
 > server spans carry `url.path` at start (the old conventions only set
 > `http.target`).
 
@@ -30,7 +32,7 @@ pushes the change to both services and they apply it to the next span. Aspire
 | Step | Command | Expect |
 |---|---|---|
 | Pull and build everything | `make prepare-offline` | No errors |
-| Until the releases exist: build from git | `make start-staging EXT_REF=main` | `geocode: git main`, `weather: git main` in the start banner |
+| Until the releases exist: build from git (online) | `make prepare-offline EXT_REF=main` then `make start-staging EXT_REF=main` | `git main` for all four app images in the start banner. On stage, offline, plain `make start-staging` reuses these images |
 | Start empty, with staging | `docker compose --profile staging down -v` then `make start-staging` | 4 app containers + 2 k6 |
 | Baseline flags, fresh traffic | `make demo-reset` | `flagd.json is now 00-baseline` |
 

@@ -48,7 +48,7 @@ the end-to-end suite and the toolchain images.
 | OTelFeature/poc#24 | Offline stage mode | P0 | FR-018, C-009 | UC-008, UC-009 | TC-006 |
 | OTelFeature/poc#25 | Resource attrs, prod/staging | P0 | FR-010 | UC-004 | TC-004 |
 | OTelFeature/poc#26 | Stage controls | P0 | FR-019 | UC-008 | TC-006 |
-| (no issue; asked by Simon, 2026-10-16) | Stage stack from extension git refs | P0 | FR-026, C-013 | UC-008 A3 | TC-006 V8 |
+| OTelFeature/poc#61 | Stage stack from extension git refs | P0 | FR-026, C-006, C-013 | UC-008 A3, BR-008 | TC-006 V8 |
 | OTelFeature/poc#27 | Measurement harness | P1 | FR-016, NFR-005, NFR-011 | UC-003 | TC-003 |
 | OTelFeature/poc#28 | Fault-injection flag | P1 | FR-012 | UC-006 | TC-005 |
 | OTelFeature/poc#29 | Control-loop preset | P1 | FR-013, NFR-012 | UC-005 | TC-005 |

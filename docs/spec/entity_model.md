@@ -354,7 +354,10 @@ and passed to the Dockerfiles as build args:
 | `OTELFEATURE_EXTENSION_REF` | unset (stage) / `main` (e2e) | Git ref weather builds the otelfeature-java-extension JAR from (`shadowJar`); unset = release `OTELFEATURE_EXTENSION_VERSION` |
 
 The images carry the labels `io.otelfeature.extension.source` (`lock`,
-`release` or `git`) and `io.otelfeature.extension.ref`.
+`release` or `git`), `io.otelfeature.extension.ref` (meaningful only when the
+source is `git`; it records the ref *name*, not the commit it resolved to)
+and, on weather, `io.otelfeature.extension.version` (the release used when
+the source is `release`).
 
 Exporter values: only an exact `none` switches export off (case and
 surrounding whitespace ignored). `none` mixed with other values logs a warning
