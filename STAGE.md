@@ -6,7 +6,7 @@ pushes the change to both services and they apply it to the next span. Aspire
 (http://localhost:18888, **Traces** view) shows the effect within a second or two.
 
 > [!IMPORTANT]
-> Presets 01–03 need extension releases that understand `otelEnabled`,
+> Presets 01–03a need extension releases that understand `otelEnabled`,
 > `recordSpan`, `traceSampleRatio` and the semconv evaluation context
 > (otelfeature-instrument and otelfeature-java-extension, not released yet).
 > Until `src/geocode` and `src/weather` are bumped to those versions, the

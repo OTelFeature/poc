@@ -49,7 +49,6 @@ SPANS = {
 
 DEFAULTS = {"otelEnabled": True, "telemetryLevel": "FULL", "recordSpan": True, "traceSampleRatio": 1.0}
 
-# Per preset: (span, flag) -> expected value. Anything not listed must be the default.
 def _production(service: str | None = None) -> list[str]:
     return [
         span for span, attrs in SPANS.items()
@@ -58,12 +57,14 @@ def _production(service: str | None = None) -> list[str]:
     ]
 
 
-# Presets are cumulative: each beat keeps the previous beat's rules.
+# From 02 on, presets are cumulative: each beat keeps the previous beat's
+# rules (01, the kill switch, stands alone).
 QUIET_NOISE = {
     ("geocode /health", "recordSpan"): False,
     ("weather jdbc", "recordSpan"): False,
 }
 
+# Per preset: (span, flag) -> expected value. Anything not listed must be the default.
 EXPECTED = {
     "00-baseline": {},
     "01-otel-off": {(span, "otelEnabled"): False for span in SPANS},
