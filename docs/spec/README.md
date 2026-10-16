@@ -46,7 +46,7 @@ The core ideas, as they apply here:
 | Inception | [vision.md](vision.md) | Problem, stakeholders, goals, non-goals, decisions D1 to D6. Hand-written; everything else derives from it |
 | Inception | [requirements.md](requirements.md) | Catalog: functional (`FR-`), non-functional (`NFR-`), constraints (`C-`) |
 | Elaboration | [entity_model.md](entity_model.md) | Flags, `TelemetryPolicy`, evaluation-context contract, enforcement points |
-| Elaboration | [use_cases.puml](use_cases.puml) | Use case diagram (PlantUML) |
+| Elaboration | [use_cases.md](use_cases.md) | Use case diagram (Mermaid) |
 | Construction | [use_cases/](use_cases) | One spec per use case, `UC-XXX-name.md` |
 | Construction | [test_cases/](test_cases) | End-to-end journeys with acceptance checks, `TC-XXX-name.md` |
 | All | [traceability.md](traceability.md) | Script beat ↔ requirement ↔ use case ↔ test case ↔ issue |
@@ -69,10 +69,15 @@ Use cases:
 
 - **Location.** AIUP puts the artifacts directly under `docs/`. They are under
   `docs/spec/` here so they don't mix with other docs. File names follow the
-  `aiup-core` 2.5.0 skills (`entity_model.md`, `use_cases.puml`). The AIUP
+  `aiup-core` 2.5.0 skills (`entity_model.md`; the diagram is `use_cases.md`, see below). The AIUP
   tutorial uses `docs/architecture/entity-model.md` and
   `docs/architecture/use-case-diagram.puml` instead; the plugin's names were
   picked because the plugin is what agents will run.
+- **Mermaid instead of PlantUML.** AIUP draws the use case diagram in
+  PlantUML. We use Mermaid everywhere (the entity model already is), because
+  GitHub renders it inline and it needs no extra tooling. Mermaid has no use
+  case diagram type, so [use_cases.md](use_cases.md) uses a flowchart in use
+  case notation; `include`/`extend` are labelled dotted arrows.
 - **Test case location.** AIUP names test cases `TC-XXX` but does not give a
   folder. `test_cases/TC-XXX-name.md` is our choice. AIUP derives test cases
   from BPMN business-process paths; there is no business-process model here
