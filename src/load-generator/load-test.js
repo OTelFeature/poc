@@ -31,12 +31,11 @@ const DURATION = __ENV.DURATION || '1h';
 // second, per service; 0 turns the scenario off. k6 sends no traceparent, so
 // every check is a root SERVER span. /health makes no outgoing calls, so the
 // rate is independent of the external-API limits above.
-const HEALTHCHECK_RATE = __ENV.HEALTHCHECK_RATE === undefined || __ENV.HEALTHCHECK_RATE === ''
-  ? 2
-  : Number(__ENV.HEALTHCHECK_RATE);
-if (!Number.isInteger(HEALTHCHECK_RATE) || HEALTHCHECK_RATE < 0) {
+const HEALTHCHECK_RATE_RAW = (__ENV.HEALTHCHECK_RATE || '').trim();
+if (HEALTHCHECK_RATE_RAW !== '' && !/^\d+$/.test(HEALTHCHECK_RATE_RAW)) {
   throw new Error(`HEALTHCHECK_RATE must be a whole number >= 0, got "${__ENV.HEALTHCHECK_RATE}"`);
 }
+const HEALTHCHECK_RATE = HEALTHCHECK_RATE_RAW === '' ? 2 : Number(HEALTHCHECK_RATE_RAW);
 
 const scenarios = {
   geocode: {

@@ -87,8 +87,9 @@ flowchart LR
   points both services at it; `make start-live` uses the real APIs.
 - **load-generator** ([src/load-generator](src/load-generator)) — a k6 script
   that continuously sends requests to both `geocode` (`POST /geocode`) and
-  `weather` (`POST /weather`), exporting its own metrics to the collector
-  over OTLP/gRPC.
+  `weather` (`POST /weather`), plus a steady `GET /health` on both
+  (`HEALTHCHECK_RATE`), exporting its own metrics to the collector over
+  OTLP/gRPC.
 - **otel-collector** ([src/otel-collector](src/otel-collector)) — an
   `opentelemetry-collector-contrib` instance that receives OTLP from the
   services, also scrapes Docker container stats, derives span metrics, and
