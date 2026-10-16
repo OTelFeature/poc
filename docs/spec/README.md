@@ -11,7 +11,7 @@ the backlog is out of date.
 
 **Focus: spans and traces.** Metrics appear only as an input to span
 sampling. Metrics and logs gating is out of scope (OTelFeature/poc#11, closed as not planned).
-The noisy-demo workload (OTelFeature/poc#23) is P2 as well.
+The noisy-demo workload (OTelFeature/poc#23) is deferred (P2).
 
 ## Process: AI Unified Process (AIUP)
 

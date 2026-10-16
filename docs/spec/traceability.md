@@ -74,6 +74,9 @@ the end-to-end suite and the toolchain images.
 | OTelFeature/otelfeature-java-extension#27 | `recordSpan` (Java) | P0 | FR-006, FR-007, FR-023, C-004 | UC-002 | TC-002 |
 | OTelFeature/otelfeature-java-extension#32 | Toolchain image `ci/Dockerfile` (Java), also the e2e build stage | P1 | NFR-016, C-013, C-014 | none (tooling) | none |
 | OTelFeature/poc#67 | Toolchain (`poc`): `make test`, `make shell`, base pinned by digest | P1 | NFR-016, C-014 | none (tooling) | none |
+| OTelFeature/poc#74 | Full stage rehearsal three times, offline, on the pinned releases (people: Simon and Juliano) | P1 | NFR-012, FR-018, C-006 | UC-008 | TC-006 |
+| OTelFeature/poc#75 | Unit test for the `FaultInjection` bounds | P2 | FR-012 | UC-006 (BR-002) | TC-005 (item 7) |
+| OTelFeature/poc#80 | Python parity in e2e: fault injection in `geocode`, clearer job names | P1 | NFR-015 | UC-006 | TC-005 |
 | OTelFeature/poc#70 | Faster `poc` builds and e2e suite (targets recorded under NFR-015 / NFR-016 first) | P1 | NFR-015, NFR-016 | none (tooling) | none |
 | OTelFeature/otelfeature-instrument#24 | Release v0.3.0 (release workflow, wheel + sdist); tagged and released 2026-10-16 | P0 | C-006 | UC-008 | TC-006 |
 | OTelFeature/otelfeature-java-extension#37 | Release v0.4.0; tagged and released 2026-10-16 | P0 | C-006 | UC-008 | TC-006 |
@@ -152,7 +155,7 @@ nothing was left in scope. A Java opt-in tracing hook would be a new issue.
 
 Every PR below is on `main`. The first stack (#36 ← #37 ← #40 ← #41 ← #42 ←
 #43) and the e2e phases merged bottom-up; the later PRs were merged into
-`main` directly.
+`main` directly. Spec-only PRs are not listed.
 
 | PR | Issue (state) | Requirements | Use case | Test case |
 |---|---|---|---|---|
@@ -161,29 +164,33 @@ Every PR below is on `main`. The first stack (#36 ← #37 ← #40 ← #41 ← #4
 | OTelFeature/poc#40 | OTelFeature/poc#38 (closed, answers OQ-5) | FR-006 (traffic for Demo 2), FR-017 (health-check part) | UC-002 | TC-002 |
 | OTelFeature/poc#41 | OTelFeature/poc#26 (closed) | FR-019, NFR-004 | UC-008 | TC-006 |
 | OTelFeature/poc#42 | OTelFeature/poc#28 (closed) | FR-012 | UC-006 | TC-005 |
-| OTelFeature/poc#43, #44, #52, #53, #54, #57 | OTelFeature/poc#35, phases 1 to 5 (open: the nightly flake check has not run yet) | NFR-015, C-013 | UC-008 (BR-005) | TC-001, TC-002, TC-004, TC-005, TC-006 |
+| OTelFeature/poc#43, #44, #52, #53, #54, #57 | OTelFeature/poc#35, phases 1 to 5 and the TC-006 stage progression (#57) (open: the nightly flake check has not run yet) | NFR-015, C-013 | UC-008 (BR-005) | TC-001, TC-002, TC-004, TC-005, TC-006 |
 | OTelFeature/poc#56 | OTelFeature/poc#29 (closed) | FR-013, NFR-012 | UC-005, UC-008 (BR-006) | TC-005, TC-006 |
 | OTelFeature/poc#68 | none (OQ-14: incident share 0.5) | FR-012, FR-013 | UC-005, UC-006 (BR-003) | TC-005 |
 | OTelFeature/poc#71 | OTelFeature/poc#59 (closed) | FR-026 | UC-004, UC-005 (A7) | TC-004 |
 | OTelFeature/poc#77 | OTelFeature/poc#64 (closed) | C-006, C-013 | UC-008 | TC-006 |
 | OTelFeature/poc#78 | OTelFeature/poc#30 (closed, answers OQ-4) | FR-014, FR-015 | UC-007 | TC-005 |
+| OTelFeature/poc#79 | OTelFeature/poc#27 (open: the numbers and the OQ-1 decision follow) | FR-016, NFR-005, NFR-011 | UC-003 | TC-003 |
 | OTelFeature/poc#63 | none (spec loop for instrument#21 and #23) | NFR-016, NFR-001 | UC-004 (A1) | TC-004 |
 
 PR OTelFeature/poc#58 (stage stack from git refs, FR-027) was closed
 unmerged, and OTelFeature/poc#61 as not planned: the stage runs released
 extensions only (C-006).
 
-Open `poc` items, in lane order: OTelFeature/poc#27 (measurements, decides
-OQ-1), OTelFeature/poc#31 (public repo), OTelFeature/poc#14 (env-var tier
+Open `poc` items, in lane order: OTelFeature/poc#27 (measurements: harness
+merged with PR OTelFeature/poc#79, the numbers and OQ-1 follow), OTelFeature/poc#31 (public repo), OTelFeature/poc#14 (env-var tier
 docs), OTelFeature/poc#70 (faster builds and e2e), OTelFeature/poc#80 (Python
-parity in e2e), and OTelFeature/poc#35 until its nightly runs are green.
-People, not agents: OTelFeature/poc#32 (fallback videos),
+parity in e2e), OTelFeature/poc#75 (unit test for the `FaultInjection` bounds),
+OTelFeature/poc#76 (`geocode` on Python 3.15), and OTelFeature/poc#35 until its nightly runs are green.
+People, not agents: OTelFeature/poc#74 (full stage rehearsal three times,
+offline, NFR-012), OTelFeature/poc#32 (fallback videos),
 OTelFeature/poc#33 (OTel Demo footage).
 
 C-013 is Implemented with OTelFeature/poc#64 (set by hand, no use case links
 it). C-006 stays Open: both linking use cases, UC-003 (measurements,
 OTelFeature/poc#27) and UC-008 (fallback videos and footage), are still
-Draft.
+Draft. NFR-015 reads Open for the same reason: its only linking use case is
+UC-008, although the suite exists and is green on `main`.
 
 Closed `poc` issues: #8, #9, #10, #12 (both halves landed), #13 (Java on the
 flagd in-process resolver), #22 (spike done), #24, #25, #26, #28, #29, #30,
@@ -199,12 +206,12 @@ Set by the Tested/Passed rule ([requirements.md](requirements.md), Simon,
 |---|---|---|---|
 | UC-001 | Tested | Tested | TC-001 green |
 | UC-002 | Implemented | Tested | TC-002 green |
-| UC-003 | Draft | Draft | OTelFeature/poc#27 open; TC-003 is not automated |
+| UC-003 | Draft | Draft | harness merged (PR OTelFeature/poc#79), OTelFeature/poc#27 open; TC-003 is not automated |
 | UC-004 | Draft | Implemented | flows on `main` (#37, #71); TC-004's `slow` check has not run in a nightly yet |
 | UC-005 | Draft | Tested | TC-005 green (#56, #68) |
 | UC-006 | Implemented | Tested | TC-005 and TC-006 green |
 | UC-007 | Draft | Tested | TC-005 green, with the hook check (#78) |
-| UC-008 | Draft | Draft | TC-006 green, but the fallback videos and the footage (precondition, A1, C-007, C-008) don't exist yet |
+| UC-008 | Draft | Draft | TC-006 green, but the fallback videos and the footage (precondition, A1, C-007, C-008; OTelFeature/poc#32, OTelFeature/poc#33) don't exist yet, and the rehearsal runs (NFR-012, OTelFeature/poc#74) are open |
 | UC-009 | Draft | Draft | OTelFeature/poc#31 open; TC-007 is not automated |
 
 | Test case | Before | After |
@@ -259,7 +266,7 @@ flowchart LR
     X["Extension stacks merge<br/>bottom-up (done)"] --> E["e2e green against<br/>extension main"]
     E --> R["Release both<br/>extensions (done)"]
     R --> B["poc: bump extension versions,<br/>e2e defaults back to pins (poc#64, done)"]
-    B --> P["poc stack merges"]
+    B --> P["poc stack merged<br/>(before the releases, step 5)"]
 ```
 
 1. The extension stacks merged bottom-up: Python #10 → … → #19, Java #24,
@@ -289,6 +296,7 @@ OTelFeature/otelfeature-java-extension#35) are independent of this order.
 | FR-003 | Existing behaviour (`telemetryLevel=IO`), kept as is; covered by the extensions' existing tests |
 | FR-017 | Deferred with OTelFeature/poc#23 |
 | FR-022 | Deferred with OTelFeature/poc#11 |
-| NFR-002, NFR-009, NFR-010 | Already met by the current code; regression-tested in the extension repos |
+| NFR-009, NFR-010, C-002 | Already met by the current code; regression-tested in the extension repos (NFR-002 was listed here too, but UC-002 links it) |
 | FR-025 | SDK parity for `OTEL_TRACES_EXPORTER=none`; no demo beat uses it. Checked in TC-001 item 10 |
 | NFR-016, C-013, C-014 | How the code is built, tested and merged, not what the demo does |
+| C-010 | Met by building nothing in the collector (D4); a script line only |
