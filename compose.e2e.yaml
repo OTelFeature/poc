@@ -89,7 +89,7 @@ services:
 
   # Seeds the flags volume with the baseline preset before flagd starts.
   flags-init:
-    image: busybox:1.37.0
+    image: busybox:1.38.0
     command: ["cp", "/presets/00-baseline.json", "/flags/flagd.json"]
     volumes:
       - ./src/flagd/presets:/presets:ro
