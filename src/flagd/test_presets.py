@@ -75,15 +75,17 @@ EXPECTED = {
         **QUIET_NOISE,
         **{(span, "traceSampleRatio"): 0.1 for span in _production()},
     },
-    "03a-weather-full": {
+    "03a-weather-boost": {
         **QUIET_NOISE,
         **{(span, "traceSampleRatio"): 0.1 for span in _production("geocode")},
+        **{(span, "traceSampleRatio"): 0.5 for span in _production("weather")},
     },
-    # 03 plus fault injection. The flag is the application's own (weather
-    # evaluates it without span context), so it is the same for every span.
+    # 03a plus fault injection plus the error-rate loop. Without an error
+    # rate in the context (these spans have none) the loop rule doesn't match.
     "03b-incident": {
         **QUIET_NOISE,
-        **{(span, "traceSampleRatio"): 0.1 for span in _production()},
+        **{(span, "traceSampleRatio"): 0.1 for span in _production("geocode")},
+        **{(span, "traceSampleRatio"): 0.5 for span in _production("weather")},
         **{(span, "weatherUpstreamFailure"): 0.3 for span in SPANS},
     },
 }
