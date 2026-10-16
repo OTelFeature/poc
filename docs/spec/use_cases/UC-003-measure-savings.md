@@ -12,7 +12,7 @@
 **Work Items:** OTelFeature/poc#27, OTelFeature/otelfeature-java-extension#21  
 **Test Cases:** TC-003  
 **Script Beat:** Demo 2 ("CPU [X%] lower, memory [Y MB] lower, export bytes [Z%] lower"); input to decision D3  
-**Open Questions:** OQ-1, OQ-3, OQ-5  
+**Open Questions:** OQ-1, OQ-3 (OQ-5 resolved)  
 
 ## Preconditions
 
@@ -91,7 +91,7 @@ Until D3 is decided (OQ-1), the Demo 2 line covers both: sampler mode means "nev
 
 ### BR-005: Traffic source
 
-The measurement does not depend on OTelFeature/poc#23 (deferred). It uses the stack's normal traffic plus whatever health-check traffic OQ-5 settles on.
+The measurement does not depend on OTelFeature/poc#23 (deferred). It uses the stack's normal traffic plus the k6 `healthchecks` scenario (OQ-5, OTelFeature/poc#38, PR OTelFeature/poc#40).
 
 ### BR-006: Decision cost from a targeted no-op rule
 

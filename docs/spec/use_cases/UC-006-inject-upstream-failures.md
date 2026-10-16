@@ -7,7 +7,7 @@
 **Primary Actor:** Operator  
 **Secondary Actors:** flagd, weather, geocode, Aspire dashboard  
 **Goal:** The operator makes a chosen fraction of `/weather` requests (or, for the e2e suite, `geocode`'s requests, A3) fail through a feature flag evaluated in the application's own code, so that an incident can be started and stopped on demand, the same way the OTel Demo does it.  
-**Status:** Implemented  
+**Status:** Tested  
 **Requirements:** FR-012, NFR-004  
 **Work Items:** OTelFeature/poc#28, OTelFeature/poc#80  
 **Test Cases:** TC-005, TC-006  

@@ -7,7 +7,7 @@
 **Primary Actor:** Operator  
 **Secondary Actors:** flagd, weather, geocode  
 **Goal:** When a service's HTTP error rate rises above 5%, a targeting rule raises that service's trace sample ratio to 1.0 and lowers it again once errors stop, with no script outside the services, so that the failing service is fully traced exactly while it fails.  
-**Status:** Draft  
+**Status:** Tested  
 **Requirements:** FR-011, FR-013, FR-009, FR-024, FR-026, NFR-004, NFR-006, NFR-012, NFR-013, NFR-014, C-005  
 **Work Items:** OTelFeature/otelfeature-instrument#8, OTelFeature/otelfeature-java-extension#22, OTelFeature/poc#28, OTelFeature/poc#29, OTelFeature/poc#10  
 **Test Cases:** TC-005  

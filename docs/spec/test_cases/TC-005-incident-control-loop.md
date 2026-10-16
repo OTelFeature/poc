@@ -5,7 +5,7 @@
 - **ID:** TC-005
 - **Goal:** The operator injects failures into `weather` (the e2e suite also into `geocode`, item 14); within one to two collection intervals `weather` samples at 1.0 while `geocode` does not change, the failed traces show the cause flag (`weatherUpstreamFailure`), and reverting returns `weather` to its ratio before the incident.
 - **Priority:** High
-- **Status:** Draft
+- **Status:** Passed
 
 ## Roles
 
@@ -63,7 +63,7 @@ On stage, `03b-incident` builds on `03a-weather-boost` (UC-008 BR-006), which se
 - **How:** differs from the stage flow so it runs fast and deterministically: the failure fraction is 1.0 instead of 0.5, and the e2e override sets a short `OTELFEATURE_ERROR_RATE_INTERVAL` and a low `OTELFEATURE_ERROR_RATE_MIN_REQUESTS`. The test sends its own requests (load generator off).
 - **Matrix:** runs in both Java enforcement modes (`processor`, `sampler`), and in each once per failing service (`weather`, `geocode`; item 14).
 - **Extension code:** the pinned released versions (C-006): otelfeature-instrument v0.3.0, otelfeature-java-extension v0.4.0. A git ref can be passed explicitly to check unreleased extension code (C-013).
-- **Not automated:** items 1 to 12; steps 6 and 7 (reading the trace) stay manual. Item 11 is covered for the suite as a whole by NFR-015 (three green runs in a row), not for the stage timings.
+- **Not automated:** items 1 to 7, 10 and 12; item 9 is partly automated (`test_tc005_control_loop`); steps 6 and 7 (reading the trace) stay manual. Item 11 is covered for the suite as a whole by NFR-015 (three green runs in a row), not for the stage timings.
 
 ## Notes
 

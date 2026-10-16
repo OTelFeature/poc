@@ -7,7 +7,7 @@
 **Primary Actor:** Operator  
 **Secondary Actors:** weather, geocode, Aspire dashboard  
 **Goal:** Looking at one failed trace, the operator sees the application flag evaluation that caused the failure, recorded by the OpenFeature OpenTelemetry hook, so that the trace explains the incident. The telemetry extensions add nothing of their own to spans (opt-in debugging hook: BR-002).  
-**Status:** Draft  
+**Status:** Tested  
 **Requirements:** FR-014, FR-015, NFR-006, NFR-008  
 **Work Items:** OTelFeature/poc#30, OTelFeature/poc#80, OTelFeature/otelfeature-instrument#9, OTelFeature/otelfeature-java-extension#23 (closed as not planned, 2026-10-16: the extension writes no decision attributes, FR-014)  
 **Test Cases:** TC-005  
