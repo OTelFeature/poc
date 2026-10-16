@@ -76,7 +76,7 @@
 
 ### BR-001: Application flag, not extension flag
 
-The failure flag is evaluated by the application, not by the telemetry extension. Its evaluation is what UC-007 shows on the span.
+The failure flag is evaluated by the application, not by the telemetry extension. Its evaluation is what UC-007 shows on the span, for `weatherUpstreamFailure` and for `geocodeUpstreamFailure` (UC-007 A2).
 
 ### BR-002: Value range
 
@@ -88,4 +88,4 @@ Decided by Simon, 2026-10-16 (OQ-14 b): the incident preset `03b-incident` sets 
 
 ### BR-004: `geocode`'s fault flag is for the e2e suite
 
-`geocodeUpstreamFailure` exists so the control loop (UC-005) also runs end to end for the Python error-rate reader (OTelFeature/poc#80). The stage presets don't define it, so on stage it resolves to its default 0.0 (A1). `geocode` evaluates it through a client of its own on the OpenFeature API the Python extension also uses, with no API-level (global) hooks, since those would also record the extension's evaluations (FR-014, UC-007 BR-006).
+`geocodeUpstreamFailure` exists so the control loop (UC-005) also runs end to end for the Python error-rate reader (OTelFeature/poc#80). The stage presets don't define it, so on stage it resolves to its default 0.0 (A1). `geocode` evaluates it through a client of its own on the OpenFeature API the Python extension also uses. The traces hook sits on that client only, never API-wide, since an API-wide hook would also record the extension's evaluations (UC-007 BR-006).
