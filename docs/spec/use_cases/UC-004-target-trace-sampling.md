@@ -20,7 +20,7 @@
 - A production and a staging instance of each service run and receive traffic.
 - `traceSampleRatio` is defined with default 1.0.
 - The load generator calls `POST /geocode` and `POST /weather` directly, so each service is the entry point of those traces.
-- For the cross-service part of steps 5 and 8 and of A2: the load generator also calls the cross-service path, where `geocode` calls `weather` (FR-026, OTelFeature/poc#59, not built yet).
+- For the cross-service part of steps 5 and 8 and of A2: the load generator also calls the cross-service path, where `geocode` calls `weather` (FR-026, OTelFeature/poc#59).
 
 ## Main Success Scenario
 
