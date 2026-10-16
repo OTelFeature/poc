@@ -13,7 +13,7 @@ import pytest
 from checks import APP_SERVICES, by_root_service, complete_problem
 from conftest import FLIP_BUDGET_SECONDS, URLS, Step
 from flags import Flags
-from spans import describe, wait_until
+from spans import MetricLog, describe, wait_until
 
 
 def _telemetry_level_off(flags: Flags) -> None:
@@ -50,7 +50,7 @@ def _assert_complete_traces(step: Step) -> None:
 
 
 @pytest.mark.parametrize("switch", sorted(SWITCHES))
-def test_tc001_kill_switch(step: Step, flags: Flags, switch: str):
+def test_tc001_kill_switch(step: Step, flags: Flags, metrics: MetricLog, switch: str):
     # Steps 1/5: turn tracing off.
     SWITCHES[switch](flags)
     for service in APP_SERVICES:
@@ -60,11 +60,21 @@ def test_tc001_kill_switch(step: Step, flags: Flags, switch: str):
     # Steps 2/6: no new spans from either service, whatever they serve
     # (requests, Docker's healthchecks, weather's own flagd client calls).
     step.remark()
+    metrics_mark = metrics.mark()
     _send_cache_misses(step, "off")
     for service in APP_SERVICES:
         assert step.health(URLS[service]).status_code == 200
     leaked = step.quiet(lambda s: s.resource.get("service.instance.id") in APP_SERVICES)
     assert not leaked, f"spans exported while {switch} is off:\n{describe(leaked)}"
+
+    # Step 2, second half: the services' metrics keep arriving (spans only
+    # are switched off; metrics are the input of the error-rate loop).
+    def metrics_problem() -> str | None:
+        seen = {instance for instance, names in metrics.since(metrics_mark) if names}
+        missing = set(APP_SERVICES) - seen
+        return f"no metric export since tracing went off from {sorted(missing)}" if missing else None
+
+    wait_until(metrics_problem, timeout=10.0)
 
     # Steps 3/7: back on; steps 4: complete traces again.
     flags.apply("00-baseline")

@@ -128,6 +128,44 @@ class SpanLog:
         return [s for s in self.spans if s.trace_id in ids]
 
 
+class MetricLog:
+    """Tails the collector's metrics file: one entry per resource per
+    export, as (service.instance.id, set of metric names)."""
+
+    def __init__(self, path: Path):
+        self.path = path
+        self._offset = 0
+        self._partial = b""
+        self.exports: list[tuple[str, frozenset[str]]] = []
+
+    def refresh(self) -> None:
+        if not self.path.exists():
+            return
+        if self.path.stat().st_size < self._offset:
+            self._offset, self._partial = 0, b""
+        with self.path.open("rb") as f:
+            f.seek(self._offset)
+            data = f.read()
+        self._offset += len(data)
+        *lines, self._partial = (self._partial + data).split(b"\n")
+        for line in lines:
+            if not line.strip():
+                continue
+            for rm in json.loads(line).get("resourceMetrics", []):
+                resource = _attrs(rm.get("resource", {}).get("attributes"))
+                names = frozenset(m.get("name", "") for sm in rm.get("scopeMetrics", [])
+                                  for m in sm.get("metrics", []))
+                self.exports.append((resource.get("service.instance.id", ""), names))
+
+    def mark(self) -> int:
+        self.refresh()
+        return len(self.exports)
+
+    def since(self, mark: int) -> list[tuple[str, frozenset[str]]]:
+        self.refresh()
+        return self.exports[mark:]
+
+
 def _parse(request: dict) -> list[Span]:
     out = []
     for rs in request.get("resourceSpans", []):

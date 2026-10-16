@@ -48,13 +48,31 @@ jobs:
       OTELFEATURE_INSTRUMENT_REF: ${{ inputs.instrument_ref || 'main' }}
       OTELFEATURE_EXTENSION_REF: ${{ inputs.extension_ref || 'main' }}
       OTELFEATURE_ENFORCEMENT: ${{ matrix.enforcement }}
-      # Nightly also runs the statistical (slow) tests.
-      PYTEST_ARGS: ${{ github.event_name == 'schedule' && '-v' || '-v -m "not slow"' }}
+      # Nightly also runs the statistical (slow) tests, and the whole suite
+      # three times in a row to catch flakes (#35 acceptance criterion).
+      PYTEST_ARGS: ${{ github.event_name == 'schedule' && '-v --count 3' || '-v -m "not slow"' }}
     steps:
       - uses: actions/checkout@v7
 
+      - uses: docker/setup-buildx-action@v4.4.1
+
+      # Builds geocode, weather (from the extension git refs) and the runner
+      # image with the GitHub Actions layer cache, then `make e2e` uses them.
+      - name: Build images (layer cache)
+        uses: docker/bake-action@v7.5.0
+        with:
+          source: .
+          files: |
+            compose.yaml
+            compose.e2e.yaml
+          targets: geocode,weather,e2e
+          load: true
+          set: |
+            *.cache-from=type=gha,scope=e2e
+            *.cache-to=type=gha,scope=e2e,mode=max
+
       - name: Run the suite
-        run: make e2e
+        run: make e2e E2E_SKIP_BUILD=1
 
       - name: Upload logs and spans
         if: always()

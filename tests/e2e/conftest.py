@@ -12,7 +12,7 @@ import httpx
 import pytest
 
 from flags import Flags
-from spans import STEP_HEADER, SpanLog, wait_until
+from spans import STEP_HEADER, MetricLog, SpanLog, wait_until
 
 GEOCODE_URL = os.environ.get("GEOCODE_URL", "http://geocode:8000")
 WEATHER_URL = os.environ.get("WEATHER_URL", "http://weather:8001")
@@ -167,6 +167,11 @@ class Step:
 @pytest.fixture(scope="session")
 def spans() -> SpanLog:
     return SpanLog(Path(os.environ.get("E2E_SPANS_FILE", "/out/spans.jsonl")))
+
+
+@pytest.fixture(scope="session")
+def metrics() -> MetricLog:
+    return MetricLog(Path(os.environ.get("E2E_METRICS_FILE", "/out/metrics.jsonl")))
 
 
 @pytest.fixture(scope="session")

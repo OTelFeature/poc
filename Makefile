@@ -115,6 +115,7 @@ validate-flags:
 #   make e2e OTELFEATURE_INSTRUMENT_REF=feat/x OTELFEATURE_EXTENSION_REF=v0.4.0
 #   make e2e OTELFEATURE_ENFORCEMENT=sampler PYTEST_ARGS="-k baseline -x"
 #   make e2e E2E_KEEP=1      # leave the stack up afterwards (make e2e-down)
+#   make e2e E2E_SKIP_BUILD=1  # images already built (CI builds them with a layer cache)
 #
 # Logs and the collected spans land in tests/e2e/.artifacts/.
 E2E_PROJECT := otelfeature-e2e
@@ -128,7 +129,7 @@ export OTELFEATURE_INSTRUMENT_REF OTELFEATURE_EXTENSION_REF OTELFEATURE_ENFORCEM
 
 .PHONY: e2e e2e-build e2e-up e2e-test e2e-artifacts e2e-down
 
-e2e: e2e-build
+e2e: $(if $(E2E_SKIP_BUILD),,e2e-build)
 	@$(MAKE) --no-print-directory e2e-up || { $(MAKE) --no-print-directory e2e-artifacts; [ -n "$(E2E_KEEP)" ] || $(MAKE) --no-print-directory e2e-down; exit 1; }
 	@rc=0; $(MAKE) --no-print-directory e2e-test || rc=$$?; $(MAKE) --no-print-directory e2e-artifacts; [ -n "$(E2E_KEEP)" ] || $(MAKE) --no-print-directory e2e-down; exit $$rc
 

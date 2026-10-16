@@ -29,6 +29,7 @@ volumes:
 # merged on top of the base environment there too).
 x-geocode-e2e-env: &geocode-e2e-env
   OTEL_BSP_SCHEDULE_DELAY: "100"
+  OTEL_METRIC_EXPORT_INTERVAL: "1000"
   OTEL_INSTRUMENTATION_HTTP_CAPTURE_HEADERS_SERVER_REQUEST: x-e2e-step
   # Short error-rate window for the control-loop test (TC-005); seconds.
   OTELFEATURE_ERROR_RATE_INTERVAL: "2"
@@ -36,6 +37,7 @@ x-geocode-e2e-env: &geocode-e2e-env
 
 x-weather-e2e-env: &weather-e2e-env
   OTEL_BSP_SCHEDULE_DELAY: "100"
+  OTEL_METRIC_EXPORT_INTERVAL: "1000"
   OTEL_INSTRUMENTATION_HTTP_SERVER_CAPTURE_REQUEST_HEADERS: x-e2e-step
   OTELFEATURE_ENFORCEMENT: ${OTELFEATURE_ENFORCEMENT:-processor}
   # Java takes a duration here (Python: seconds).
@@ -198,6 +200,8 @@ services:
   # network, rewrites flags in e2e-flags, reads spans from e2e-out.
   e2e:
     profiles: [runner]
+    # Pinned so a pre-built image (CI's bake step) is found by name.
+    image: otelfeature-e2e-runner
     build:
       context: .
       dockerfile: ci/Dockerfile
@@ -213,5 +217,6 @@ services:
       E2E_FLAGS_FILE: /flags/flagd.json
       E2E_PRESETS_DIR: /presets
       E2E_SPANS_FILE: /out/spans.jsonl
+      E2E_METRICS_FILE: /out/metrics.jsonl
       E2E_QUIET_SECONDS: ${E2E_QUIET_SECONDS:-2.0}
       OTELFEATURE_ENFORCEMENT: ${OTELFEATURE_ENFORCEMENT:-processor}
