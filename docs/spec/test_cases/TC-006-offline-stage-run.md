@@ -41,7 +41,7 @@
 
 ## Stage progression in CI
 
-The e2e suite runs this whole sequence as one ordered test, `test_stage_progression` (OTelFeature/poc#35): presets 00 → 01 → 02 → 03 → 03a → 03b in order, **no resets**, asserting the expected spans and sampling after each flip. A preset that only works after a reset fails CI. In the 03b beat about half of the `/weather` requests fail (UC-006 BR-003), and the test asserts that the loop then samples production `weather` fully.
+The e2e suite runs this whole sequence as one ordered test, `test_stage_progression` (OTelFeature/poc#35): presets 00 → 01 → 02 → 03 → 03a → 03b in order, **no resets**, asserting the expected spans and sampling after each flip. A preset that only works after a reset fails CI. It runs on pushes to `main`, nightly and on manual runs, not on pull requests: every beat it walks through has its own per-PR test, and the run-through takes about 40 s per job (NFR-015, decided by Simon, 2026-10-16, OTelFeature/poc#70). The three-flips check (`test_tc006_rapid_flips`) runs on every pull request. In the 03b beat about half of the `/weather` requests fail (UC-006 BR-003), and the test asserts that the loop then samples production `weather` fully.
 
 ## Postconditions
 
@@ -53,4 +53,5 @@ The e2e suite runs this whole sequence as one ordered test, `test_stage_progress
 - **How:** `docker compose -f compose.yaml -f compose.e2e.yaml up -d --wait`. The override adds the collector `file` exporter, turns the load generator off, removes the Datadog exporter and Aspire, and enables request-header capture for the `x-e2e-step` marker.
 - **Flag flips:** the flag-flip helper writes the preset to a temp file, gives it an mtime strictly newer than the current file's, renames it into place, and polls flagd over OFREP (port 8016) until a per-write revision flag shows the new value. Only then does the test send traffic and count spans ([flag file reload](../entity_model.md#flag-file-reload)).
 - **Matrix:** runs in both Java enforcement modes (`processor`, `sampler`).
+- **When:** `test_stage_progression` carries the pytest marker `stage_run` and runs on pushes to `main`, nightly and on manual (`workflow_dispatch`) runs; pull requests deselect it. A local `make e2e` runs it.
 - **Not automated:** step 1 (airplane mode on the stage laptop), item 4 (runbook) and the fallback videos stay rehearsal checks (NFR-012).
