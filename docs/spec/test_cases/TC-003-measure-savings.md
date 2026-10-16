@@ -3,13 +3,13 @@
 ## Overview
 
 - **ID:** TC-003
-- **Goal:** The speaker runs the measurement harness and gets a reproducible per-service table of CPU, memory, spans/s and export bytes/s for baseline, processor mode and sampler mode, plus the per-span decision cost.
+- **Goal:** The operator runs the measurement harness and gets a reproducible per-service table of CPU, memory, spans/s and export bytes/s for baseline, processor mode and sampler mode, plus the per-span decision cost.
 - **Priority:** High
 - **Status:** Draft
 
 ## Roles
 
-- Speaker: runs the harness, records the numbers.
+- Operator: runs the harness, records the numbers.
 
 ## Preconditions
 

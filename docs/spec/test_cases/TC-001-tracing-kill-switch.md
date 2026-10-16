@@ -14,7 +14,7 @@
 ## Preconditions
 
 - Stack running from `make start` with the baseline `src/flagd/flagd.json`.
-- Both services on extension releases containing OTelFeature/poc#8 and OTelFeature/poc#9.
+- Both services on extension code containing OTelFeature/poc#8 and OTelFeature/poc#9: a release on the stage stack (C-006), each extension's `main` or another git ref in the end-to-end suite (C-013).
 
 ## Flow
 

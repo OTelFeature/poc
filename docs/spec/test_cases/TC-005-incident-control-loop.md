@@ -3,19 +3,18 @@
 ## Overview
 
 - **ID:** TC-005
-- **Goal:** The speaker injects failures into `weather`; within one to two collection intervals `weather` samples at 1.0 while `geocode` does not change, the failed traces show the cause flag (`weatherUpstreamFailure`), and reverting returns `weather` to its ratio before the incident.
+- **Goal:** The operator injects failures into `weather`; within one to two collection intervals `weather` samples at 1.0 while `geocode` does not change, the failed traces show the cause flag (`weatherUpstreamFailure`), and reverting returns `weather` to its ratio before the incident.
 - **Priority:** High
 - **Status:** Draft
 
 ## Roles
 
-- Speaker: injects and removes the failure.
-- Operator: reads the trace.
+- Operator: injects and removes the failure, reads the trace.
 
 ## Preconditions
 
 - TC-004 preconditions, except the cross-service path. The stage progression has reached `03a-weather-boost` (production `weather` at 0.5, UC-008 BR-006); the control-loop rule comes with `03b-incident`.
-- Extension releases with OTelFeature/otelfeature-instrument#8 / OTelFeature/otelfeature-java-extension#22 (error rate) and OTelFeature/otelfeature-instrument#9 (opt-in tracing hook).
+- Extension code (a release on the stage stack, C-006; each extension's `main` or another git ref in the end-to-end suite, C-013) with OTelFeature/otelfeature-instrument#8 / OTelFeature/otelfeature-java-extension#22 (error rate) and OTelFeature/otelfeature-instrument#9 (opt-in tracing hook).
 - The demo stack sets `OTEL_SEMCONV_STABILITY_OPT_IN=http` for `geocode` (the extension does not set it).
 - `OTELFEATURE_OPENFEATURE_TRACING_HOOK` is not set.
 

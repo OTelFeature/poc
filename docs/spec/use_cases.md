@@ -8,7 +8,6 @@ boundary, solid arrows for participation, dotted arrows for `include` and
 ```mermaid
 flowchart LR
     operator["👤 Operator"]
-    speaker["👤 Speaker"]
     adopter["👤 Adopter"]
     flagd["⚙️ flagd"]
 
@@ -29,9 +28,9 @@ flowchart LR
     operator --> UC004
     operator --> UC005
     operator --> UC007
-    speaker --> UC003
-    speaker --> UC006
-    speaker --> UC008
+    operator --> UC003
+    operator --> UC006
+    operator --> UC008
     adopter --> UC009
 
     UC001 --> flagd
@@ -49,5 +48,5 @@ flowchart LR
     UC008 -. include .-> UC005
 ```
 
-On stage the Speaker performs the Operator's use cases through flag presets
-(UC-008).
+On stage, Simon and Juliano are the Operator and run the use cases through
+flag presets (UC-008). There is no separate Speaker actor (Simon, 2026-10-16).

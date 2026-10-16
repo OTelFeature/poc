@@ -17,7 +17,7 @@
 
 - The demo stack is running with the baseline flags: `otelEnabled=true`, `telemetryLevel=FULL`.
 - Traffic reaches both services and their traces are visible in the dashboard.
-- Both services run extension releases that contain the policy and the `OFF` handling.
+- Both services run extension code that contains the policy and the `OFF` handling: released versions on the stage stack (C-006), each extension's `main` or another git ref in the end-to-end suite (C-013).
 
 ## Main Success Scenario
 
@@ -59,7 +59,7 @@
 
 **Flow:**
 
-1. `weather` still creates and populates spans, then drops all of them before batching.
+1. `weather` still creates and populates spans, then suppresses all of them before batching.
 2. No `weather` spans are exported. Service CPU is not saved, only export.
 3. Use case continues at step 5.
 

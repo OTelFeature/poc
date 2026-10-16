@@ -5,7 +5,7 @@
 **Use Case ID:** UC-005  
 **Use Case Name:** Raise sampling while a service is failing  
 **Primary Actor:** Operator  
-**Secondary Actors:** flagd, weather, geocode, Speaker (causes the failure through UC-006)  
+**Secondary Actors:** flagd, weather, geocode  
 **Goal:** When a service's HTTP error rate rises above 5%, a targeting rule raises that service's trace sample ratio to 1.0 and lowers it again once errors stop, with no script outside the services, so that the failing service is fully traced exactly while it fails.  
 **Status:** Draft  
 **Requirements:** FR-011, FR-013, FR-009, FR-024, FR-026, NFR-006, NFR-012, NFR-013, NFR-014, C-005  
@@ -22,12 +22,12 @@
 
 ## Main Success Scenario
 
-1. The speaker applies `03b-incident`: it injects upstream failures into `weather` (UC-006) and activates the control-loop rule.
+1. The operator applies `03b-incident`: it injects upstream failures into `weather` (UC-006) and activates the control-loop rule.
 2. `weather` answers a share of `/weather` requests with an error; the HTTP server metric records them with `error.type`.
 3. At the next collection, `weather` computes the error rate as error requests divided by all requests in the interval and puts it into its evaluation context.
 4. The control-loop rule matches for `weather`; its sample ratio resolves to 1.0.
 5. The dashboard shows the traces that start in `weather` rise from about half to all requests within one to two collection intervals, while `geocode` stays at its environment ratio. Cross-service traces follow `geocode`'s decision (UC-004 BR-003).
-6. The speaker removes the injected failures and keeps the rule (`weatherUpstreamFailure` back to 0.0 alone).
+6. The operator removes the injected failures and keeps the rule (`weatherUpstreamFailure` back to 0.0 alone).
 7. At the next collection with no errors, `weather`'s error rate falls below the threshold.
 8. The rule no longer matches; `weather` returns to the ratio of the other rules (0.5 on stage).
 
@@ -82,7 +82,7 @@
 
 ### A6: Incident ended by the stage preset
 
-**Trigger:** The speaker goes back to `03a-weather-boost` instead of removing only the failures (step 6).
+**Trigger:** The operator goes back to `03a-weather-boost` instead of removing only the failures (step 6).
 
 **Flow:**
 

@@ -194,7 +194,7 @@ The talk script's demo beats run as an automated suite in GitHub Actions.
   Tracetest and over querying Jaeger or Tempo because the test reads every
   exported span, so absence assertions ("no `/health` spans") are exact.
 - **Traffic and flips:** pytest sends all requests itself. Flags are flipped
-  with the stage presets (OTelFeature/poc#26), the same way the speaker does.
+  with the stage presets (OTelFeature/poc#26), the same way the operator does on stage.
 - **No fixed sleeps:** marker requests with an `x-e2e-step` header are step
   barriers; after a flip, the test polls until a probe shows the new
   behaviour. Every wait has a timeout, and a timeout is a failure.

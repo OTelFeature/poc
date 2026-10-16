@@ -14,7 +14,7 @@
 ## Preconditions
 
 - `docker compose --profile staging up` runs four service instances (OTelFeature/poc#25).
-- Extension releases containing OTelFeature/poc#10 in both languages.
+- Extension code (a release on the stage stack, C-006; each extension's `main` or another git ref in the end-to-end suite, C-013) containing OTelFeature/poc#10 in both languages.
 - The cross-service path (FR-026, OTelFeature/poc#59) for step 6.
 
 ## Flow
