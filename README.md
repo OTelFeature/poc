@@ -134,7 +134,13 @@ make start-live       # same, but geocode/weather call the real Nominatim and Op
 make start-staging    # also start the staging twins (compose profile `staging`)
 make prepare-offline  # pull + build everything, so `make start` later needs no network
 make stop             # docker compose down (staging included)
+
+make flag PRESET=02-quiet-noise  # apply a flag preset (see STAGE.md)
+make demo-reset                  # baseline flags, restart k6
+make validate-flags              # schema + evaluation checks of all presets
 ```
+
+[STAGE.md](STAGE.md) is the stage runbook: one command per script beat.
 
 Once started:
 
@@ -224,11 +230,13 @@ Each service has its own README with configuration details:
 
 ```
 compose.yaml              # service definitions and wiring
+STAGE.md                  # stage runbook: one command per script beat
 Makefile                  # build/start/stop shortcuts around docker compose
 src/
   geocode/                # FastAPI geocoding service (uv + Docker)
   weather/                # Java/Spring Boot weather service (Gradle + Docker)
   flagd/                  # OpenFeature flag definitions (flagd)
+    presets/              # one complete flagd.json per demo state (STAGE.md)
   coordinates-db/         # Postgres init script (coordinates + weather cache)
   load-generator/         # k6 load test script targeting geocode and weather
   stub-apis/              # offline stand-in for Nominatim and Open-Meteo

@@ -1,0 +1,36 @@
+name: flags
+
+on:
+  pull_request:
+    paths:
+      - "src/flagd/**"
+      - ".github/workflows/flags.yml"
+  push:
+    branches: [main]
+    paths:
+      - "src/flagd/**"
+      - ".github/workflows/flags.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: astral-sh/setup-uv@v10
+
+      - name: Presets and flagd.json match the flagd schema
+        run: >
+          uvx check-jsonschema
+          --schemafile https://flagd.dev/schema/v0/flags.json
+          src/flagd/flagd.json src/flagd/presets/*.json
+
+      - name: Committed flagd.json is the baseline preset
+        run: cmp src/flagd/flagd.json src/flagd/presets/00-baseline.json
+
+      # Version in step with src/geocode/uv.lock.
+      - name: Presets parse and evaluate as intended (Python flagd provider)
+        run: uv run --no-project --with openfeature-provider-flagd==0.5.2 python src/flagd/test_presets.py

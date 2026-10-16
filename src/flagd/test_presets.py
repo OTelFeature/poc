@@ -1,0 +1,113 @@
+"""Checks every preset with the same flagd evaluator geocode uses.
+
+The JSON schema check (CI) proves a preset is valid flagd syntax. This script
+proves two more things the schema can't:
+
+- the Python in-process provider can parse it (it rejects keys the schema
+  allows, such as a flag-level "description"), and
+- each rule gives the intended answer for the spans of each demo beat, using
+  the evaluation context the extensions build: semconv attributes nested by
+  dot segment, trace id as targetingKey (OTelFeature/poc#22).
+
+Run: uv run --no-project --with openfeature-provider-flagd==0.5.2 python src/flagd/test_presets.py
+(keep the version in step with src/geocode/uv.lock)
+"""
+
+import json
+import sys
+from pathlib import Path
+
+from openfeature.contrib.tools.flagd.core import FlagdCore
+from openfeature.evaluation_context import EvaluationContext
+
+PRESETS = Path(__file__).parent / "presets"
+TRACE_ID = "0af7651916cd43dd8448eb211c80319c"
+
+# Spans of the demo stack, as flat semconv attributes.
+SPANS = {
+    "geocode /health": {"service.name": "geocode", "deployment.environment.name": "production",
+                        "span.kind": "server", "url.path": "/health"},
+    "geocode /geocode": {"service.name": "geocode", "deployment.environment.name": "production",
+                         "span.kind": "server", "url.path": "/geocode"},
+    "weather /health": {"service.name": "weather", "deployment.environment.name": "production",
+                        "span.kind": "server", "url.path": "/health"},
+    "weather jdbc": {"service.name": "weather", "deployment.environment.name": "production",
+                     "span.kind": "client", "otel.scope.name": "io.opentelemetry.jdbc"},
+    "weather http client": {"service.name": "weather", "deployment.environment.name": "production",
+                            "span.kind": "client", "otel.scope.name": "io.opentelemetry.java-http-client"},
+    "geocode staging": {"service.name": "geocode", "deployment.environment.name": "staging",
+                        "span.kind": "server", "url.path": "/geocode"},
+    "weather staging": {"service.name": "weather", "deployment.environment.name": "staging",
+                        "span.kind": "server", "url.path": "/weather"},
+    "geocode, no env": {"service.name": "geocode", "span.kind": "server", "url.path": "/geocode"},
+}
+
+DEFAULTS = {"otelEnabled": True, "telemetryLevel": "FULL", "recordSpan": True, "traceSampleRatio": 1.0}
+
+# Per preset: (span, flag) -> expected value. Anything not listed must be the default.
+EXPECTED = {
+    "00-baseline": {},
+    "01-otel-off": {(span, "otelEnabled"): False for span in SPANS},
+    "02-quiet-noise": {
+        ("geocode /health", "recordSpan"): False,
+        ("weather jdbc", "recordSpan"): False,
+    },
+    "03-semconv-rules": {
+        ("geocode /health", "traceSampleRatio"): 0.1,
+        ("geocode /geocode", "traceSampleRatio"): 0.1,
+    },
+}
+
+
+def nest(flat: dict) -> dict:
+    out: dict = {}
+    for key, value in flat.items():
+        node = out
+        *parents, leaf = key.split(".")
+        for part in parents:
+            node = node.setdefault(part, {})
+        node[leaf] = value
+    return out
+
+
+def main() -> int:
+    failures = []
+    files = sorted(PRESETS.glob("*.json"))
+    missing = {f.stem for f in files} - EXPECTED.keys()
+    if missing:
+        failures.append(f"presets without expectations here: {sorted(missing)}")
+
+    for file in files:
+        if file.stem not in EXPECTED:
+            continue
+        before = len(failures)
+        core = FlagdCore()
+        try:
+            core.set_flags(file.read_text(encoding="utf-8"))
+        except Exception as e:  # ParseError for keys the provider rejects
+            failures.append(f"{file.stem}: the Python flagd provider can't parse it: {e!r} {e.__cause__!r}")
+            continue
+        for span, attrs in SPANS.items():
+            ctx = EvaluationContext(TRACE_ID, nest(attrs))
+            for flag, default in DEFAULTS.items():
+                want = EXPECTED[file.stem].get((span, flag), default)
+                got = _resolve(core, flag, default, ctx)
+                if got != want:
+                    failures.append(f"{file.stem}: {flag} for {span!r} = {got!r}, want {want!r}")
+        print(f"{'ok  ' if len(failures) == before else 'FAIL'} {file.stem}")
+
+    for failure in failures:
+        print(f"FAIL {failure}")
+    return 1 if failures else 0
+
+
+def _resolve(core, flag, default, ctx):
+    if isinstance(default, bool):
+        return core.resolve_boolean_value(flag, default, ctx).value
+    if isinstance(default, float):
+        return core.resolve_float_value(flag, default, ctx).value
+    return core.resolve_string_value(flag, default, ctx).value
+
+
+if __name__ == "__main__":
+    sys.exit(main())

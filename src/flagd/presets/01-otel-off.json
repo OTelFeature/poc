@@ -1,0 +1,51 @@
+{
+  "$schema": "https://flagd.dev/schema/v0/flags.json",
+  "flags": {
+    "otelEnabled": {
+      "state": "ENABLED",
+      "defaultVariant": "off",
+      "variants": {
+        "on": true,
+        "off": false
+      },
+      "metadata": {
+        "description": "Kill switch for tracing (Demo 1). off = no spans at all; metrics keep flowing"
+      }
+    },
+    "telemetryLevel": {
+      "state": "ENABLED",
+      "defaultVariant": "full",
+      "variants": {
+        "full": "FULL",
+        "io": "IO",
+        "off": "OFF"
+      },
+      "metadata": {
+        "description": "Trace verbosity: FULL, IO (drop INTERNAL spans) or OFF (same as otelEnabled=off)"
+      }
+    },
+    "recordSpan": {
+      "state": "ENABLED",
+      "defaultVariant": "on",
+      "variants": {
+        "on": true,
+        "off": false
+      },
+      "metadata": {
+        "description": "Per-span drop flag, evaluated against the semconv context; false = the span is not created (Demo 2)"
+      }
+    },
+    "traceSampleRatio": {
+      "state": "ENABLED",
+      "defaultVariant": "all",
+      "variants": {
+        "all": 1.0,
+        "tenth": 0.1,
+        "none": 0.0
+      },
+      "metadata": {
+        "description": "Sample ratio for root spans, 0.0-1.0 (Demo 3)"
+      }
+    }
+  }
+}
