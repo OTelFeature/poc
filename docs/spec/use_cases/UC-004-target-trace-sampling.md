@@ -19,7 +19,8 @@
 - Each service sets its own `service.name`, `service.namespace`, `service.version` and `deployment.environment.name`; the collector only fills these when missing.
 - A production and a staging instance of each service run and receive traffic.
 - `traceSampleRatio` is defined with default 1.0.
-- The load generator calls `POST /geocode` and `POST /weather` directly, so each service is the entry point of those traces, and calls the cross-service path, where `geocode` calls `weather` (FR-026).
+- The load generator calls `POST /geocode` and `POST /weather` directly, so each service is the entry point of those traces.
+- For the cross-service part of steps 5 and 8 and of A2: the load generator also calls the cross-service path, where `geocode` calls `weather` (FR-026, OTelFeature/poc#59, not built yet).
 
 ## Main Success Scenario
 
@@ -30,7 +31,7 @@
 5. On the cross-service path `geocode` is the entry point and decides; `weather` follows the parent's decision, so the trace is either complete or absent. Direct `POST /weather` traces start in `weather`, which decides them itself.
 6. The dashboard shows about one in ten production traces and all staging traces.
 7. The operator adds a second rule that sets 0.5 for `service.name` = `weather` in production (`03a-weather-boost`), so `weather` is sampled more than the rest but not fully (it leaves room for the error-rate rule in UC-005 to raise it to 1.0).
-8. The dashboard shows about half of the production traces that start in `weather` and still about one in ten `geocode` production traces, including the cross-service traces `geocode` starts (BR-003).
+8. The dashboard shows about half of the production traces that start in `weather` and still about one in ten `geocode` production traces.
 
 ## Alternative Flows
 
@@ -46,11 +47,11 @@
 
 ### A2: Ratio flipped on a downstream service only
 
-**Trigger:** The operator raises the ratio for a service on a path where it is not the entry point, for example `weather` on the cross-service path (step 7).
+**Trigger:** The operator expects the raise to change traces that another service starts, for example the cross-service traces `geocode` starts (step 7).
 
 **Flow:**
 
-1. On that path the service follows its parent's sampling decision; the change has no effect there.
+1. On that path the service follows its parent's sampling decision; the raise has no effect on those traces, which stay at about one in ten (BR-003).
 2. The operator moves the rule to the entry-point service, or accepts that only the traces the service starts itself change.
 3. Use case continues at step 8.
 

@@ -80,7 +80,7 @@ issue is one PR, stacked on the previous one in its lane (see the
 
 - **Python** (`otelfeature-instrument`, merged): poc#8 → poc#9 → instrument#7 → instrument#14 → poc#10 (py) → instrument#8 → instrument#9 → poc#12
 - **Java** (`otelfeature-java-extension`, merged): poc#8 → poc#9 → java#21 → java#20 → java#27 → poc#10 (java) → java#22 (java#23 closed as not planned)
-- **POC** (`poc`): poc#22 (done) → poc#24 → poc#25 → poc#38 → poc#26 → poc#28 → poc#30 → poc#27 → poc#29 → poc#31
+- **POC** (`poc`): poc#22 (done) → poc#24 → poc#25 → poc#38 → poc#26 → poc#28 → poc#30 → poc#27 → poc#29 → poc#59 → poc#31
 - **E2E** (`poc`): poc#35 in its five phases (harness, TC-001 and hard floors, TC-002, TC-004 and TC-005, matrix and nightly). Each phase starts once the POC-lane issues and extension code it needs exist.
 - **Toolchain** (not stacked, each its own PR from `main`): instrument#20 (PR #21), java#32 (PR #35). They depend on nothing in the feature stacks; once merged, a rebased stacked PR gets a CI run.
 - **People, not agents:** poc#33, poc#32

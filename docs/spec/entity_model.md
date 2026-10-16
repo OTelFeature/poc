@@ -93,7 +93,7 @@ BR-006.
 | `02-quiet-noise` | `recordSpan` off for `geocode` `SERVER` spans on `url.path=/health` and for `weather` spans with `otel.scope.name=io.opentelemetry.jdbc` | Demo 2 |
 | `03-semconv-rules` | `traceSampleRatio` 0.1 for production, 1.0 otherwise | Demo 3, UC-004 step 6 |
 | `03a-weather-boost` | `traceSampleRatio` 0.5 for `weather` in production (the rest stays 0.1) | Demo 3, UC-004 step 7 |
-| `03b-incident` | `weatherUpstreamFailure` → `incident` (OTelFeature/poc#28, PR OTelFeature/poc#42), and the control-loop rule first in `traceSampleRatio`: 1.0 when `otelfeature.http.server.error_rate` > 0.05, else `03a-weather-boost`'s rules (UC-005, OTelFeature/poc#29, PR OTelFeature/poc#56). Decided by Simon, 2026-10-16: the rule is in this preset only; going back to `03a-weather-boost` removes the fault and the rule | Demo 3 incident |
+| `03b-incident` | `weatherUpstreamFailure` → `incident` (OTelFeature/poc#28, PR OTelFeature/poc#42), and the control-loop rule first in `traceSampleRatio`: 1.0 when `otelfeature.http.server.error_rate` > 0.05, else `03a-weather-boost`'s rules (UC-005, OTelFeature/poc#29, PR OTelFeature/poc#56). Decided by Simon, 2026-10-16: the rule is in this preset only; going back to `03a-weather-boost` removes the fault and the rule, so `weather` is back at 0.5 at once (OQ-14) | Demo 3 incident; going back to `03a-weather-boost` ends it |
 
 ### TELEMETRY_POLICY
 
@@ -130,7 +130,7 @@ of those traces and decides their sampling itself. The cross-service path
 (FR-026, OTelFeature/poc#59, not built yet) adds a `geocode` endpoint that
 calls `weather` over HTTP: there `geocode` is the entry point and `weather`
 follows the parent's decision (UC-004 BR-003). Until then no trace spans both
-services; they share only the `coordinates-db` table.
+services.
 
 ### ENFORCEMENT_POINT
 

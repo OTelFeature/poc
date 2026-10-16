@@ -14,7 +14,7 @@
 
 ## Preconditions
 
-- TC-004 preconditions; `03a-weather-boost` applied (production `weather` at 0.5).
+- TC-004 preconditions, except the cross-service path. The stage progression has reached `03a-weather-boost` (production `weather` at 0.5, UC-008 BR-006); the control-loop rule comes with `03b-incident`.
 - Extension releases with OTelFeature/otelfeature-instrument#8 / OTelFeature/otelfeature-java-extension#22 (error rate) and OTelFeature/otelfeature-instrument#9 (opt-in tracing hook).
 - The demo stack sets `OTEL_SEMCONV_STABILITY_OPT_IN=http` for `geocode` (the extension does not set it).
 - `OTELFEATURE_OPENFEATURE_TRACING_HOOK` is not set.
@@ -23,15 +23,15 @@
 
 | Step | Name | Description | Test Data | Use Case |
 |---|---|---|---|---|
-| 1 | Reset | Start from the reset command, then step through to the weather-boost preset | `make demo-reset`, then `03a-weather-boost` | [UC-008](../use_cases/UC-008-run-demo-on-stage.md) |
-| 2 | Inject failure | Apply the incident preset: the fault and the control-loop rule (OTelFeature/poc#29) | `03b-incident`, `weatherUpstreamFailure` → 0.3 | [UC-006](../use_cases/UC-006-inject-upstream-failures.md) |
+| 1 | Start state | `03a-weather-boost` applied, no reset (progression) | `make flag PRESET=03a-weather-boost` | [UC-008](../use_cases/UC-008-run-demo-on-stage.md) |
+| 2 | Inject failure | Apply the incident preset: the fault and the control-loop rule (OTelFeature/poc#29) | `03b-incident`, `weatherUpstreamFailure` → 0.3 | [UC-006](../use_cases/UC-006-inject-upstream-failures.md), [UC-005](../use_cases/UC-005-raise-sampling-on-errors.md) |
 | 3 | Verify errors | Error spans for `/weather` in Aspire within 2 s | - | - |
 | 4 | Loop reacts | `weather` error rate above 0.05 within one to two collections | interval 10 s, at least 10 requests per interval | [UC-005](../use_cases/UC-005-raise-sampling-on-errors.md) |
 | 5 | Verify sampling | Traces that start in `weather` at 100% of requests (from about 50%); `geocode` unchanged | - | - |
 | 6 | Read the trace | Open a failed `/weather` trace | - | [UC-007](../use_cases/UC-007-see-flag-evaluations-in-trace.md) |
 | 7 | Verify explanation | Span event for `weatherUpstreamFailure` on the `/weather` span; no span carries attributes written by the extensions | - | - |
 | 8 | Revert | Apply the weather-boost preset again: no fault, no loop rule | `03a-weather-boost`, `weatherUpstreamFailure` → 0.0 | [UC-006](../use_cases/UC-006-inject-upstream-failures.md) |
-| 9 | Verify recovery | Traces that start in `weather` back at about 50% after the next error-free interval | - | - |
+| 9 | Verify recovery | Traces that start in `weather` back at about 50% within 2 s: the fault and the rule leave with the preset (UC-005 A6, OQ-14) | - | - |
 
 ## Validation
 
@@ -47,7 +47,7 @@
 10. **Opt-in hook (OTelFeature/otelfeature-instrument#9):** with `OTELFEATURE_OPENFEATURE_TRACING_HOOK=true`, a targeted evaluation for a child span adds a `feature_flag.evaluation` event to its parent; an evaluation for a new root adds nothing; evaluation errors add no exception event. Without the variable, no event is added. The README states the caveat.
 11. **Repeatable (OTelFeature/poc#29):** steps 1 to 9 pass three times in a row.
 12. **Metrics export off (OTelFeature/otelfeature-instrument#15, OTelFeature/otelfeature-java-extension#31):** with `OTEL_METRICS_EXPORTER=none`, no error-rate reader is registered, the context never contains `otelfeature.http.server.error_rate` and the control-loop rule never matches; `none` mixed with another exporter logs a warning and keeps exporting (FR-024).
-13. **Loop end to end (OTelFeature/poc#35):** with `weatherUpstreamFailure=1.0`, `weather` samples at 1.0 within a bounded number of error-rate intervals; `geocode` sampling does not change; after the revert, `weather` returns to its ratio before the incident. [e2e: `test_tc005_control_loop`]
+13. **Loop end to end (OTelFeature/poc#35):** with `weatherUpstreamFailure=1.0`, `weather` samples at 1.0 within a bounded number of error-rate intervals; `geocode` sampling does not change; after reverting only `weatherUpstreamFailure` (the rule stays), `weather` returns to its ratio before the incident after an error-free interval (UC-005 steps 6 to 8, the loop letting go on its own). [e2e: `test_tc005_control_loop`]
 
 ## Note on the stage preset
 
@@ -55,7 +55,7 @@ On stage, `03b-incident` builds on `03a-weather-boost` (UC-008 BR-006), which se
 
 ## Postconditions
 
-- Flags back at baseline; no injected failures.
+- Flags at `03a-weather-boost`; no injected failures.
 
 ## Automation
 

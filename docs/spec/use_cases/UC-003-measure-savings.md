@@ -28,14 +28,14 @@
 4. The system runs the Demo 2 preset with `weather` in sampler mode and records the same values.
 5. The system measures the cost of one targeted span decision in each language.
 6. The system prints one table per service comparing the three runs and the decision cost.
-7. The speaker runs the measurement a second time with the same command and compares the two tables.
+7. The speaker runs a second measurement with the same command and compares the two tables.
 8. The speaker records the numbers for the script brackets and the D3 recommendation in OTelFeature/poc#27.
 
 ## Alternative Flows
 
 ### A1: Runs are not reproducible
 
-**Trigger:** The two runs of the same preset differ by more than 10% on a metric (step 7).
+**Trigger:** The two measurements differ by more than 10% on a metric for the same preset (step 7).
 
 **Flow:**
 

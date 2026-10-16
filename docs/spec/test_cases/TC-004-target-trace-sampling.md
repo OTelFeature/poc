@@ -9,7 +9,7 @@
 
 ## Roles
 
-- Operator: applies the semconv-rules preset.
+- Operator: applies the semconv-rules and weather-boost presets.
 
 ## Preconditions
 
@@ -53,4 +53,4 @@
 - **How:** CI asserts only deterministic ratios (0.0 and 1.0); the 0.1 and 0.5 volumes of steps 3 and 5 are not asserted. The statistical case at 0.5 runs nightly.
 - **Matrix:** runs in both Java enforcement modes (`processor`, `sampler`).
 - **Extension code:** built from git refs (each extension's `main`, where both chains are merged) until the releases in the preconditions exist (C-013).
-- **Not automated:** items 1 to 3, 5 to 7 and 9 are extension unit tests or docs checks.
+- **Not automated:** items 1 to 3, 5 to 7 and 9 are extension unit tests or docs checks. Step 6 waits for the cross-service path (OTelFeature/poc#59); once it exists, the e2e test asserts completeness only, not the 10% volume.
