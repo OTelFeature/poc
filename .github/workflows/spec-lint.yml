@@ -1,0 +1,33 @@
+name: spec-lint
+
+# AIUP spec lint (deterministic part of /spec-review) over docs/spec.
+# Runs `make spec-lint`, the same command as locally: spec_lint.py from
+# AI-Unified-Process/marketplace at a pinned commit, in a pinned
+# python:3.12-slim image (ci/spec-lint.sh). Errors fail the job; accepted
+# findings are in docs/spec/.spec-lint-baseline.json.
+on:
+  pull_request:
+    paths:
+      - "docs/spec/**"
+      - "ci/spec-lint.sh"
+      - "Makefile"
+      - ".github/workflows/spec-lint.yml"
+  push:
+    branches: [main]
+    paths:
+      - "docs/spec/**"
+      - "ci/spec-lint.sh"
+      - "Makefile"
+      - ".github/workflows/spec-lint.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  spec-lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Spec lint
+        run: make spec-lint

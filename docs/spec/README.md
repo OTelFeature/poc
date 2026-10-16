@@ -249,6 +249,32 @@ and OTelFeature/otelfeature-java-extension#35, neither merged yet.
 - `poc`: the e2e runner image is `ci/Dockerfile` in this repo (uv and the
   pytest dependencies preinstalled).
 
+### Spec lint (AIUP `/spec-review`, part A)
+
+CI runs the deterministic AIUP spec lint on every pull request that touches
+`docs/spec/` and on `main` (`.github/workflows/spec-lint.yml`); it must pass.
+Locally, in WSL with Docker only:
+
+```sh
+make spec-lint                                   # same command as CI
+make spec-lint SPEC_LINT_ARGS=--update-baseline  # accept current findings
+make -s spec-lint SPEC_LINT_ARGS=--report > spec-report.html
+```
+
+- `ci/spec-lint.sh` fetches `spec_lint.py` and the sibling scripts it imports
+  (`validate_use_case.py`, `bpmn_paths.py`) from
+  AI-Unified-Process/marketplace at a pinned commit (aiup-core 2.28.0) and
+  runs them with `--docs docs/spec` in a pinned `python:3.12-slim` image.
+- An `ERROR` fails the build; warnings are reported but don't fail it.
+- Accepted findings are in [`.spec-lint-baseline.json`](.spec-lint-baseline.json).
+  Fix a finding rather than adding it to the baseline; a baseline entry that
+  no longer matches is reported as `BASELINE_STALE` and should be removed with
+  `--update-baseline`.
+- The lint's diagram and actor checks read `use_cases.puml`; our diagram is
+  Mermaid ([use_cases.md](use_cases.md)), so those checks don't run here.
+- The semantic part of `/spec-review` (part B) is advisory and stays manual:
+  run `/spec-review UC-XXX` before the code for a use case starts.
+
 ### Local development
 
 Tests, builds and the stack run inside WSL (Ubuntu, WSL2) with Docker only.
@@ -277,10 +303,5 @@ row so references stay valid.
 
 ## Validation
 
-No AIUP tooling was run against these files. To check use case structure with
-the AIUP plugin installed, run its script from a Python image (C-014):
-
-```sh
-docker run --rm -v "$PWD":/w -w /w python:3.12-slim \
-  python3 scripts/validate_use_case.py docs/spec/use_cases/UC-*.md
-```
+See [Spec lint](#spec-lint-aiup-spec-review-part-a): `make spec-lint` checks
+these files with the AIUP tooling, and CI runs it on every spec PR.

@@ -1,0 +1,215 @@
+{
+  "version": 1,
+  "findings": [
+    {
+      "fingerprint": "11601eac5ad120485676289a8c5808e55af88338",
+      "code": "FR_UNCOVERED",
+      "path": "requirements.md",
+      "element": "FR-003",
+      "message": "functional requirement FR-003 is not referenced by any use case"
+    },
+    {
+      "fingerprint": "74500078068a11f67b28f55f25d97adfd382ed35",
+      "code": "FR_UNCOVERED",
+      "path": "requirements.md",
+      "element": "FR-025",
+      "message": "functional requirement FR-025 is not referenced by any use case"
+    },
+    {
+      "fingerprint": "52339e935ebd825efaf6d245e51c199e5513b778",
+      "code": "REQ_STATUS_DRIFT",
+      "path": "requirements.md",
+      "element": "C-004",
+      "message": "status 'Implemented' but its use cases make it 'Open' (UC-001 Draft, UC-002 Draft)"
+    },
+    {
+      "fingerprint": "d9c0f8d34a966cc0c5ab19e33c9a1f55a1c5c411",
+      "code": "REQ_STATUS_DRIFT",
+      "path": "requirements.md",
+      "element": "C-005",
+      "message": "status 'Implemented' but its use cases make it 'Open' (UC-005 Draft)"
+    },
+    {
+      "fingerprint": "3f30b75043fda53c65df70c0c0ed34cd1db88931",
+      "code": "REQ_STATUS_DRIFT",
+      "path": "requirements.md",
+      "element": "C-011",
+      "message": "status 'Implemented' but its use cases make it 'Open' (UC-001 Draft, UC-002 Draft, UC-004 Draft)"
+    },
+    {
+      "fingerprint": "87de6ca615f21c00d0f19b04fd2d1280d3f0ec12",
+      "code": "REQ_STATUS_DRIFT",
+      "path": "requirements.md",
+      "element": "C-012",
+      "message": "status 'Implemented' but its use cases make it 'Open' (UC-004 Draft)"
+    },
+    {
+      "fingerprint": "0071059d3df59fab674a11691f063ed422869ca9",
+      "code": "REQ_STATUS_DRIFT",
+      "path": "requirements.md",
+      "element": "FR-001",
+      "message": "status 'Implemented' but its use cases make it 'Open' (UC-001 Draft)"
+    },
+    {
+      "fingerprint": "81720cf2f4c74bbbdb38a192f5a0cfaf61c2cb96",
+      "code": "REQ_STATUS_DRIFT",
+      "path": "requirements.md",
+      "element": "FR-002",
+      "message": "status 'Implemented' but its use cases make it 'Open' (UC-001 Draft)"
+    },
+    {
+      "fingerprint": "cde4cef9cb1ac3b3f21eacb85d7ae841ce2cf79d",
+      "code": "REQ_STATUS_DRIFT",
+      "path": "requirements.md",
+      "element": "FR-004",
+      "message": "status 'Implemented' but its use cases make it 'Open' (UC-001 Draft, UC-002 Draft, UC-004 Draft)"
+    },
+    {
+      "fingerprint": "535271e0474ddaa3bb6d07ba859362bd1026c37f",
+      "code": "REQ_STATUS_DRIFT",
+      "path": "requirements.md",
+      "element": "FR-005",
+      "message": "status 'Implemented' but its use cases make it 'Open' (UC-002 Draft, UC-004 Draft)"
+    },
+    {
+      "fingerprint": "74819e4d72a42f7fb0b1470417f3d597372bec97",
+      "code": "REQ_STATUS_DRIFT",
+      "path": "requirements.md",
+      "element": "FR-006",
+      "message": "status 'Implemented' but its use cases make it 'Open' (UC-002 Draft)"
+    },
+    {
+      "fingerprint": "57e68ac84c3d0faddc611c49b4d094ca97853bae",
+      "code": "REQ_STATUS_DRIFT",
+      "path": "requirements.md",
+      "element": "FR-007",
+      "message": "status 'Implemented' but its use cases make it 'Open' (UC-002 Draft)"
+    },
+    {
+      "fingerprint": "ccd67b63fc0f8d1c946d7ec9ecedb2b8f34f06be",
+      "code": "REQ_STATUS_DRIFT",
+      "path": "requirements.md",
+      "element": "FR-008",
+      "message": "status 'Implemented' but its use cases make it 'Open' (UC-002 Draft, UC-003 Draft)"
+    },
+    {
+      "fingerprint": "0bcf9a5504420bfe7f5444409299157b5fb59196",
+      "code": "REQ_STATUS_DRIFT",
+      "path": "requirements.md",
+      "element": "FR-009",
+      "message": "status 'Implemented' but its use cases make it 'Open' (UC-004 Draft, UC-005 Draft)"
+    },
+    {
+      "fingerprint": "13cb89c7b640190c8c0161a3ff2bfe31174ada3c",
+      "code": "REQ_STATUS_DRIFT",
+      "path": "requirements.md",
+      "element": "FR-010",
+      "message": "status 'In Progress' but its use cases make it 'Open' (UC-004 Draft, UC-008 Draft)"
+    },
+    {
+      "fingerprint": "5c83e901c36eab87b2b7cf1afbbadd95d7854df7",
+      "code": "REQ_STATUS_DRIFT",
+      "path": "requirements.md",
+      "element": "FR-011",
+      "message": "status 'Implemented' but its use cases make it 'Open' (UC-005 Draft)"
+    },
+    {
+      "fingerprint": "add57e2af531e6f8ea1c0d3d56313bcd5ce00772",
+      "code": "REQ_STATUS_DRIFT",
+      "path": "requirements.md",
+      "element": "FR-012",
+      "message": "status 'In Progress' but its use cases make it 'Open' (UC-006 Draft)"
+    },
+    {
+      "fingerprint": "90d78c3a2f7aeb595e217b496fe15c3c11bd3543",
+      "code": "REQ_STATUS_DRIFT",
+      "path": "requirements.md",
+      "element": "FR-014",
+      "message": "status 'Implemented' but its use cases make it 'Open' (UC-007 Draft)"
+    },
+    {
+      "fingerprint": "a17c42bd8a372d32e52b239d6f1b7e40b9521732",
+      "code": "REQ_STATUS_DRIFT",
+      "path": "requirements.md",
+      "element": "FR-018",
+      "message": "status 'In Progress' but its use cases make it 'Open' (UC-008 Draft, UC-009 Draft)"
+    },
+    {
+      "fingerprint": "a309838ab3e6f01b31b7b45d3c6dcfd14a1bb0c4",
+      "code": "REQ_STATUS_DRIFT",
+      "path": "requirements.md",
+      "element": "FR-019",
+      "message": "status 'In Progress' but its use cases make it 'Open' (UC-008 Draft)"
+    },
+    {
+      "fingerprint": "d90b81e99dd32241968ed9d55efc761dc887756b",
+      "code": "REQ_STATUS_DRIFT",
+      "path": "requirements.md",
+      "element": "FR-023",
+      "message": "status 'Implemented' but its use cases make it 'Open' (UC-002 Draft)"
+    },
+    {
+      "fingerprint": "448c510919db98e13dddcb2fdf4b3be3c5a4ca83",
+      "code": "REQ_STATUS_DRIFT",
+      "path": "requirements.md",
+      "element": "FR-024",
+      "message": "status 'Implemented' but its use cases make it 'Open' (UC-005 Draft)"
+    },
+    {
+      "fingerprint": "f5db0939ded72976fc88885acba82a6684e0c21e",
+      "code": "REQ_STATUS_DRIFT",
+      "path": "requirements.md",
+      "element": "NFR-001",
+      "message": "status 'Implemented' but its use cases make it 'Open' (UC-001 Draft, UC-004 Draft)"
+    },
+    {
+      "fingerprint": "3490a11c799e0f3f52812b31d10a46dc94eaf8cf",
+      "code": "REQ_STATUS_DRIFT",
+      "path": "requirements.md",
+      "element": "NFR-002",
+      "message": "status 'Verified' but its use cases make it 'Open' (UC-002 Draft)"
+    },
+    {
+      "fingerprint": "2a1c9f850aaba661ef12487bf09cbde59af9816b",
+      "code": "REQ_STATUS_DRIFT",
+      "path": "requirements.md",
+      "element": "NFR-003",
+      "message": "status 'Implemented' but its use cases make it 'Open' (UC-001 Draft, UC-002 Draft, UC-004 Draft)"
+    },
+    {
+      "fingerprint": "7e33abdf1d4ca946423148a3e58259fde4b08080",
+      "code": "REQ_STATUS_DRIFT",
+      "path": "requirements.md",
+      "element": "NFR-007",
+      "message": "status 'Implemented' but its use cases make it 'Open' (UC-002 Draft, UC-004 Draft)"
+    },
+    {
+      "fingerprint": "098513aae8b200e28aee0e588c7493245a4330b1",
+      "code": "REQ_STATUS_DRIFT",
+      "path": "requirements.md",
+      "element": "NFR-008",
+      "message": "status 'Implemented' but its use cases make it 'Open' (UC-001 Draft, UC-007 Draft, UC-009 Draft)"
+    },
+    {
+      "fingerprint": "5ffaeae41e225dbca785677cce3943b09a734b61",
+      "code": "REQ_STATUS_DRIFT",
+      "path": "requirements.md",
+      "element": "NFR-015",
+      "message": "status 'In Progress' but its use cases make it 'Open' (UC-008 Draft)"
+    },
+    {
+      "fingerprint": "f218ca2f7ade165930a06f35bf8e254e03a290bf",
+      "code": "WEAK_WORD",
+      "path": "requirements.md",
+      "element": "NFR-003",
+      "message": "weak word 'fast': make it measurable, definite, or remove it"
+    },
+    {
+      "fingerprint": "644bb72b9876f0a3c9965f10b7975f0e329f20f5",
+      "code": "WEAK_WORD",
+      "path": "test_cases/TC-005-incident-control-loop.md",
+      "element": "TC-005",
+      "message": "weak word 'fast': make it measurable, definite, or remove it"
+    }
+  ]
+}
