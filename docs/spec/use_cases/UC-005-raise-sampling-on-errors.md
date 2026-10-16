@@ -8,7 +8,7 @@
 - **Secondary Actors:** flagd, weather, geocode, Speaker (causes the failure through UC-006)
 - **Goal:** When a service's HTTP error rate rises above 5%, a flag rule raises that service's trace sample ratio to 1.0 and lowers it again once errors stop, with no script outside the services, so that the failing service is fully traced exactly while it fails.
 - **Status:** Draft
-- **Requirements:** FR-011, FR-013, FR-009, NFR-006, NFR-012, NFR-013, NFR-014, C-005
+- **Requirements:** FR-011, FR-013, FR-009, FR-024, NFR-006, NFR-012, NFR-013, NFR-014, C-005
 - **Work Items:** OTelFeature/otelfeature-instrument#8, OTelFeature/otelfeature-java-extension#22, OTelFeature/poc#28, OTelFeature/poc#29, OTelFeature/poc#10
 - **Test Cases:** TC-005
 - **Script Beat:** Demo 3 ("errors go up, a rule turns sampling up for that service")
@@ -69,6 +69,16 @@
 
 1. Only the stable `http.server.request.duration` metric is counted, so no request counts twice.
 2. Use case continues at step 4.
+
+### A5: Metrics export is switched off
+
+**Trigger:** Step 3, the service runs with `OTEL_METRICS_EXPORTER=none`.
+
+**Flow:**
+
+1. No metrics SDK is installed, so the error-rate reader was never registered; the service logs this once at startup.
+2. The error-rate key is never in the context; the control-loop rule never matches and the environment rule applies (FR-024).
+3. Use case continues at step 5, with `weather` staying at its environment ratio.
 
 ## Postconditions
 

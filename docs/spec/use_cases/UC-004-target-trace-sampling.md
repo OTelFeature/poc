@@ -28,7 +28,7 @@
 4. The service samples the root span by bucketing the trace id against the ratio.
 5. A trace that enters `weather` from `geocode` falls in the same bucket in both services, so it is either complete or absent.
 6. The dashboard shows about one in ten production traces and all staging traces.
-7. The operator adds a second rule that sets 1.0 for `service.name` = `weather` in production.
+7. The operator adds a second rule that sets 0.5 for `service.name` = `weather` in production, so `weather` is sampled more than the rest but not fully (it leaves room for the error-rate rule in UC-005 to raise it to 1.0).
 8. The dashboard shows all `weather` production traces and about one in ten `geocode` production traces.
 
 ## Alternative Flows
@@ -134,4 +134,4 @@ OpenTelemetry's `jaeger_remote` sampler also changes sampling remotely. The diff
 
 ### BR-008: Cross-language ratio parity is not guaranteed (accepted, Simon, 2026-10-16)
 
-Each extension applies its own SDK's trace-id ratio formula. Java compares the lower 64 bits of the trace id, signed, against `ratio * Long.MAX_VALUE`; Python compares 64 bits, unsigned, against `ratio * 2^64`. At the same ratio they can disagree on the same trace id. This is harmless with parent-based propagation, because only the entry service decides (BR-002, BR-003). Where a decision must agree across languages, bucket with a flagd `fractional` rule on `targetingKey` (the trace id), which every service evaluates the same way. Both extension READMEs document this.
+Each extension applies its own SDK's trace-id ratio formula. Java compares the lower 64 bits of the trace id, signed, against `ratio * Long.MAX_VALUE`; Python compares 64 bits, unsigned, against `ratio * 2^64`. At the same ratio they can disagree on the same trace id. This is harmless with parent-based propagation, because only the entry service decides (BR-002, BR-003). Where a decision must agree across languages, bucket with a flagd `fractional` rule on `targetingKey` (the trace id), which every service evaluates the same way. Both extension READMEs document this. Worked example and diagrams: [ratio-parity.md](../ratio-parity.md).

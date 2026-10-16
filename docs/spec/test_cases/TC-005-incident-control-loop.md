@@ -46,10 +46,24 @@
 9. **No decision attributes (OTelFeature/otelfeature-instrument#9, OTelFeature/otelfeature-java-extension#23):** under any flag state, including a sampled root under `traceSampleRatio=0.1`, the extensions write no `feature_flag.*` attribute, no `otelfeature.sample_ratio` and no tracestate `ot=th`.
 10. **Opt-in hook (OTelFeature/otelfeature-instrument#9):** with `OTELFEATURE_OPENFEATURE_TRACING_HOOK=true`, a targeted evaluation for a child span adds a `feature_flag.evaluation` event to its parent; an evaluation for a new root adds nothing; evaluation errors add no exception event. Without the variable, no event is added. The README states the caveat.
 11. **Repeatable (OTelFeature/poc#29):** steps 1 to 9 pass three times in a row.
+12. **Metrics export off (OTelFeature/otelfeature-instrument#15, OTelFeature/otelfeature-java-extension#31):** with `OTEL_METRICS_EXPORTER=none`, no error-rate reader is registered, the context never contains `otelfeature.http.server.error_rate` and the control-loop rule never matches; `none` mixed with another exporter logs a warning and keeps exporting (FR-024).
+13. **Loop end to end (OTelFeature/poc#35):** with `weatherUpstreamFailure=1.0`, `weather` samples at 1.0 within a bounded number of error-rate intervals; `geocode` sampling does not change; after the revert, `weather` returns to its baseline ratio. [e2e: `test_tc005_control_loop`]
+
+## Note on the stage preset
+
+On stage, `03b-incident` builds on `03a-weather-boost` (UC-008 BR-006), which sets `weather` to 0.5. The check is therefore a rise from 0.5 to 1.0 while the fault is active and a return to 0.5 after it, from the stage preset itself, with no reset.
 
 ## Postconditions
 
 - Flags back at baseline; no injected failures.
+
+## Automation
+
+- **Test:** `test_tc005_control_loop` in `tests/e2e/` (OTelFeature/poc#35, phase 4). Needs the fault-injection flag (OTelFeature/poc#28), the control-loop preset (OTelFeature/poc#29) and the error-rate code in both extensions.
+- **How:** differs from the stage flow so it runs fast and deterministically: the failure fraction is 1.0 instead of 0.3, and the e2e override sets a short `OTELFEATURE_ERROR_RATE_INTERVAL` and a low `OTELFEATURE_ERROR_RATE_MIN_REQUESTS`. The test sends its own requests (load generator off).
+- **Matrix:** runs in both Java enforcement modes (`processor`, `sampler`).
+- **Extension code:** built from git refs (each extension's `main`, where both chains are merged) until the releases in the preconditions exist (C-013).
+- **Not automated:** items 1 to 12; steps 6 and 7 (reading the trace) stay manual. Item 11 is covered for the suite as a whole by NFR-015 (three green runs in a row), not for the stage timings.
 
 ## Notes
 
