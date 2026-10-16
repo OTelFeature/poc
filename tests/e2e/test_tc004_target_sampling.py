@@ -14,13 +14,14 @@ its own sampling decision (UC-004 BR-002, roots only).
 
 from __future__ import annotations
 
+import time
 import uuid
 
 import pytest
 
 from conftest import FLIP_BUDGET_SECONDS, URLS, Step
 from flags import Flags
-from spans import describe, wait_until
+from spans import STEP_HEADER, describe, wait_until
 
 PRODUCTION = ("geocode", "weather")
 STAGING = ("geocode-staging", "weather-staging")
@@ -31,8 +32,11 @@ def _eq(key: str, value: str) -> dict:
 
 
 def _ratio_rule(flags: Flags, weather_full: bool) -> dict:
-    """03-semconv-rules / 03a-weather-full, with 0.0 instead of 0.1."""
-    config = flags.preset("03a-weather-full" if weather_full else "03-semconv-rules")
+    """The shape of 03-semconv-rules / 03a's weather override, with 0.0
+    instead of 0.1. Built on 00-baseline, *not* on the stage presets: those
+    are cumulative and keep 02-quiet-noise's rule dropping geocode /health,
+    which would make every geocode probe here untraced whatever the ratio."""
+    config = flags.preset("00-baseline")
     branches = []
     if weather_full:
         branches += [{"and": [_eq("deployment.environment.name", "production"),
@@ -105,24 +109,35 @@ def test_tc004_target_sampling(step: Step, flags: Flags):
 
 
 @pytest.mark.slow
-@pytest.mark.parametrize("preset", ["03-semconv-rules", "03a-weather-full"])
-def test_tc004_stage_presets_ratio(step: Step, flags: Flags, preset: str):
-    """The stage presets as they are: production at 0.1 ("about one in ten",
-    UC-004 step 6). 300 roots per instance: the expected 30 has a standard
-    deviation of about 5, so 10..55 is a wide band that still fails on 0.0,
-    0.5 or 1.0."""
-    flags.apply(preset)
-    # A ratio of 0.1 has no deterministic probe; flagd already serves the
-    # preset (revision barrier) and the services follow within a few hundred
-    # ms, so a warm-up of uncounted requests covers that before counting.
-    for instance in ("geocode", "weather"):
-        _traced(step, instance, 40)
+def test_tc004_stage_preset_ratio(step: Step, flags: Flags):
+    """The stage preset as it is: production at 0.1 ("about one in ten",
+    UC-004 step 6). 300 roots per service: the expected 30 has a standard
+    deviation of about 5, so 10..55 still fails on 0.0, 0.5 or 1.0.
+
+    The preset keeps 02-quiet-noise's rules, so geocode is counted on
+    POST /geocode (a location the stub knows), not /health."""
+    # Start from a deterministic 0.0 (barrier), so a late flip to 0.1 can
+    # only deflate the counts by a few, never inflate them toward 1.0.
+    flags.write(_ratio_rule(flags, weather_full=False))
+    for service in PRODUCTION:
+        step.wait_tracing(service, traced=False)
+    flags.apply("03-semconv-rules")
+    # 0.0 → 0.1 has no deterministic probe; uncounted warm-up traffic for
+    # the flip budget covers the services picking the preset up.
+    deadline = time.monotonic() + FLIP_BUDGET_SECONDS
+    while time.monotonic() < deadline:
+        step.http.get(f"{URLS['weather']}/health")
+        step.http.post(f"{URLS['geocode']}/geocode", json={"city": "linz", "country": "austria"})
+
     n = 300
-    tags = {instance: _traced(step, instance, n) for instance in ("geocode", "weather")}
+    tags = {"geocode": f"{step.id}-geocode", "weather": f"{step.id}-weather"}
+    for _ in range(n):
+        r = step.http.post(f"{URLS['geocode']}/geocode", json={"city": "linz", "country": "austria"},
+                           headers={STEP_HEADER: tags["geocode"]})
+        assert r.status_code == 200
+        r = step.http.get(f"{URLS['weather']}/health", headers={STEP_HEADER: tags["weather"]})
+        assert r.status_code == 200
     step.quiet(lambda s: False)  # let the last batches arrive
-    counts = {i: len([s for s in step.spans.for_step(t) if s.kind == "server"]) for i, t in tags.items()}
-    assert 10 <= counts["geocode"] <= 55, f"geocode production: {counts['geocode']}/{n} sampled at 0.1"
-    if preset == "03a-weather-full":
-        assert counts["weather"] == n, f"weather production: {counts['weather']}/{n} sampled at 1.0"
-    else:
-        assert 10 <= counts["weather"] <= 55, f"weather production: {counts['weather']}/{n} sampled at 0.1"
+    for service, tag in tags.items():
+        count = len([s for s in step.spans.for_step(tag) if s.kind == "server"])
+        assert 10 <= count <= 55, f"{service} production: {count}/{n} sampled at 0.1"
