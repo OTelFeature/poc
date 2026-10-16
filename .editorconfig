@@ -1,0 +1,4 @@
+# Use case Overview lines end in two spaces: a Markdown line break (AIUP
+# template, docs/spec/README.md "Spec lint").
+[docs/spec/use_cases/*.md]
+trim_trailing_whitespace = false

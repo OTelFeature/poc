@@ -72,7 +72,7 @@ Use cases:
 
 - **Location.** AIUP puts the artifacts directly under `docs/`. They are under
   `docs/spec/` here so they don't mix with other docs. File names follow the
-  `aiup-core` 2.5.0 skills (`entity_model.md`; the diagram is `use_cases.md`, see below). The AIUP
+  `aiup-core` skills (`entity_model.md`; the diagram is `use_cases.md`, see below). The AIUP
   tutorial uses `docs/architecture/entity-model.md` and
   `docs/architecture/use-case-diagram.puml` instead; the plugin's names were
   picked because the plugin is what agents will run.
@@ -265,11 +265,18 @@ make -s spec-lint SPEC_LINT_ARGS=--report > spec-report.html
   (`validate_use_case.py`, `bpmn_paths.py`) from
   AI-Unified-Process/marketplace at a pinned commit (aiup-core 2.28.0) and
   runs them with `--docs docs/spec` in a pinned `python:3.12-slim` image.
-- An `ERROR` fails the build; warnings are reported but don't fail it.
+- It runs with `--strict`: an `ERROR` or a warning that is not in the
+  baseline fails the build. It first runs the linter's `--self-test`, so a
+  sibling script that fails to load fails the build instead of silently
+  skipping the use case checks.
+- "Must pass" is a review rule, not branch protection (this repo has none):
+  maintainers don't merge a spec PR with a red spec-lint check.
 - Accepted findings are in [`.spec-lint-baseline.json`](.spec-lint-baseline.json).
   Fix a finding rather than adding it to the baseline; a baseline entry that
   no longer matches is reported as `BASELINE_STALE` and should be removed with
-  `--update-baseline`.
+  `--update-baseline`. The baselined findings wait on OQ-12 and OQ-13.
+- Use case Overview lines end in two spaces (a Markdown line break, as in
+  AIUP's template). Editors must not trim them; `.editorconfig` says so.
 - The lint's diagram and actor checks read `use_cases.puml`; our diagram is
   Mermaid ([use_cases.md](use_cases.md)), so those checks don't run here.
 - The semantic part of `/spec-review` (part B) is advisory and stays manual:
@@ -300,6 +307,9 @@ row so references stay valid.
 | OQ-8 | Which flag carries the Demo 2 drop rules? | **Resolved (Simon, 2026-10-16):** the per-span boolean flag `recordSpan` (default `true`, key override `OTELFEATURE_RECORD_SPAN_FLAG_NAME`). See FR-023, UC-002 BR-006, [flags](entity_model.md#flags) | Speakers, with OTelFeature/otelfeature-instrument#14, OTelFeature/otelfeature-java-extension#27 | UC-002 BR-006, entity model |
 | OQ-9 | Demo 3 script line: "when someone asks why did we stop collecting this, the answer is in the trace" no longer holds for telemetry decisions, because the extensions record none of their own decisions on spans (FR-014). Recommended rewording: "the flag decisions show up in your traces", demonstrated with the application's own `weatherUpstreamFailure` evaluation (OTelFeature/poc#30). | **Open** (recommendation only, not decided) | Speakers | UC-007, TC-005, script |
 | OQ-10 | Which preset does `03b-incident` build on? The presets are cumulative (UC-008 BR-006), but if `03b-incident` includes `03a-weather-boost`'s override, `weather` already samples at 1.0 and the control loop (UC-005) shows no change. PR OTelFeature/poc#42 currently builds it on `03-semconv-rules` (as PR OTelFeature/poc#41 had it, before the split). | **Resolved (Simon, 2026-10-16):** the demo is a progression with no resets, so `03b-incident` builds on `03a-weather-boost`. `03a` sets `weather` to **0.5** (not 1.0), so the error-rate rule in `03b` visibly raises it from 0.5 to 1.0 when the fault is injected. | Speakers, before OTelFeature/poc#42 merges | UC-005, UC-006, UC-008 BR-006, TC-005, TC-006 |
+| OQ-11 | "Root span" has two meanings. For drop rules it includes an incoming `SERVER`/`CONSUMER` span with a remote parent (FR-006, UC-002 BR-003, `SPAN_DECISION.isRoot`); for the sample ratio only a span with no parent evaluates `traceSampleRatio` (TC-004 item 6, UC-004 BR-002). FR-009, the entity model (`TELEMETRY_POLICY.sampleRatio`, policy field resolution) and UC-004 steps 2 to 4 say "root spans" for the ratio. Qualify one of them (for example "trace root")? The [glossary](glossary.md) keeps them apart for now. | **Open** (found by `/spec-review`, PR OTelFeature/poc#55) | Speakers | FR-009, entity model, UC-004, glossary |
+| OQ-12 | Requirement status vs use case status. All use cases are `Draft`, while 26 requirements are Implemented, In Progress or Verified; AIUP derives a requirement's status from its use cases, so the spec lint reports `REQ_STATUS_DRIFT` (baselined). Move use cases to `Implemented` where their requirements are, or keep requirement statuses hand-set? | **Open** | Simon | all use cases, requirements.md, `.spec-lint-baseline.json` |
+| OQ-13 | TC-005 says the e2e variant "runs fast" (spec lint `WEAK_WORD`, baselined). Replace it with a bound, for example "finishes within N s"? | **Open** | Simon | TC-005, `.spec-lint-baseline.json` |
 
 ## Validation
 

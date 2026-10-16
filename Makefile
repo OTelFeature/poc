@@ -153,10 +153,10 @@ e2e-down:
 
 # ── Spec lint (docs/spec, AIUP /spec-review part A) ─────────────────────
 # Same command as .github/workflows/spec-lint.yml; needs only Docker.
-#   make spec-lint
+#   make spec-lint                                    # --strict, as in CI
 #   make spec-lint SPEC_LINT_ARGS=--update-baseline   # accept current findings
 SPEC_LINT_IMAGE := python:3.12-slim@sha256:a6e34c598f2467ed0e9a8d349809fcd8b5c603269512df273a0bb1784edc11b1
-SPEC_LINT_ARGS ?=
+SPEC_LINT_ARGS ?= --strict
 
 .PHONY: spec-lint
 spec-lint:

@@ -9,7 +9,7 @@
 # bpmn_paths.py from its sibling skill folders, so the folder layout is kept.
 set -eu
 
-AIUP_SHA="${AIUP_SHA:-05af8163838df704620ebe1121cd6019dbce276c}"
+AIUP_SHA=05af8163838df704620ebe1121cd6019dbce276c
 BASE="https://raw.githubusercontent.com/AI-Unified-Process/marketplace/${AIUP_SHA}/aiup-core/skills"
 SKILLS="$(mktemp -d)"
 
@@ -24,5 +24,9 @@ for path in ("spec-review/scripts/spec_lint.py",
     with urllib.request.urlopen(base + "/" + path, timeout=30) as response:
         open(target, "wb").write(response.read())
 EOF
+
+# Fails when a sibling script does not load, which the lint itself only
+# reports as an INFO (and then skips the use case checks).
+python3 -B "$SKILLS/spec-review/scripts/spec_lint.py" --self-test >/dev/null
 
 exec python3 -B "$SKILLS/spec-review/scripts/spec_lint.py" --docs docs/spec "$@"

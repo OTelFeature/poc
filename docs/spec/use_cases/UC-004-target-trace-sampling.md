@@ -83,7 +83,7 @@
 
 ### A6: Unknown sampler name (Python)
 
-**Trigger:** `OTEL_TRACES_SAMPLER` names a sampler the SDK does not know (for example `jaeger_remote`) (step 3).
+**Trigger:** `OTEL_TRACES_SAMPLER` names a sampler the SDK does not know, for example `jaeger_remote` (step 3).
 
 **Flow:**
 

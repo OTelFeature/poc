@@ -37,7 +37,7 @@
 
 ### A1: Java service runs in processor mode
 
-**Trigger:** `weather` runs with `OTELFEATURE_ENFORCEMENT=processor` (the default) (step 6).
+**Trigger:** `weather` runs with `OTELFEATURE_ENFORCEMENT=processor`, the default (step 6).
 
 **Flow:**
 
@@ -47,7 +47,7 @@
 
 ### A2: Rule reads only keys present on the tracer (Python)
 
-**Trigger:** A rule for `geocode` reads only resource and scope keys (for example muting its database instrumentation by `otel.scope.name`) (step 4).
+**Trigger:** A rule for `geocode` reads only resource and scope keys (step 4), for example muting its database instrumentation by `otel.scope.name`.
 
 **Flow:**
 
@@ -67,7 +67,7 @@
 
 ### A4: The sampler cannot drop the span safely (Java sampler mode)
 
-**Trigger:** In sampler mode, the matching span propagates mid-trace (neither a root nor a non-propagating leaf), or the rule reads a key a `Sampler` is not told (such as `otel.scope.name`) (step 6).
+**Trigger:** In sampler mode, the matching span propagates mid-trace (neither a root nor a non-propagating leaf), or the rule reads a key a `Sampler` is not told, such as `otel.scope.name` (step 6).
 
 **Flow:**
 
@@ -87,7 +87,7 @@
 
 ### A6: Rule matches an incoming request from another service
 
-**Trigger:** The matching span is a `SERVER` or `CONSUMER` span whose parent is remote (the request came from another traced service) (step 4).
+**Trigger:** The matching span is a `SERVER` or `CONSUMER` span whose parent is remote, because the request came from another traced service (step 4).
 
 **Flow:**
 
