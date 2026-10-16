@@ -62,7 +62,7 @@
 **Flow:**
 
 1. No trace roots of that service are sampled, equivalent to an always-off sampler.
-2. Use case continues at step 6.
+2. Use case continues at step 6, where the dashboard shows no traces that start in that service; traces it joins with a sampled parent still appear (BR-002).
 
 ### A4: Service does not declare its environment
 

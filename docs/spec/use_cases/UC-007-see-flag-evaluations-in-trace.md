@@ -29,19 +29,7 @@
 
 ## Alternative Flows
 
-### A1: Operator debugs a telemetry rule with the opt-in hook
-
-**Trigger:** The operator wants to see the extension's own evaluations and starts the Python service (`geocode`) with `OTELFEATURE_OPENFEATURE_TRACING_HOOK=true` (step 4).
-
-**Flow:**
-
-1. Each targeted evaluation of the extension's flags adds a `feature_flag.evaluation` event to the span that is current at evaluation time, which is the parent of the span being decided.
-2. Decisions for new roots (including every `traceSampleRatio` decision) and for dropped spans record nothing, because there is no current span to write to or it is not exported.
-3. Evaluation errors are not recorded as exceptions on application spans.
-4. The operator switches the hook off again after debugging, because a targeted flag adds up to one event per span.
-5. Use case ends.
-
-### A2: Hook emits older attribute names
+### A1: Hook emits older attribute names
 
 **Trigger:** The pinned hook version does not emit the current `feature_flag` semantic conventions (step 2).
 
@@ -49,15 +37,6 @@
 
 1. The operator sees the evaluation under the older names; the names per SDK version are recorded in OTelFeature/poc#30 and the script is adjusted.
 2. Use case continues at step 3.
-
-### A3: Operator sets the hook variable on the Java service
-
-**Trigger:** The operator starts `weather` (Java) with `OTELFEATURE_OPENFEATURE_TRACING_HOOK=true` (step 4).
-
-**Flow:**
-
-1. The Java extension has no such hook (OTelFeature/otelfeature-java-extension#23, closed as not planned) and ignores the variable; no event is added.
-2. Use case ends.
 
 ## Postconditions
 
@@ -78,11 +57,11 @@ The extensions write no `feature_flag.*` attributes, no `otelfeature.sample_rati
 
 ### BR-002: Hook for the extension's own evaluations is opt-in only
 
-`OTELFEATURE_OPENFEATURE_TRACING_HOOK=true` is never the default, because per-span evaluation would add an event per span. Evaluation exceptions are excluded. Only the Python extension has this hook ([configuration](../entity_model.md#configuration)); Java has none (A3).
+`OTELFEATURE_OPENFEATURE_TRACING_HOOK=true` is never the default, because a targeted flag adds up to one event per span; it is meant to be switched on for debugging and off again. Each targeted evaluation of the extension's flags adds a `feature_flag.evaluation` event (BR-003). Evaluation errors are not recorded as exceptions on application spans. Only the Python extension has this hook ([configuration](../entity_model.md#configuration)). The Java extension has none (OTelFeature/otelfeature-java-extension#23, closed as not planned) and ignores the variable, so `weather` adds no event. Debugging a telemetry rule with this hook is a rule of this use case, not a flow of it, because its goal differs (decided by Simon, 2026-10-16).
 
 ### BR-003: Where hook events land
 
-The hook writes to the span current at evaluation time: the parent of the span being decided. Decisions for new roots and for dropped spans record nothing.
+The hook writes to the span current at evaluation time: the parent of the span being decided. Decisions for new roots (including every `traceSampleRatio` decision) and for dropped spans record nothing, because there is no current span to write to or it is not exported.
 
 ### BR-004: Attribute names
 

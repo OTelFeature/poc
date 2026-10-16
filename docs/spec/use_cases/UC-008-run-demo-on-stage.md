@@ -87,4 +87,4 @@ Decided by Simon, 2026-10-16 (OTelFeature/poc#26, PR OTelFeature/poc#41). Each p
 
 ### BR-007: A flip counts only once flagd serves it
 
-flagd reloads a flag file only when its mtime strictly increases, so every preset command leaves the file with a newer mtime, and an automated run confirms over OFREP that flagd serves the new value before it counts spans ([flag file reload](../entity_model.md#flag-file-reload), NFR-004).
+flagd reloads a flag file only when its mtime strictly increases, so every preset command leaves the file with a newer mtime, and an automated run checks that flagd serves the new value before it counts spans. The check reads the value over flagd's OFREP endpoint and only verifies it; the services still evaluate in process over gRPC sync (C-002) ([flag file reload](../entity_model.md#flag-file-reload), NFR-004).
