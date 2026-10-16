@@ -37,8 +37,21 @@ because Demo 3 needs the staging twins.
 | Demo 2: tracing back, noise dropped | `make flag PRESET=02-quiet-noise` | Traces again, but no `GET /health` traces from `geocode`, and `/weather` traces with no `SELECT`/`INSERT` (JDBC) spans. `weather`'s own `/health` traces stay |
 | Demo 3: rules on semconv attributes | `make flag PRESET=03-semconv-rules` | About 1 in 10 production traces from both services; all staging traces (filter by `deployment.environment.name`). Demo 2's drops stay on |
 | Demo 3: boost one service | `make flag PRESET=03a-weather-boost` | Production `weather` at about half its traces; production `geocode` stays at about 1 in 10 |
-| Demo 3: incident | `make flag PRESET=03b-incident` | About 30% of `POST /weather` requests fail (HTTP 503, span status ERROR, `error.type=503`), in `weather` and `weather-staging` (the fault flag has no targeting). Within one or two error-rate intervals (10 s), weather's error rate passes 5% and the loop rule samples it fully: production `weather` goes from about half to all traces; `geocode` stays at 1 in 10 |
+| Demo 3: incident | `make flag PRESET=03b-incident` | About 30% of `POST /weather` requests fail (HTTP 503, span status ERROR, `error.type=503`), in `weather` and `weather-staging` (the fault flag has no targeting). Within one or two error-rate intervals (10 s), weather's error rate passes 5% and the loop rule samples it fully: production `weather` goes from about half to all traces; `geocode` stays at 1 in 10. See the note below on the margin |
+| Demo 3: incident over | `make flag PRESET=03a-weather-boost` | No new errors; after the next error-free interval (10–20 s) production `weather` is back at about half. Not a reset: only the fault and the loop rule go |
 | End | `make demo-reset` | Baseline, fresh k6 run |
+
+**Incident margin.** The loop reads weather's error rate over *all* its
+requests in a 10 s interval, and only `POST /weather` fails. With the stage
+load (k6: `/weather` 1/s and `/health` 2/s, plus the compose healthcheck
+every 2 s) that is about 3 failures in 35 requests, an error rate of about
+**9%, not 30%**. It is above 5%, but in roughly one interval in seven
+fewer than two of the ten `/weather` requests fail, and weather dips back to
+half for about 10 s. A wider margin needs a decision (a higher incident
+share, a lower `HEALTHCHECK_RATE` on stage, or a lower threshold). The span
+metrics in Aspire are built from *sampled* spans, so their error rate moves
+with the sampling and isn't the loop's input (that is the services'
+unsampled HTTP metric).
 
 If a beat doesn't show its effect, switch to the fallback video for that demo
 (OTelFeature/poc#32) and carry on with the next command.
@@ -49,15 +62,16 @@ Presets follow the talk's order and are **cumulative**: each one keeps the
 rules of the beat before it, so Demo 2's dropped health checks and DB spans
 stay dropped through Demo 3. The demo is a **progression with no resets**
 (UC-008 BR-006): `00-baseline` → `01-otel-off` → `02-quiet-noise` →
-`03-semconv-rules` → `03a-weather-boost` → `03b-incident`. `01-otel-off` is
+`03-semconv-rules` → `03a-weather-boost` → `03b-incident`, and back to
+`03a-weather-boost` when the incident is over. `01-otel-off` is
 the exception: it is the baseline with tracing off, and `02-quiet-noise`
 turns tracing back on with its drop rules. `make demo-reset` is for
 rehearsals, never between beats.
 
 Every preset is still a full flag file, so any one can be applied directly.
 Anything not listed is at its baseline value (`otelEnabled=on`,
-`telemetryLevel=full`, `recordSpan=on`, `traceSampleRatio=all` = 1.0 (variants `half` 0.5, `tenth` 0.1, `none` 0.0),
-`weatherUpstreamFailure=none` = 0.0).
+`telemetryLevel=full`, `recordSpan=on`, `traceSampleRatio=all` = 1.0, `weatherUpstreamFailure=none` = 0.0). The
+ratio's other variants are `half` 0.5, `tenth` 0.1 and `none` 0.0.
 
 | Preset | Change from baseline |
 |---|---|
