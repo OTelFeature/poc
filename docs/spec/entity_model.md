@@ -93,7 +93,7 @@ BR-006.
 | `02-quiet-noise` | `recordSpan` off for `geocode` `SERVER` spans on `url.path=/health` and for `weather` spans with `otel.scope.name=io.opentelemetry.jdbc` | Demo 2 |
 | `03-semconv-rules` | `traceSampleRatio` 0.1 for production, 1.0 otherwise | Demo 3, UC-004 step 6 |
 | `03a-weather-boost` | `traceSampleRatio` 0.5 for `weather` in production (the rest stays 0.1) | Demo 3, UC-004 step 7 |
-| `03b-incident` | `weatherUpstreamFailure` → `incident` (OTelFeature/poc#28, PR OTelFeature/poc#42) | Demo 3 incident |
+| `03b-incident` | `weatherUpstreamFailure` → `incident` (OTelFeature/poc#28, PR OTelFeature/poc#42), and the control-loop rule on `traceSampleRatio` ahead of the others: `otelfeature.http.server.error_rate > 0.05` → 1.0 (UC-005, OQ-10) | Demo 3 incident; going back to `03a-weather-boost` ends it |
 
 ### TELEMETRY_POLICY
 

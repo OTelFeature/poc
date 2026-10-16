@@ -14,7 +14,7 @@
 
 ## Preconditions
 
-- TC-004 preconditions; semconv-rules preset with the control-loop rule active (OTelFeature/poc#29).
+- TC-004 preconditions; the stage progression has reached `03a-weather-boost` (production `weather` at 0.5, UC-008 BR-006). The control-loop rule comes with `03b-incident`.
 - Extension releases with OTelFeature/otelfeature-instrument#8 / OTelFeature/otelfeature-java-extension#22 (error rate) and OTelFeature/otelfeature-instrument#9 (opt-in tracing hook).
 - The demo stack sets `OTEL_SEMCONV_STABILITY_OPT_IN=http` for `geocode` (the extension does not set it).
 - `OTELFEATURE_OPENFEATURE_TRACING_HOOK` is not set.
@@ -23,15 +23,15 @@
 
 | Step | Name | Description | Test Data | Use Case |
 |---|---|---|---|---|
-| 1 | Reset | Start from the reset command | `make demo-reset` | [UC-008](../use_cases/UC-008-run-demo-on-stage.md) |
-| 2 | Inject failure | Apply the incident preset | `weatherUpstreamFailure` → 0.3 | [UC-006](../use_cases/UC-006-inject-upstream-failures.md) |
+| 1 | Start state | `03a-weather-boost` applied, no reset (progression) | `make flag PRESET=03a-weather-boost` | [UC-008](../use_cases/UC-008-run-demo-on-stage.md) |
+| 2 | Inject failure | Apply the incident preset: fault plus control-loop rule | `03b-incident`: `weatherUpstreamFailure` → 0.3 | [UC-006](../use_cases/UC-006-inject-upstream-failures.md) |
 | 3 | Verify errors | Error spans for `/weather` in Aspire within 2 s | - | - |
 | 4 | Loop reacts | `weather` error rate above 0.05 within one to two collections | interval 10 s, at least 10 requests per interval | [UC-005](../use_cases/UC-005-raise-sampling-on-errors.md) |
 | 5 | Verify sampling | `weather` trace volume at 100% of requests; `geocode` unchanged | - | - |
 | 6 | Read the trace | Open a failed `/weather` trace | - | [UC-007](../use_cases/UC-007-see-flag-evaluations-in-trace.md) |
 | 7 | Verify explanation | Span event for `weatherUpstreamFailure` on the `/weather` span; no span carries attributes written by the extensions | - | - |
-| 8 | Revert | Set the failure flag back | `weatherUpstreamFailure` → 0.0 | [UC-006](../use_cases/UC-006-inject-upstream-failures.md) |
-| 9 | Verify recovery | `weather` back at the environment ratio after the next error-free interval | - | - |
+| 8 | Revert | Go back to the boost preset (fault and loop rule go) | `03a-weather-boost` | [UC-006](../use_cases/UC-006-inject-upstream-failures.md) |
+| 9 | Verify recovery | `weather` back at its environment ratio (0.5); with the stage presets this is immediate (OQ-11) | - | - |
 
 ## Validation
 
