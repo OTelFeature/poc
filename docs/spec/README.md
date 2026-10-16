@@ -268,7 +268,9 @@ OTelFeature/poc#69 (OTelFeature/poc#67), see
 - `poc`: `ci/Dockerfile` is the toolchain image (uv, the e2e suite's pytest
   dependencies and the preset-check dependencies preinstalled). `make e2e`
   runs the suite in it; `make test` runs the stack-free preset checks, the
-  same as `flags.yml`.
+  same as `flags.yml`. `make unit-test` runs the services' unit tests in the
+  test stage of each service's Dockerfile (the pinned builder images), the
+  same as `unit.yml` (OTelFeature/poc#75).
 
 ### Spec lint (AIUP `/spec-review`, part A)
 
