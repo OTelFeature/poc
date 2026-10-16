@@ -9,6 +9,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
 import org.springframework.web.server.ResponseStatusException;
 
+import dev.openfeature.contrib.hooks.otel.TracesHook;
 import dev.openfeature.contrib.providers.flagd.Config;
 import dev.openfeature.contrib.providers.flagd.FlagdOptions;
 import dev.openfeature.contrib.providers.flagd.FlagdProvider;
@@ -50,6 +51,11 @@ public class FaultInjection {
                 .port(port)
                 .build()));
         this.client = api.getClient("weather");
+        // Records each evaluation as a span event on the current span (the
+        // request's), so a failed trace shows which flag failed it (UC-007).
+        // On this client only: the agent extension's evaluations live in its
+        // own, isolated OpenFeature API and stay unrecorded.
+        this.client.addHooks(new TracesHook());
     }
 
     /**

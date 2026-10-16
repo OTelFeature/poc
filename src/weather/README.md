@@ -142,6 +142,21 @@ Because this client lives in the application, the Java agent instruments its
 gRPC calls to flagd: expect a `flagd.sync.v1.FlagSyncService/GetMetadata`
 client span at startup, and a `SyncFlags` span when the sync stream ends.
 
+### Flag evaluations in the trace
+
+The app's OpenFeature client also has the OpenFeature OpenTelemetry traces
+hook (`dev.openfeature.contrib.hooks:otel` 3.3.1, UC-007). Every
+`weatherUpstreamFailure` evaluation adds a span event to the request's
+current span, so a failed `/weather` trace shows which flag failed it. This
+hook version uses the semantic conventions 1.28 names: event `feature_flag`
+with `feature_flag.key`, `feature_flag.variant` and
+`feature_flag.provider_name` (not yet `feature_flag.evaluation` /
+`feature_flag.result.variant` / `feature_flag.provider.name`). The hook is on
+the app's client only; the agent extension's own evaluations run in its
+isolated OpenFeature API and are not recorded. If an evaluation fails (for
+example while flagd isn't reachable yet at startup), the hook adds an
+exception event to the current span; the span's status is unchanged.
+
 ## Running locally
 
 ```sh

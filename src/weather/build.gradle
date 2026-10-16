@@ -29,4 +29,15 @@ dependencies {
     implementation 'dev.openfeature:sdk:1.23.0'
     implementation 'dev.openfeature.contrib.providers:flagd:0.14.2'
     implementation 'dev.openfeature.contrib.tools:flagd-core:2.0.4'
+    // OpenFeature OpenTelemetry hook: flag evaluations as span events (UC-007).
+    implementation 'dev.openfeature.contrib.hooks:otel:3.3.1'
+    constraints {
+        // The hook takes its attribute names from semconv-incubating: 1.28
+        // gives feature_flag.variant / feature_flag.provider_name, which the
+        // spec (UC-007 BR-004) and the e2e test expect. Newer releases rename
+        // them, so a bump is a spec change.
+        implementation('io.opentelemetry.semconv:opentelemetry-semconv-incubating') {
+            version { strictly '1.28.0-alpha' }
+        }
+    }
 }
