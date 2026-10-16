@@ -22,10 +22,10 @@ RUN uv sync --locked --no-dev
 
 # ── otelfeature-instrument source ───────────────────────────────────
 # OTELFEATURE_INSTRUMENT_SOURCE picks the stage below:
-#   lock (default) - the version pinned in uv.lock
+#   lock (default) - the release pinned in pyproject.toml / uv.lock (C-006)
 #   git            - built from OTELFEATURE_INSTRUMENT_REF (branch, tag or
 #                    commit) of the GitHub repo, for testing unreleased
-#                    extension code (make e2e). ADD of a git URL resolves
+#                    extension code (only when passed explicitly to make e2e). ADD of a git URL resolves
 #                    the ref on every build, so a moved branch is rebuilt.
 # (declared at the top: an ARG used in FROM must come before the first FROM)
 

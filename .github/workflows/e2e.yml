@@ -19,11 +19,11 @@ on:
   workflow_dispatch:
     inputs:
       instrument_ref:
-        description: "otelfeature-instrument git ref (branch, tag or commit)"
-        default: main
+        description: "otelfeature-instrument: release (the pinned version) or a git ref (branch, tag or commit) to build from"
+        default: release
       extension_ref:
-        description: "otelfeature-java-extension git ref (branch, tag or commit)"
-        default: main
+        description: "otelfeature-java-extension: release (the pinned version) or a git ref (branch, tag or commit) to build from"
+        default: release
 
 permissions:
   contents: read
@@ -45,8 +45,13 @@ jobs:
         # Decision D3: both Java enforcement modes must pass the same beats.
         enforcement: [processor, sampler]
     env:
-      OTELFEATURE_INSTRUMENT_REF: ${{ inputs.instrument_ref || 'main' }}
-      OTELFEATURE_EXTENSION_REF: ${{ inputs.extension_ref || 'main' }}
+      # Pinned releases unless a git ref is passed explicitly (C-013). The
+      # *_SOURCE values mirror the Makefile; the bake step reads them from
+      # the environment, not through make.
+      OTELFEATURE_INSTRUMENT_REF: ${{ inputs.instrument_ref || 'release' }}
+      OTELFEATURE_EXTENSION_REF: ${{ inputs.extension_ref || 'release' }}
+      OTELFEATURE_INSTRUMENT_SOURCE: ${{ (inputs.instrument_ref || 'release') == 'release' && 'lock' || 'git' }}
+      OTELFEATURE_EXTENSION_SOURCE: ${{ (inputs.extension_ref || 'release') == 'release' && 'release' || 'git' }}
       OTELFEATURE_ENFORCEMENT: ${{ matrix.enforcement }}
       # Nightly also runs the statistical (slow) tests, and the whole suite
       # three times in a row to catch flakes (#35 acceptance criterion).
@@ -56,7 +61,8 @@ jobs:
 
       - uses: docker/setup-buildx-action@v4.4.1
 
-      # Builds geocode, weather (from the extension git refs) and the runner
+      # Builds geocode, weather (pinned extension releases, or the git refs
+      # passed as inputs) and the runner
       # image with the GitHub Actions layer cache, then `make e2e` uses them.
       - name: Build images (layer cache)
         uses: docker/bake-action@v7.5.0

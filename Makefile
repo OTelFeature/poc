@@ -135,11 +135,14 @@ validate-flags: test
 
 # ── End-to-end suite (tests/e2e, OTelFeature/poc#35) ───────────────────
 # Needs only Docker. Runs as its own compose project, so it can run next to
-# a demo stack. geocode and weather are built against extension git refs
-# (default main), so unreleased extension code can be checked before merge:
+# a demo stack. By default geocode and weather use the pinned extension
+# releases, like the stage (C-006, C-013): geocode's uv.lock and weather's
+# OTELFEATURE_EXTENSION_VERSION. A git ref (branch, tag or commit) builds an
+# extension from source instead, only when passed explicitly, to check
+# unreleased extension code with the demo:
 #
 #   make e2e
-#   make e2e OTELFEATURE_INSTRUMENT_REF=feat/x OTELFEATURE_EXTENSION_REF=v0.4.0
+#   make e2e OTELFEATURE_INSTRUMENT_REF=feat/x OTELFEATURE_EXTENSION_REF=main
 #   make e2e OTELFEATURE_ENFORCEMENT=sampler PYTEST_ARGS="-k baseline -x"
 #   make e2e E2E_KEEP=1      # leave the stack up afterwards (make e2e-down)
 #   make e2e E2E_SKIP_BUILD=1  # images already built (CI builds them with a layer cache)
@@ -148,11 +151,16 @@ validate-flags: test
 E2E_PROJECT := otelfeature-e2e
 E2E := docker compose -p $(E2E_PROJECT) -f compose.yaml -f compose.e2e.yaml
 E2E_ARTIFACTS := tests/e2e/.artifacts
-OTELFEATURE_INSTRUMENT_REF ?= main
-OTELFEATURE_EXTENSION_REF ?= main
+# `release` = the pinned release; anything else is a git ref to build from.
+OTELFEATURE_INSTRUMENT_REF ?= release
+OTELFEATURE_EXTENSION_REF ?= release
+# Dockerfile stage for each extension, derived from the refs above.
+OTELFEATURE_INSTRUMENT_SOURCE := $(if $(filter release,$(OTELFEATURE_INSTRUMENT_REF)),lock,git)
+OTELFEATURE_EXTENSION_SOURCE := $(if $(filter release,$(OTELFEATURE_EXTENSION_REF)),release,git)
 OTELFEATURE_ENFORCEMENT ?= processor
 PYTEST_ARGS ?= -m "not slow"
 export OTELFEATURE_INSTRUMENT_REF OTELFEATURE_EXTENSION_REF OTELFEATURE_ENFORCEMENT
+export OTELFEATURE_INSTRUMENT_SOURCE OTELFEATURE_EXTENSION_SOURCE
 
 .PHONY: e2e e2e-build e2e-up e2e-test e2e-artifacts e2e-down
 
