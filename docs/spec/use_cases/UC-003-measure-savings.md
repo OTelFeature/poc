@@ -12,7 +12,7 @@
 **Work Items:** OTelFeature/poc#27, OTelFeature/otelfeature-java-extension#21  
 **Test Cases:** TC-003  
 **Script Beat:** Demo 2 ("CPU [X%] lower, memory [Y MB] lower, export bytes [Z%] lower"); input to decision D3  
-**Open Questions:** OQ-3 (deferred to a later load test), OQ-5 (OQ-1 answered: BR-004)  
+**Open Questions:** OQ-3 (deferred to a later load test; OQ-1 answered: BR-004; OQ-5 resolved)  
 
 ## Preconditions
 
@@ -91,7 +91,7 @@ D3 is decided: `processor` (OQ-1, Simon, 2026-10-16; to confirm with Juliano, OT
 
 ### BR-005: Traffic source
 
-The measurement does not depend on OTelFeature/poc#23 (deferred). It uses the stack's normal traffic plus whatever health-check traffic OQ-5 settles on.
+The measurement does not depend on OTelFeature/poc#23 (deferred). It uses the stack's normal traffic plus the k6 `healthchecks` scenario (OQ-5, OTelFeature/poc#38, PR OTelFeature/poc#40).
 
 ### BR-006: Decision cost from a targeted no-op rule
 
