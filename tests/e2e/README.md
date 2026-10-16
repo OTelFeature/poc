@@ -47,7 +47,8 @@ Java enforcement modes on PRs, on `main` and nightly. The refs are
   effect" is an exact assertion. No Aspire, no Datadog.
 - **Almost no background traffic.** The load generator is off; the tests
   send the requests. The one exception is Docker's healthchecks: they call
-  `/health` on geocode and weather every 2 s, in every flag state.
+  `/health` on every geocode and weather instance (including the hard-floor
+  instances) every 2 s, in every flag state.
 - **Fast export.** `OTEL_BSP_SCHEDULE_DELAY=100` in both services, and the
   collector's file exporter flushes every 100 ms.
 - **Flags on a volume.** flagd reads `/etc/flagd/flagd.json` from the
@@ -71,11 +72,29 @@ that point. Filter it by service and path, because Docker's healthchecks keep
 running. Taking the mark before the flip would let spans still in the 100 ms
 export queue leak into the window.
 
+### Hard-floor instances
+
+compose.e2e.yaml also starts `geocode-sdk-disabled`, `weather-sdk-disabled`,
+`geocode-always-off` and `weather-always-off`. They run the same images with
+`OTEL_SDK_DISABLED=true` or `OTEL_TRACES_SAMPLER=always_off` and their own
+`service.instance.id`, so a test can check that no flag gets around those env
+vars.
+
 ### Barriers instead of sleeps
 
-There are no fixed sleeps. `wait_until(check, timeout)` polls a check that
-returns what is still missing (or `None`), and fails with that description
-when the timeout passes.
+`wait_until(check, timeout)` polls a check that returns what is still
+missing (or `None`), and fails with that description when the timeout
+passes. The only deliberate wait is the absence window: `step.quiet(...)`
+waits `QUIET_SECONDS` (2 s, `E2E_QUIET_SECONDS`) before it collects spans,
+because proving that nothing arrived takes some time.
+
+After a flip, `step.wait_tracing(service, traced=...)` is the behaviour
+barrier. It sends a probe request (its own header value) on every poll.
+`traced=True` is done once any probe shows up. `traced=False` is done once
+the last three probes are older than `QUIET_SECONDS` and none of them
+showed up. It returns the flip latency (when the first probe with the new
+behaviour was sent), which tests compare against `FLIP_BUDGET_SECONDS` (5 s,
+`E2E_FLIP_BUDGET_SECONDS`): the spec's "visible within 2 s" with CI headroom.
 
 Flag flips (`flags.apply("02-quiet-noise")`) go through [flags.py](flags.py):
 
@@ -97,7 +116,9 @@ requests until the new behaviour shows) before counting.
 2. Use the `step` fixture. It starts and ends on `00-baseline`.
 3. Flip flags with `flags.apply("<preset>")`, or `flags.write(config)` for a
    variation that isn't a stage preset.
-4. Wait with `wait_until`. Assert presence through `step.traces()`, absence
+4. After a flip, wait with `step.wait_tracing(...)` (behaviour barrier; it
+   also returns the flip latency to check against the budget); otherwise
+   `wait_until`. Assert presence through `step.traces()`, absence
    through `step.remark()` + `step.since_mark()` (after the flip has taken
    effect), and tree shape with `tree_problem` (pass `remote_parents` for a
    request the test sent with a `traceparent`).
@@ -114,4 +135,7 @@ requests until the new behaviour shows) before counting.
 | [flags.py](flags.py) | Preset application with the mtime and revision barrier |
 | [collector.yaml](collector.yaml) | e2e collector: OTLP in, JSON file out |
 | [test_baseline.py](test_baseline.py) | Baseline: complete traces from both services |
+| [test_tc001_kill_switch.py](test_tc001_kill_switch.py) | TC-001: `otelEnabled=false` and `telemetryLevel=OFF` stop all spans in both services; baseline brings complete traces back |
+| [test_hard_floors.py](test_hard_floors.py) | TC-001 V6 (spans only) / V7, TC-004 V8 (`always_off` half): `OTEL_SDK_DISABLED=true` and `OTEL_TRACES_SAMPLER=always_off` instances export nothing, even with flags on and a sampled `traceparent` |
+| [checks.py](checks.py) | Shared trace-shape checks (complete request trace, DB and stub client spans) |
 | [../../ci/Dockerfile](../../ci/Dockerfile) | Runner image: Python, uv, locked test deps |

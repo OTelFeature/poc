@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import os
+import time
 import uuid
 from pathlib import Path
 
@@ -15,6 +16,19 @@ from spans import STEP_HEADER, SpanLog, wait_until
 
 GEOCODE_URL = os.environ.get("GEOCODE_URL", "http://geocode:8000")
 WEATHER_URL = os.environ.get("WEATHER_URL", "http://weather:8001")
+URLS = {"geocode": GEOCODE_URL, "weather": WEATHER_URL}
+
+# How long an absence has to hold before it counts. Spans are exported
+# within ~200 ms (100 ms batch delay + 100 ms file flush), so this is
+# several export cycles; 2 s also matches TC-001's "after 2 s". Proving
+# "nothing arrived" needs *some* window; it is the only deliberate wait in
+# the suite. E2E_QUIET_SECONDS raises it for slow runners.
+QUIET_SECONDS = float(os.environ.get("E2E_QUIET_SECONDS", "2.0"))
+
+# Spec NFR: a flag flip is visible within 2 s. The barrier allows this much
+# from the moment flagd serves the new flags (headroom for CI), and tests
+# assert it, so slow propagation is a failure, not just a longer wait.
+FLIP_BUDGET_SECONDS = float(os.environ.get("E2E_FLIP_BUDGET_SECONDS", "5.0"))
 
 
 class Step:
@@ -46,6 +60,59 @@ class Step:
 
     def since_mark(self) -> list:
         return self.spans.since(self.mark)
+
+    def wait_tracing(self, service: str, traced: bool, path: str = "/health",
+                     timeout: float | None = None) -> float:
+        """Barrier after a flag flip: wait until requests to `service` are
+        (traced=True) or are no longer (traced=False) traced.
+
+        Sends a probe request with its own header value on every poll.
+        traced=True: done as soon as one probe shows up. traced=False: done
+        once the last three probes are older than QUIET_SECONDS and none of
+        them showed up.
+
+        Returns the flip latency: when the first probe with the new
+        behaviour was sent, counted from the call. The timeout defaults to
+        FLIP_BUDGET_SECONDS (plus the settling time for traced=False).
+        """
+        if timeout is None:
+            timeout = FLIP_BUDGET_SECONDS + (0 if traced else QUIET_SECONDS + 1.0)
+        start = time.monotonic()
+        probes: list[tuple[str, float]] = []
+        latency: list[float] = []
+
+        def check() -> str | None:
+            probe = f"probe-{uuid.uuid4().hex}"
+            r = self.http.get(f"{URLS[service]}{path}", headers={STEP_HEADER: probe})
+            assert r.status_code == 200, f"probe to {service}{path}: HTTP {r.status_code}"
+            probes.append((probe, time.monotonic()))
+            self.spans.refresh()
+            seen = {s.step for s in self.spans.spans if s.kind == "server" and s.step}
+            if traced:
+                hit = next((sent for p, sent in probes if p in seen), None)
+                if hit is None:
+                    return f"{service}: no probe traced yet"
+                latency.append(hit - start)
+                return None
+            now = time.monotonic()
+            settled = [(p, sent) for p, sent in probes if now - sent >= QUIET_SECONDS]
+            if len(settled) < 3:
+                return f"{service}: waiting for probes to settle"
+            if any(p in seen for p, _ in settled[-3:]):
+                return f"{service}: requests still traced"
+            # The first probe of the untraced run that ends now.
+            traced_at = [sent for p, sent in settled if p in seen]
+            first_off = next(sent for p, sent in settled if not traced_at or sent > traced_at[-1])
+            latency.append(first_off - start)
+            return None
+
+        wait_until(check, timeout=timeout, interval=0.2)
+        return latency[-1]
+
+    def quiet(self, where) -> list:
+        """Spans matching `where` since the mark, after waiting QUIET_SECONDS."""
+        time.sleep(QUIET_SECONDS)
+        return [s for s in self.since_mark() if where(s)]
 
     def traces(self) -> dict[str, list]:
         """This step's traces so far, by trace id."""
@@ -85,9 +152,14 @@ def stack_ready():
 
 
 @pytest.fixture
-def baseline(flags):
-    """Every test starts and ends on the baseline preset."""
+def baseline(flags, spans):
+    """Every test starts and ends on the baseline preset, and starts only
+    once both services trace again (a failed test may have left them off)."""
     flags.apply("00-baseline")
+    probe = Step(spans)
+    for service in URLS:
+        probe.wait_tracing(service, traced=True, timeout=30.0)
+    probe.http.close()
     yield
     flags.apply("00-baseline")
 
