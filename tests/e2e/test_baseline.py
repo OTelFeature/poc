@@ -7,34 +7,13 @@ fails nothing else is meaningful.
 from __future__ import annotations
 
 from conftest import Step
-from spans import Span, describe, tree_problem, wait_until
+from checks import APP_SERVICES, by_root_service, complete_problem
+from spans import describe, wait_until
 
 RESOURCE = {
     "service.namespace": "otelfeature",
     "deployment.environment.name": "production",
 }
-
-
-def _is_db(span: Span) -> bool:
-    return span.kind == "client" and (
-        "db.system" in span.attrs or "db.system.name" in span.attrs
-    )
-
-
-def _is_stub_call(span: Span) -> bool:
-    return span.kind == "client" and span.attrs.get("server.address") == "stub-apis"
-
-
-def _complete(trace: list[Span], service: str) -> str | None:
-    """What this request's trace still lacks, or None."""
-    servers = [s for s in trace if s.kind == "server" and s.service == service]
-    if not servers:
-        return f"no {service} server span"
-    if not any(_is_db(s) for s in trace):
-        return f"no DB client span in {service} trace"
-    if not any(_is_stub_call(s) for s in trace):
-        return f"no HTTP client span to stub-apis in {service} trace"
-    return tree_problem(trace)
 
 
 def test_baseline(step: Step):
@@ -45,17 +24,12 @@ def test_baseline(step: Step):
     assert step.weather(city, "nowhere").status_code == 404
 
     def problem() -> str | None:
-        traces = step.traces()
-        by_service = {}
-        for trace in traces.values():
-            root = next((s for s in trace if s.is_root), None)
-            if root is not None:
-                by_service[root.service] = trace
-        for service in ("geocode", "weather"):
+        by_service = by_root_service(step.traces())
+        for service in APP_SERVICES:
             trace = by_service.get(service)
             if trace is None:
                 return f"no {service} trace for step yet"
-            missing = _complete(trace, service)
+            missing = complete_problem(trace, service)
             if missing:
                 return f"{missing}:\n{describe(trace)}"
         return None

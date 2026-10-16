@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import os
+import time
 import uuid
 from pathlib import Path
 
@@ -15,6 +16,13 @@ from spans import STEP_HEADER, SpanLog, wait_until
 
 GEOCODE_URL = os.environ.get("GEOCODE_URL", "http://geocode:8000")
 WEATHER_URL = os.environ.get("WEATHER_URL", "http://weather:8001")
+URLS = {"geocode": GEOCODE_URL, "weather": WEATHER_URL}
+
+# How long an absence has to hold before it counts. Spans are exported
+# within ~200 ms (100 ms batch delay + 100 ms file flush), so this is
+# several export cycles. Proving "nothing arrived" needs *some* window;
+# it is the only deliberate wait in the suite.
+QUIET_SECONDS = 1.5
 
 
 class Step:
@@ -46,6 +54,41 @@ class Step:
 
     def since_mark(self) -> list:
         return self.spans.since(self.mark)
+
+    def wait_tracing(self, service: str, traced: bool, path: str = "/health",
+                     timeout: float = 10.0) -> None:
+        """Barrier after a flag flip: wait until requests to `service` are
+        (traced=True) or are no longer (traced=False) traced.
+
+        Sends a probe request with its own header value on every poll.
+        traced=True: done as soon as one probe shows up. traced=False: done
+        once the last three probes are older than QUIET_SECONDS and none of
+        them showed up.
+        """
+        probes: list[tuple[str, float]] = []
+
+        def check() -> str | None:
+            probe = f"probe-{uuid.uuid4().hex}"
+            self.http.get(f"{URLS[service]}{path}", headers={STEP_HEADER: probe})
+            probes.append((probe, time.monotonic()))
+            self.spans.refresh()
+            seen = {s.step for s in self.spans.spans if s.kind == "server" and s.step}
+            if traced:
+                return None if any(p in seen for p, _ in probes) else f"{service}: no probe traced yet"
+            now = time.monotonic()
+            settled = [p for p, sent in probes if now - sent >= QUIET_SECONDS]
+            if len(settled) < 3:
+                return f"{service}: waiting for probes to settle"
+            if any(p in seen for p in settled[-3:]):
+                return f"{service}: requests still traced"
+            return None
+
+        wait_until(check, timeout=timeout, interval=0.2)
+
+    def quiet(self, where) -> list:
+        """Spans matching `where` since the mark, after waiting QUIET_SECONDS."""
+        time.sleep(QUIET_SECONDS)
+        return [s for s in self.since_mark() if where(s)]
 
     def traces(self) -> dict[str, list]:
         """This step's traces so far, by trace id."""

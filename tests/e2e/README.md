@@ -71,11 +71,27 @@ that point. Filter it by service and path, because Docker's healthchecks keep
 running. Taking the mark before the flip would let spans still in the 100 ms
 export queue leak into the window.
 
+### Hard-floor instances
+
+compose.e2e.yaml also starts `geocode-sdk-disabled`, `weather-sdk-disabled`,
+`geocode-always-off` and `weather-always-off`. They run the same images with
+`OTEL_SDK_DISABLED=true` or `OTEL_TRACES_SAMPLER=always_off` and their own
+`service.instance.id`, so a test can check that no flag gets around those env
+vars.
+
 ### Barriers instead of sleeps
 
-There are no fixed sleeps. `wait_until(check, timeout)` polls a check that
-returns what is still missing (or `None`), and fails with that description
-when the timeout passes.
+`wait_until(check, timeout)` polls a check that returns what is still
+missing (or `None`), and fails with that description when the timeout
+passes. The only deliberate wait is the absence window: `step.quiet(...)`
+waits `QUIET_SECONDS` (1.5 s, several export cycles) before it collects
+spans, because proving that nothing arrived takes some time.
+
+After a flip, `step.wait_tracing(service, traced=...)` is the behaviour
+barrier. It sends a probe request (its own header value) on every poll.
+`traced=True` is done once any probe shows up. `traced=False` is done once
+the last three probes are older than `QUIET_SECONDS` and none of them
+showed up.
 
 Flag flips (`flags.apply("02-quiet-noise")`) go through [flags.py](flags.py):
 
@@ -114,4 +130,7 @@ requests until the new behaviour shows) before counting.
 | [flags.py](flags.py) | Preset application with the mtime and revision barrier |
 | [collector.yaml](collector.yaml) | e2e collector: OTLP in, JSON file out |
 | [test_baseline.py](test_baseline.py) | Baseline: complete traces from both services |
+| [test_tc001_kill_switch.py](test_tc001_kill_switch.py) | TC-001: `otelEnabled=false` and `telemetryLevel=OFF` stop all spans in both services; baseline brings complete traces back |
+| [test_hard_floors.py](test_hard_floors.py) | TC-001 V6/V7, TC-004 V8: `OTEL_SDK_DISABLED=true` and `OTEL_TRACES_SAMPLER=always_off` instances export nothing, even with flags on and a sampled `traceparent` |
+| [checks.py](checks.py) | Shared trace-shape checks (complete request trace, DB and stub client spans) |
 | [../../ci/Dockerfile](../../ci/Dockerfile) | Runner image: Python, uv, locked test deps |

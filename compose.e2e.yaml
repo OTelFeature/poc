@@ -95,6 +95,63 @@ services:
       - e2e-out:/out
     depends_on: !reset {}
 
+  # Hard floors (test_hard_floors.py): the same services with an env var
+  # that no flag may override. Same images as geocode/weather; distinct
+  # service.instance.id so any span they export would be recognisable.
+  geocode-sdk-disabled:
+    extends: {file: compose.yaml, service: geocode}
+    image: otelfeature-e2e-geocode
+    build: !reset null
+    pull_policy: never
+    container_name: !reset null
+    ports: !reset []
+    environment:
+      OTEL_SDK_DISABLED: "true"
+      OTEL_RESOURCE_ATTRIBUTES: deployment.environment.name=production,service.namespace=otelfeature,service.version=0.1.0,service.instance.id=geocode-sdk-disabled
+      OTEL_BSP_SCHEDULE_DELAY: "100"
+      OTEL_INSTRUMENTATION_HTTP_CAPTURE_HEADERS_SERVER_REQUEST: x-e2e-step
+
+  weather-sdk-disabled:
+    extends: {file: compose.yaml, service: weather}
+    image: otelfeature-e2e-weather
+    build: !reset null
+    pull_policy: never
+    container_name: !reset null
+    ports: !reset []
+    environment:
+      OTEL_SDK_DISABLED: "true"
+      OTEL_RESOURCE_ATTRIBUTES: deployment.environment.name=production,service.namespace=otelfeature,service.version=0.1.0,service.instance.id=weather-sdk-disabled
+      OTEL_BSP_SCHEDULE_DELAY: "100"
+      OTEL_INSTRUMENTATION_HTTP_SERVER_CAPTURE_REQUEST_HEADERS: x-e2e-step
+      OTELFEATURE_ENFORCEMENT: ${OTELFEATURE_ENFORCEMENT:-processor}
+
+  geocode-always-off:
+    extends: {file: compose.yaml, service: geocode}
+    image: otelfeature-e2e-geocode
+    build: !reset null
+    pull_policy: never
+    container_name: !reset null
+    ports: !reset []
+    environment:
+      OTEL_TRACES_SAMPLER: always_off
+      OTEL_RESOURCE_ATTRIBUTES: deployment.environment.name=production,service.namespace=otelfeature,service.version=0.1.0,service.instance.id=geocode-always-off
+      OTEL_BSP_SCHEDULE_DELAY: "100"
+      OTEL_INSTRUMENTATION_HTTP_CAPTURE_HEADERS_SERVER_REQUEST: x-e2e-step
+
+  weather-always-off:
+    extends: {file: compose.yaml, service: weather}
+    image: otelfeature-e2e-weather
+    build: !reset null
+    pull_policy: never
+    container_name: !reset null
+    ports: !reset []
+    environment:
+      OTEL_TRACES_SAMPLER: always_off
+      OTEL_RESOURCE_ATTRIBUTES: deployment.environment.name=production,service.namespace=otelfeature,service.version=0.1.0,service.instance.id=weather-always-off
+      OTEL_BSP_SCHEDULE_DELAY: "100"
+      OTEL_INSTRUMENTATION_HTTP_SERVER_CAPTURE_REQUEST_HEADERS: x-e2e-step
+      OTELFEATURE_ENFORCEMENT: ${OTELFEATURE_ENFORCEMENT:-processor}
+
   aspire-dashboard:
     profiles: [never]
 
