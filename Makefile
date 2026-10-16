@@ -127,6 +127,15 @@ test-only:
 		cmp src/flagd/flagd.json $(PRESET_DIR)/00-baseline.json; \
 		python src/flagd/test_presets.py'
 
+# The services' own unit tests (OTelFeature/poc#75), in the test stage of
+# each service's Dockerfile: the same pinned builder images as the stage
+# images, so they need only Docker. A cached stage means the tests passed
+# on the same inputs. CI: unit.yml.
+.PHONY: unit-test
+unit-test:
+	docker build --progress=plain --target test src/weather
+	docker build --progress=plain --target test src/geocode
+
 shell: image
 	$(CI_RUN) -it --entrypoint bash $(CI_IMAGE)
 

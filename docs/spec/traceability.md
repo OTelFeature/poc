@@ -173,6 +173,7 @@ Every PR below is on `main`. The first stack (#36 ← #37 ← #40 ← #41 ← #4
 | OTelFeature/poc#79 | OTelFeature/poc#27 (numbers posted; OQ-1 decided `processor`, OQ-3 deferred, OQ-15 answered in PR OTelFeature/poc#85) | FR-016, NFR-005, NFR-011 | UC-003 | TC-003 |
 | OTelFeature/poc#63 | none (spec loop for instrument#21 and #23) | NFR-016, NFR-001 | UC-004 (A1) | TC-004 |
 | OTelFeature/poc#82 | OTelFeature/poc#80 | FR-012 | UC-005, UC-006 | TC-005 |
+| OTelFeature/poc#88 | OTelFeature/poc#75 | FR-012 | UC-006 (BR-002, A1 to A3) | TC-005 (item 7) |
 
 PR OTelFeature/poc#58 (stage stack from git refs, FR-027) was closed
 unmerged, and OTelFeature/poc#61 as not planned: the stage runs released
