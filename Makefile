@@ -9,14 +9,25 @@ LIVE_NOMINATIM_URL := https://nominatim.openstreetmap.org/search
 LIVE_OPEN_METEO_GEOCODING_URL := https://geocoding-api.open-meteo.com/v1/search
 LIVE_OPEN_METEO_FORECAST_URL := https://api.open-meteo.com/v1/forecast
 
+# Builds geocode, weather and stub-apis from source. The result carries the
+# same image names as the prebuilt ones (compose.yaml), so `make start` uses
+# it until the next pull.
 build:
 	docker compose --profile staging build
 
-# Run once while online: pulls every image and builds the services, so that
-# `make start` afterwards needs no network (it never rebuilds on its own).
+# Run once while online, so that `make start` afterwards needs no network (it
+# never pulls or builds on its own). Pulls every image, including the
+# prebuilt geocode, weather and stub-apis images published from main
+# (NFR-017; POC_IMAGE_TAG=sha-<short> pins one commit's images) and the
+# busybox image of the `flag` service. `make prepare-offline BUILD=1` builds
+# those three from source instead of pulling them.
 prepare-offline:
-	docker compose --profile staging pull --ignore-buildable
+ifeq ($(BUILD),1)
+	docker compose --profile staging --profile tools pull --ignore-buildable
 	docker compose --profile staging build
+else
+	docker compose --profile staging --profile tools pull
+endif
 
 start-live: export NOMINATIM_URL := $(LIVE_NOMINATIM_URL)
 start-live: export OPEN_METEO_GEOCODING_URL := $(LIVE_OPEN_METEO_GEOCODING_URL)

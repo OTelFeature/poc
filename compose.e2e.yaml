@@ -5,6 +5,9 @@
 #   docker compose -p otelfeature-e2e -f compose.yaml -f compose.e2e.yaml ...
 #
 # What it changes:
+# - every service built from this repo is built here under a local image
+#   name (otelfeature-e2e-*), never pulled from GHCR: the suite tests the
+#   code of the checkout (NFR-017)
 # - geocode and weather use the pinned extension releases by default, like
 #   the stage (C-006, C-013). `make e2e OTELFEATURE_INSTRUMENT_REF=<ref>` /
 #   `OTELFEATURE_EXTENSION_REF=<ref>` builds an extension from a git ref
@@ -108,6 +111,7 @@ services:
       <<: *weather-e2e-env
 
   stub-apis:
+    image: otelfeature-e2e-stub-apis
     container_name: !reset null
     ports: !reset []
     environment:

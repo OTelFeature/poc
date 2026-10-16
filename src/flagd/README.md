@@ -53,10 +53,18 @@ provider (`openfeature-provider-flagd`) refuses the whole file because of it.
 
 ## Presets
 
-[presets/](presets) holds one complete flag file per demo state. `make flag
-PRESET=<name>` copies one over `flagd.json`, and `make demo-reset` goes back
-to `00-baseline`. [STAGE.md](../../STAGE.md) maps every script beat to a
-preset and says what each one changes.
+[presets/](presets) holds one complete flag file per demo state.
+`docker compose run --rm flag <name>` ([flag.sh](flag.sh), Docker only) or
+`make flag PRESET=<name>` copies one over `flagd.json`, and `make demo-reset`
+(or the flag service with `00-baseline`) goes back to the baseline.
+[STAGE.md](../../STAGE.md) maps every script beat to a preset and says what
+each one changes.
+
+Each preset names itself in its flag-set metadata (`"metadata": {"preset":
+"<name>"}`). flagd merges that into the metadata of every OFREP answer, so
+the flag service confirms a flip by polling OFREP (port `8016`) until the
+answer carries the name it wrote; it fails after `FLAG_CONFIRM_TIMEOUT`
+seconds (default 10). `make flag` only writes the file.
 
 Every preset is checked in CI ([flags.yml](../../.github/workflows/flags.yml),
 or `make test` locally, inside the `ci/Dockerfile` image):
@@ -64,7 +72,8 @@ or `make test` locally, inside the `ci/Dockerfile` image):
 1. It validates against `https://flagd.dev/schema/v0/flags.json`.
 2. [test_presets.py](test_presets.py) loads it with the same Python flagd
    evaluator geocode uses and checks the rules against the spans of each demo
-   beat. When you add a preset, add its expected results there.
+   beat, and that it names itself in its metadata. When you add a preset,
+   add its expected results there.
 
 ## Updating a flag
 

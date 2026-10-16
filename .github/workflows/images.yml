@@ -1,0 +1,124 @@
+name: images
+
+# Prebuilt images of the services this repo builds, so the stack runs with
+# Docker only (NFR-017, OTelFeature/poc#91): `docker compose pull && docker
+# compose up -d` uses them (compose.yaml), nothing is built locally.
+#
+#   ghcr.io/otelfeature/poc-geocode, poc-weather, poc-stub-apis
+#   platforms linux/amd64, linux/arm64
+#
+# - push to main: tags `main` and `sha-<short>`
+# - manual run: `sha-<short>`, plus `main` when run on main
+# - pull request: the same build for both platforms, nothing pushed
+#
+# Always the pinned extension releases (C-006); a git-ref build (C-013) is
+# for the e2e suite only and never published. The e2e suite never uses these
+# images either: it builds the checkout (e2e.yml).
+on:
+  push:
+    branches: [main]
+  pull_request:
+    paths:
+      - "src/geocode/**"
+      - "src/weather/**"
+      - "src/stub-apis/**"
+      - ".github/workflows/images.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: images-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  image:
+    name: ${{ matrix.service }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    # The only job with write access to the registry.
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      fail-fast: false
+      matrix:
+        service: [geocode, weather, stub-apis]
+    env:
+      PUSH: ${{ github.event_name != 'pull_request' }}
+      # Description and source also on the multi-arch index, where GHCR
+      # reads them.
+      DOCKER_METADATA_ANNOTATIONS_LEVELS: manifest,index
+    steps:
+      - uses: actions/checkout@v7
+
+      # The extension versions the image is built with, as labels (C-006).
+      - name: Pinned versions
+        id: pins
+        run: |
+          case "${{ matrix.service }}" in
+            geocode)
+              v=$(sed -n 's|.*otelfeature-instrument?tag=\(v[^#"]*\).*|\1|p' src/geocode/uv.lock | head -n1)
+              test -n "$v"
+              echo "labels=io.github.otelfeature.instrument.version=$v" >> "$GITHUB_OUTPUT"
+              ;;
+            weather)
+              ext=$(sed -n 's/^ARG OTELFEATURE_EXTENSION_VERSION=//p' src/weather/Dockerfile)
+              agent=$(sed -n 's/^ARG OTEL_AGENT_VERSION=//p' src/weather/Dockerfile)
+              test -n "$ext" && test -n "$agent"
+              {
+                echo "labels<<EOF"
+                echo "io.github.otelfeature.java-extension.version=$ext"
+                echo "io.opentelemetry.javaagent.version=$agent"
+                echo "EOF"
+              } >> "$GITHUB_OUTPUT"
+              ;;
+            *)
+              echo "labels=" >> "$GITHUB_OUTPUT"
+              ;;
+          esac
+
+      - name: Tags and labels
+        id: meta
+        uses: docker/metadata-action@v6.2.0
+        with:
+          images: ghcr.io/otelfeature/poc-${{ matrix.service }}
+          tags: |
+            type=raw,value=main,enable=${{ github.ref == 'refs/heads/main' }}
+            type=sha,prefix=sha-,format=short
+          labels: |
+            org.opencontainers.image.title=poc-${{ matrix.service }}
+            ${{ steps.pins.outputs.labels }}
+
+      # arm64 steps that run commands in the target image (geocode's apt and
+      # uv) need emulation. weather builds its JARs on the runner's platform.
+      - uses: docker/setup-qemu-action@v4.4.0
+        with:
+          platforms: arm64
+
+      - uses: docker/setup-buildx-action@v4.4.1
+
+      - if: env.PUSH == 'true'
+        uses: docker/login-action@v4.6.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # Reads e2e.yml's layer cache too (amd64, same Dockerfile and pins) but
+      # writes only its own scope: an export replaces its scope, and e2e's
+      # must stay as e2e left it.
+      - name: Build${{ env.PUSH == 'true' && ' and push' || ' (no push)' }}
+        uses: docker/build-push-action@v7.4.0
+        with:
+          context: src/${{ matrix.service }}
+          platforms: linux/amd64,linux/arm64
+          push: ${{ env.PUSH == 'true' }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          annotations: ${{ steps.meta.outputs.annotations }}
+          cache-from: |
+            type=gha,scope=images-${{ matrix.service }}
+            type=gha,scope=e2e-${{ matrix.service }}
+          cache-to: type=gha,scope=images-${{ matrix.service }},mode=max

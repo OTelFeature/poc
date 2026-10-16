@@ -6,10 +6,19 @@ networks:
 volumes:
   coordinates-db-data:
 
+# Prebuilt images (NFR-017): every service built from this repo also names
+# its image on GHCR, published from `main` by .github/workflows/images.yml.
+# `docker compose pull && docker compose up -d` runs the stack without
+# building anything; `docker compose up -d --build` builds from source
+# instead (and tags the result with the same name, so a later `pull` replaces
+# it). POC_IMAGE_TAG picks the tag: `main` or `sha-<short commit>`. The e2e
+# suite always builds its own images (compose.e2e.yaml).
+#
 # Shared definitions for geocode/weather and their staging twins (compose
 # profile `staging`). The YAML merge key `<<:` copies a mapping; keys written
 # next to it win. Lists don't merge, so `environment` is a mapping here.
 x-geocode: &geocode
+  image: ghcr.io/otelfeature/poc-geocode:${POC_IMAGE_TAG:-main}
   build:
     context: ./src/geocode
   healthcheck:
@@ -46,6 +55,7 @@ x-geocode-env: &geocode-env
   POSTGRES_DB: coordinates
 
 x-weather: &weather
+  image: ghcr.io/otelfeature/poc-weather:${POC_IMAGE_TAG:-main}
   build:
     context: ./src/weather
   # The JVM plus agent takes a while; k6 waits for this.
@@ -98,8 +108,8 @@ services:
       OTEL_RESOURCE_ATTRIBUTES: deployment.environment.name=production,service.namespace=otelfeature,service.version=0.1.0,service.instance.id=weather
 
   # Staging twins: same image and config, deployment.environment.name=staging.
-  # Only started with `--profile staging` (`make start-staging`). Their
-  # images build from the same context, so the second build is all cache hits.
+  # Only started with `--profile staging` (`make start-staging`). They run
+  # the same image as geocode and weather, so there is nothing extra to pull.
   geocode-staging:
     <<: *geocode
     profiles: [staging]
@@ -172,14 +182,12 @@ services:
 
   # Offline stand-in for Nominatim and Open-Meteo (see src/stub-apis).
   # geocode and weather point at it unless `make start-live` overrides the
-  # URLs above. Stdlib-only script on the image geocode is built from, so
-  # there's no build step; `make prepare-offline` pulls the image.
+  # URLs above. A stdlib-only script baked into a stock Python image.
   stub-apis:
-    image: python:3.15-slim-bookworm
+    image: ghcr.io/otelfeature/poc-stub-apis:${POC_IMAGE_TAG:-main}
+    build:
+      context: ./src/stub-apis
     container_name: stub-apis
-    command: ["python", "-u", "/app/stub.py"]
-    volumes:
-      - ./src/stub-apis/stub.py:/app/stub.py:ro
     environment:
       - STUB_PORT=8080
       - STUB_LATENCY_MIN_MS=20
@@ -229,6 +237,21 @@ services:
       - 8016 # OFREP REST evaluation
     volumes:
       - ./src/flagd:/etc/flagd
+
+  # Stage control without make (NFR-017, UC-008 BR-007):
+  #   docker compose run --rm flag 02-quiet-noise
+  # Applies a preset like `make flag` (src/flagd/apply-preset.sh: atomic
+  # rename, strictly newer mtime) and then waits until flagd serves it over
+  # OFREP (src/flagd/flag.sh). Profile `tools`, so `up` never starts it.
+  flag:
+    profiles: [tools]
+    image: busybox:1.38.0
+    entrypoint: ["sh", "/flagd/flag.sh"]
+    volumes:
+      - ./src/flagd:/flagd
+    environment:
+      FLAGD_OFREP_URL: http://flagd:8016
+      FLAG_CONFIRM_TIMEOUT: ${FLAG_CONFIRM_TIMEOUT:-10}
 
 
   ########################
