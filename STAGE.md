@@ -38,7 +38,7 @@ because Demo 3 needs the staging twins.
 | Demo 3: rules on semconv attributes | `make flag PRESET=03-semconv-rules` | About 1 in 10 production traces from both services; all staging traces (filter by `deployment.environment.name`). Demo 2's drops stay on |
 | Demo 3: boost one service | `make flag PRESET=03a-weather-boost` | Production `weather` at about half its traces; production `geocode` stays at about 1 in 10 |
 | Demo 3: incident | `make flag PRESET=03b-incident` | About 30% of `POST /weather` requests fail (HTTP 503, span status ERROR, `error.type=503`), in `weather` and `weather-staging` (the fault flag has no targeting). Within one or two error-rate intervals (10 s), weather's error rate passes 5% and the loop rule samples it fully: production `weather` goes from about half to all traces; `geocode` stays at 1 in 10. See the note below on the margin |
-| Demo 3: incident over | `make flag PRESET=03a-weather-boost` | No new errors; after the next error-free interval (10–20 s) production `weather` is back at about half. Not a reset: only the fault and the loop rule go |
+| Demo 3: incident over | `make flag PRESET=03a-weather-boost` | No new errors; production `weather` is back at about half right away, because the loop rule goes with the fault (OQ-11). Not a reset |
 | End | `make demo-reset` | Baseline, fresh k6 run |
 
 **Incident margin.** The loop reads weather's error rate over *all* its
