@@ -26,6 +26,10 @@ x-geocode-env: &geocode-env
   FLAGD_HOST: flagd
   GEOCODE_PORT: "8000"
   NOMINATIM_URL: ${NOMINATIM_URL:-http://stub-apis:8080/search}
+  # Stable HTTP semconv: the server span carries url.path at start (the
+  # Demo 2 rule needs it; the old conventions only set http.target), and the
+  # duration metric is http.server.request.duration with error.type.
+  OTEL_SEMCONV_STABILITY_OPT_IN: http
   OTEL_SERVICE_NAME: geocode
   OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4318
   OTEL_EXPORTER_OTLP_PROTOCOL: http/protobuf

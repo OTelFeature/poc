@@ -54,6 +54,7 @@ curl -s -X POST http://localhost:8000/geocode \
 | `NOMINATIM_URL`               | `https://nominatim.openstreetmap.org/search` | Nominatim search endpoint. Compose points it at [stub-apis](../stub-apis) unless started with `make start-live` |
 | `NOMINATIM_USER_AGENT`        | `poc-otelfeature-geocode/1.0` | `User-Agent` header sent to Nominatim                                               |
 | `OTEL_SERVICE_NAME`           | -                             | Service name reported in telemetry                                                  |
+| `OTEL_SEMCONV_STABILITY_OPT_IN` | - | Compose sets `http`: stable HTTP semconv, so the server span has `url.path` at start (flag rules on the path need it) and the duration metric is `http.server.request.duration` |
 | `OTEL_RESOURCE_ATTRIBUTES` | - | Compose sets `deployment.environment.name` (`production`, or `staging` for the staging twin), `service.namespace=otelfeature` and `service.version`; flag rules can target them |
 | `OTEL_EXPORTER_OTLP_ENDPOINT` | -                             | OTLP collector endpoint (OTLP/HTTP always)                                          |
 | `FLAGD_HOST`                  | `localhost`                   | flagd host, used to resolve the `telemetryLevel` flag (see [Telemetry](#telemetry)) |

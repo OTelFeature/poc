@@ -11,6 +11,8 @@ pushes the change to both services and they apply it to the next span. Aspire
 > (otelfeature-instrument and otelfeature-java-extension, not released yet).
 > Until `src/geocode` and `src/weather` are bumped to those versions, the
 > pinned extensions ignore these flags and every preset looks like baseline.
+> `geocode` runs with `OTEL_SEMCONV_STABILITY_OPT_IN=http`, so its server
+> spans carry `url.path` at start (the old conventions only set `http.target`).
 
 ## Before the talk (online)
 
@@ -29,10 +31,11 @@ because Demo 3 needs the staging twins.
 | Beat | Command | Aspire shows |
 |---|---|---|
 | Cold open: wall of spans | none (OTel Demo footage, D1) | n/a |
-| Demo 1: one flag turns tracing off | `make flag PRESET=01-otel-off` | No new traces from `geocode` or `weather` (k6, flagd and metrics keep flowing) |
+| Demo 1: one flag turns tracing off | `make flag PRESET=01-otel-off` | No new traces from `geocode` or `weather`; their metrics, and flagd's own traces, keep flowing |
 | Demo 1: and back on | `make flag PRESET=00-baseline` | Complete traces from both services again |
 | Demo 2: drop the noise | `make flag PRESET=02-quiet-noise` | No new `GET /health` traces from `geocode`, and new `/weather` traces with no `SELECT`/`INSERT` (JDBC) spans. `weather`'s own `/health` traces stay |
 | Demo 3: rules on semconv attributes | `make flag PRESET=03-semconv-rules` | About 1 in 10 production `geocode` traces; all production `weather` traces; all staging traces (filter by `deployment.environment.name`) |
+| Demo 3: incident | `03b-incident`, added with the fault-injection flag (OTelFeature/poc#28) | n/a |
 | End | `make demo-reset` | Baseline, fresh k6 run |
 
 If a beat doesn't show its effect, switch to the fallback video for that demo
@@ -64,6 +67,9 @@ starts are available, so rules use `url.path`, never `http.route`.
 - Run `make validate-flags` after editing a preset. It runs the CI checks:
   the flagd schema, baseline = `flagd.json`, and an evaluation of every rule
   with the Python flagd provider (`src/flagd/test_presets.py`).
+- `make flag` rewrites `flagd.json` in place, so flagd can briefly see a
+  half-written file. It logs a parse error and applies the next write. Check
+  this once during rehearsal.
 - A flip that does nothing usually means a stale image (see
   [flagd's README](src/flagd/README.md#flag-changes-with-no-effect)) or
   extension versions that predate the flag (see the note at the top).

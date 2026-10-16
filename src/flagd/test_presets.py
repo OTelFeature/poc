@@ -29,6 +29,11 @@ SPANS = {
                         "span.kind": "server", "url.path": "/health"},
     "geocode /geocode": {"service.name": "geocode", "deployment.environment.name": "production",
                          "span.kind": "server", "url.path": "/geocode"},
+    "geocode psycopg2": {"service.name": "geocode", "deployment.environment.name": "production",
+                         "span.kind": "client", "otel.scope.name": "opentelemetry.instrumentation.psycopg2",
+                         "db.system.name": "postgresql"},
+    "weather /weather": {"service.name": "weather", "deployment.environment.name": "production",
+                         "span.kind": "server", "url.path": "/weather"},
     "weather /health": {"service.name": "weather", "deployment.environment.name": "production",
                         "span.kind": "server", "url.path": "/health"},
     "weather jdbc": {"service.name": "weather", "deployment.environment.name": "production",
@@ -52,9 +57,11 @@ EXPECTED = {
         ("geocode /health", "recordSpan"): False,
         ("weather jdbc", "recordSpan"): False,
     },
+    # The ratio resolves for every span, but only root spans use it.
     "03-semconv-rules": {
-        ("geocode /health", "traceSampleRatio"): 0.1,
-        ("geocode /geocode", "traceSampleRatio"): 0.1,
+        (span, "traceSampleRatio"): 0.1
+        for span, attrs in SPANS.items()
+        if attrs["service.name"] == "geocode" and attrs.get("deployment.environment.name") == "production"
     },
 }
 
@@ -91,7 +98,18 @@ def main() -> int:
             ctx = EvaluationContext(TRACE_ID, nest(attrs))
             for flag, default in DEFAULTS.items():
                 want = EXPECTED[file.stem].get((span, flag), default)
-                got = _resolve(core, flag, default, ctx)
+                try:
+                    details = _resolve(core, flag, default, ctx)
+                except Exception as e:
+                    failures.append(f"{file.stem}: {flag} for {span!r} raised {e!r}")
+                    continue
+                # A DISABLED or missing flag would also return the default,
+                # so the value alone can't tell "baseline" from "broken".
+                if details.error_code is not None or details.reason == "DISABLED" or details.variant is None:
+                    failures.append(f"{file.stem}: {flag} for {span!r} did not resolve: "
+                                    f"reason={details.reason} error={details.error_code} variant={details.variant}")
+                    continue
+                got = details.value
                 if got != want:
                     failures.append(f"{file.stem}: {flag} for {span!r} = {got!r}, want {want!r}")
         print(f"{'ok  ' if len(failures) == before else 'FAIL'} {file.stem}")
@@ -103,10 +121,10 @@ def main() -> int:
 
 def _resolve(core, flag, default, ctx):
     if isinstance(default, bool):
-        return core.resolve_boolean_value(flag, default, ctx).value
+        return core.resolve_boolean_value(flag, default, ctx)
     if isinstance(default, float):
-        return core.resolve_float_value(flag, default, ctx).value
-    return core.resolve_string_value(flag, default, ctx).value
+        return core.resolve_float_value(flag, default, ctx)
+    return core.resolve_string_value(flag, default, ctx)
 
 
 if __name__ == "__main__":

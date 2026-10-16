@@ -87,15 +87,16 @@ flag:
 	@echo "flagd.json is now $(PRESET)"
 
 flags:
-	@printf '%s
-' $(PRESETS)
+	@printf '%s\n' $(PRESETS)
 
 # Back to baseline flags, and restart k6 so traffic starts fresh (its run
 # also ends after DURATION). The staging k6 is restarted only if it exists.
 demo-reset:
 	@$(MAKE) --no-print-directory flag PRESET=00-baseline
 	docker compose restart load-generator
-	@if [ -n "$$(docker compose --profile staging ps -a -q load-generator-staging)" ]; then 		docker compose --profile staging restart load-generator-staging; 	fi
+	@if [ -n "$$(docker compose --profile staging ps -a -q load-generator-staging)" ]; then \
+		docker compose --profile staging restart load-generator-staging; \
+	fi
 
 # Same checks as CI: flagd schema (needs network for the schema) and the
 # Python provider's evaluation of every preset.

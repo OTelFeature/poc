@@ -28,7 +28,7 @@ network call on the span hot path and no poll interval to wait out.
 
 [flagd.json](flagd.json) is flagd's
 [flag definition file](https://flagd.dev/reference/flag-definitions/),
-mounted read-only into the container at `/etc/flagd` and passed via
+mounted into the container at `/etc/flagd` and passed via
 `--uri file:./etc/flagd/flagd.json` (see the `flagd` service in
 [compose.yaml](../../compose.yaml)):
 
