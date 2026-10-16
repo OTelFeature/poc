@@ -149,9 +149,11 @@ the affected requirement status.
    to the ones in the issue itself.
 5. If the code can't or shouldn't do what the spec says, change the spec in
    the same PR and say why in the PR description. Don't let them drift.
-6. Set the requirement `Status` (Open → In Progress → Implemented) and the use
-   case `Status` (Draft → Implemented) in the PR. A test case's checks passing
-   moves the requirement to Verified.
+6. Set the use case `Status` in the PR (Draft → Implemented once its flows
+   run on `main`, → Tested once its test case passes in the end-to-end
+   suite), then set each requirement it lists to the status its use cases
+   make it (see the Status rule in [requirements.md](requirements.md)). The
+   spec lint reports a mismatch as `REQ_STATUS_DRIFT`.
 7. Stay in your lane (see traceability.md). The extensions and `poc` are
    separate repos; a cross-repo issue is filed once per repo.
 8. Run tests with `make test` (in `poc`, also `make e2e`) inside WSL. They
@@ -274,7 +276,7 @@ make -s spec-lint SPEC_LINT_ARGS=--report > spec-report.html
 - Accepted findings are in [`.spec-lint-baseline.json`](.spec-lint-baseline.json).
   Fix a finding rather than adding it to the baseline; a baseline entry that
   no longer matches is reported as `BASELINE_STALE` and should be removed with
-  `--update-baseline`. The baselined findings wait on OQ-12 (TC-005's "fast" stays, OQ-13).
+  `--update-baseline`. Baselined: FR-003 and FR-025 (no use case by design) and the weak word "fast" (NFR-003's term, TC-005, OQ-13).
 - Use case Overview lines end in two spaces (a Markdown line break, as in
   AIUP's template). Editors must not trim them; `.editorconfig` says so.
 - The lint's diagram and actor checks read `use_cases.puml`; our diagram is
@@ -308,7 +310,7 @@ row so references stay valid.
 | OQ-9 | Demo 3 script line: "when someone asks why did we stop collecting this, the answer is in the trace" no longer holds for telemetry decisions, because the extensions record none of their own decisions on spans (FR-014). Recommended rewording: "the flag decisions show up in your traces", demonstrated with the application's own `weatherUpstreamFailure` evaluation (OTelFeature/poc#30). | **Open** (recommendation only, not decided) | Speakers | UC-007, TC-005, script |
 | OQ-10 | Which preset does `03b-incident` build on? The presets are cumulative (UC-008 BR-006), but if `03b-incident` includes `03a-weather-boost`'s override, `weather` already samples at 1.0 and the control loop (UC-005) shows no change. PR OTelFeature/poc#42 currently builds it on `03-semconv-rules` (as PR OTelFeature/poc#41 had it, before the split). | **Resolved (Simon, 2026-10-16):** the demo is a progression with no resets, so `03b-incident` builds on `03a-weather-boost`. `03a` sets `weather` to **0.5** (not 1.0), so the error-rate rule in `03b` visibly raises it from 0.5 to 1.0 when the fault is injected. | Speakers, before OTelFeature/poc#42 merges | UC-005, UC-006, UC-008 BR-006, TC-005, TC-006 |
 | OQ-11 | "Root span" has two meanings. For drop rules it includes an incoming `SERVER`/`CONSUMER` span with a remote parent (FR-006, UC-002 BR-003, `SPAN_DECISION.isRoot`); for the sample ratio only a span with no parent evaluates `traceSampleRatio` (TC-004 item 6, UC-004 BR-002). FR-009, the entity model (`TELEMETRY_POLICY.sampleRatio`, policy field resolution) and UC-004 steps 2 to 4 say "root spans" for the ratio. Qualify one of them (for example "trace root")? The [glossary](glossary.md) keeps them apart for now. | **Resolved (Simon, 2026-10-16):** rename the ratio sense. A **trace root** (no parent at all) is the only span that evaluates `traceSampleRatio`; **root span** keeps the drop-rule sense. Applied in FR-009, the entity model, UC-004, TC-004, ratio-parity.md and the [glossary](glossary.md) | Speakers | FR-009, entity model, UC-004, glossary |
-| OQ-12 | Requirement status vs use case status. All use cases are `Draft`, while 26 requirements are Implemented, In Progress or Verified; AIUP derives a requirement's status from its use cases, so the spec lint reports `REQ_STATUS_DRIFT` (baselined). Move use cases to `Implemented` where their requirements are, or keep requirement statuses hand-set? | **Open** | Simon | all use cases, requirements.md, `.spec-lint-baseline.json` |
+| OQ-12 | Requirement status vs use case status. All use cases are `Draft`, while 26 requirements are Implemented, In Progress or Verified; AIUP derives a requirement's status from its use cases, so the spec lint reports `REQ_STATUS_DRIFT` (baselined). Move use cases to `Implemented` where their requirements are, or keep requirement statuses hand-set? | **Resolved (Simon, 2026-10-16):** strict AIUP. UC-001 Tested, UC-002 and UC-006 Implemented, the rest Draft; every requirement's status is derived from its use cases, downgrades included. Rule in [requirements.md](requirements.md); drift now fails the spec lint | Simon | all use cases, requirements.md, `.spec-lint-baseline.json` |
 | OQ-13 | TC-005 says the e2e variant "runs fast" (spec lint `WEAK_WORD`, baselined). Replace it with a bound, for example "finishes within N s"? | **Resolved (Simon, 2026-10-16):** no bound needed; the `WEAK_WORD` finding stays in the spec-lint baseline | Simon | TC-005, `.spec-lint-baseline.json` |
 
 ## Validation

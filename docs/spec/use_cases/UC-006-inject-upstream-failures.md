@@ -7,7 +7,7 @@
 **Primary Actor:** Speaker  
 **Secondary Actors:** flagd, weather, Aspire dashboard  
 **Goal:** The speaker makes a chosen fraction of `/weather` requests fail through a feature flag evaluated in the application's own code, so that an incident can be started and stopped on demand, the same way the OTel Demo does it.  
-**Status:** Draft  
+**Status:** Implemented  
 **Requirements:** FR-012, NFR-004  
 **Work Items:** OTelFeature/poc#28  
 **Test Cases:** TC-005  

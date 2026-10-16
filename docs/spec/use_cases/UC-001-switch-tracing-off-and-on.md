@@ -7,7 +7,7 @@
 **Primary Actor:** Operator  
 **Secondary Actors:** flagd, geocode, weather, Aspire dashboard  
 **Goal:** The operator stops all span creation in every service with one boolean flag and starts it again, without a restart, so that span ingest drops to zero during an incident and recovers cleanly afterwards.  
-**Status:** Draft  
+**Status:** Tested  
 **Requirements:** FR-001, FR-002, FR-004, NFR-001, NFR-003, NFR-004, NFR-008, C-001, C-004, C-011  
 **Work Items:** OTelFeature/poc#8, OTelFeature/poc#9, OTelFeature/otelfeature-java-extension#21 (sampler mode)  
 **Test Cases:** TC-001  
