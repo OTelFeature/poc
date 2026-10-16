@@ -344,6 +344,18 @@ dropped spans record nothing.
 | `OTEL_METRICS_EXPORTER` | `otlp` | both | Honoured like the SDK (FR-024). `none`: no metrics SDK, so the error-rate reader is not registered, `otelfeature.http.server.error_rate` is absent and error-rate rules never match. Java: OTelFeature/otelfeature-java-extension#31; Python: OTelFeature/otelfeature-instrument#15 |
 | `OTEL_TRACES_EXPORTER` | `otlp` | both | Honoured like the SDK (FR-025). `none`: nothing is exported; the tracer, the flag policy and context propagation keep working and the recording CPU cost remains. Java: SDK autoconfigure; Python: OTelFeature/otelfeature-instrument#19 |
 
+Build-time settings of the demo stack (`poc`, FR-026, C-013), read by `make`
+and passed to the Dockerfiles as build args:
+
+| Variable | Default | Meaning |
+|---|---|---|
+| `EXT_REF` | unset | Shorthand: both refs below |
+| `OTELFEATURE_INSTRUMENT_REF` | unset (stage) / `main` (e2e) | Git ref (branch, tag, commit) geocode installs otelfeature-instrument from; unset = the version pinned in `uv.lock` |
+| `OTELFEATURE_EXTENSION_REF` | unset (stage) / `main` (e2e) | Git ref weather builds the otelfeature-java-extension JAR from (`shadowJar`); unset = release `OTELFEATURE_EXTENSION_VERSION` |
+
+The images carry the labels `io.otelfeature.extension.source` (`lock`,
+`release` or `git`) and `io.otelfeature.extension.ref`.
+
 Exporter values: only an exact `none` switches export off (case and
 surrounding whitespace ignored). `none` mixed with other values logs a warning
 and keeps exporting. Python exports any other value over OTLP/HTTP.

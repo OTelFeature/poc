@@ -8,7 +8,7 @@
 - **Secondary Actors:** flagd, demo stack, Aspire dashboard
 - **Goal:** The speaker runs Demos 1 to 3 from a laptop without network access, moving between states with one command per script beat and resetting between rehearsals, so that the live demo cannot be broken by venue Wi-Fi or a typo in a JSON file.
 - **Status:** Draft
-- **Requirements:** FR-018, FR-019, FR-010, NFR-004, NFR-012, NFR-015, C-007, C-008, C-009
+- **Requirements:** FR-018, FR-019, FR-026, FR-010, NFR-004, NFR-012, NFR-015, C-006, C-007, C-008, C-009
 - **Work Items:** OTelFeature/poc#24, OTelFeature/poc#26, OTelFeature/poc#25, OTelFeature/poc#32, OTelFeature/poc#33, OTelFeature/poc#35
 - **Test Cases:** TC-006
 - **Script Beat:** all demos; cold open uses OTel Demo footage (D1)
@@ -49,6 +49,17 @@
 1. Both services call Nominatim and Open-Meteo; request rates stay within their usage policies.
 2. Use case continues at step 3.
 
+### A3: Rehearsing with unreleased extension code
+
+**Trigger:** Before step 1, the extensions with the demo's features are not released yet (FR-026).
+
+**Flow:**
+
+1. While online, the speaker starts the stack with an extension git ref: `make start-staging EXT_REF=main` (or a ref per extension: `OTELFEATURE_INSTRUMENT_REF`, `OTELFEATURE_EXTENSION_REF`).
+2. The stack builds `geocode` with otelfeature-instrument and `weather` with otelfeature-java-extension from that ref, and starts.
+3. `make start` prints the extension source of the running images (`git <ref>` or the pinned version).
+4. Use case continues at step 1; from here the stack needs no network.
+
 ## Postconditions
 
 ### Success Postconditions
@@ -88,3 +99,7 @@ Decided by Simon, 2026-10-16 (OTelFeature/poc#26, PR OTelFeature/poc#41). Each p
 ### BR-007: A flip counts only once flagd serves it
 
 flagd reloads a flag file only when its mtime strictly increases, so every preset command leaves the file with a newer mtime, and an automated run confirms over OFREP that flagd serves the new value before it counts spans ([flag file reload](../entity_model.md#flag-file-reload), NFR-004).
+
+### BR-008: Pinned unless a ref is given
+
+The stage stack uses the pinned, released extension versions by default (C-006). Only an explicit ref (A3) builds from git, and the images say which source they carry, because `docker compose up` reuses existing images: a stack once built from a ref keeps running that build until `make build` (pinned) or another ref build replaces it.
