@@ -45,9 +45,10 @@ because Demo 3 needs the staging twins.
 requests in a 10 s interval, and only `POST /weather` fails. With the stage
 load (k6: `/weather` 1/s and `/health` 2/s, plus the compose healthcheck
 every 2 s) that is about 5 failures in 35 requests, an error rate of about
-**15%** at the incident share of 0.5 (UC-006 BR-003). An interval under the
-5% threshold (at most one failure in ten `/weather` requests) happens about
-1% of the time. The span metrics in Aspire are built from *sampled* spans,
+**14%** at the incident share of 0.5 (UC-006 BR-003). An interval not above
+the 5% threshold (at most one failure in ten `/weather` requests) happens
+about 1% of the time, so over a minute-long beat there is roughly a 6%
+chance of one 10 s dip back to half. The span metrics in Aspire are built from *sampled* spans,
 so their error rate moves with the sampling and isn't the loop's input
 (that is the services' unsampled HTTP metric).
 
