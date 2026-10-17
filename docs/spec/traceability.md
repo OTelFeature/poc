@@ -179,6 +179,7 @@ Every PR below is on `main`. The first stack (#36 ← #37 ← #40 ← #41 ← #4
 | OTelFeature/poc#82 | OTelFeature/poc#80 | FR-012 | UC-005, UC-006 | TC-005 |
 | OTelFeature/poc#88 | OTelFeature/poc#75 | FR-012 | UC-006 (BR-002, A1 to A3) | TC-005 (item 7) |
 | OTelFeature/poc#89 | OTelFeature/poc#14 | FR-021 | UC-009 (BR-003) | TC-007 (item 2) |
+| OTelFeature/poc#92 | OTelFeature/poc#91 (closed) | NFR-017, FR-019, FR-020, C-006 | UC-008 (BR-007, BR-008, A3), UC-009 (BR-001, A1) | TC-006, TC-007 |
 
 PR OTelFeature/poc#58 (stage stack from git refs, FR-027) was closed
 unmerged, and OTelFeature/poc#61 as not planned: the stage runs released
@@ -191,8 +192,7 @@ parity in e2e),
 OTelFeature/poc#76 (`geocode` on Python 3.15: blocked, because
 `openfeature-provider-flagd` requires `cachebox<6` and cachebox 5 has no
 3.15 build; `geocode` stays on 3.14 and Dependabot ignores 3.15 until then,
-decided by Simon, 2026-10-16), OTelFeature/poc#91 (prebuilt images, Docker
-only), and OTelFeature/poc#35 until its nightly runs are green.
+decided by Simon, 2026-10-16), and OTelFeature/poc#35 until its nightly runs are green.
 People, not agents: OTelFeature/poc#74 (full stage rehearsal three times,
 offline, NFR-012), OTelFeature/poc#32 (fallback videos),
 OTelFeature/poc#33 (OTel Demo footage).
@@ -203,9 +203,21 @@ OTelFeature/poc#27) and UC-008 (fallback videos and footage), are still
 Draft. NFR-015 reads Open for the same reason: its only linking use case is
 UC-008, although the suite exists and is green on `main`.
 
+NFR-017 stays Open for the same reason: both linking use cases are Draft,
+UC-008 for the fallback videos, the footage and the rehearsals, UC-009 for
+the public repository (OTelFeature/poc#31), and TC-007 is a manual check.
+What PR OTelFeature/poc#92 built is on `main` and works: the merge
+(`e29c7a7`) published `ghcr.io/otelfeature/poc-geocode`, `poc-weather` and
+`poc-stub-apis` as `main` and `sha-e29c7a7` for `linux/amd64` and
+`linux/arm64`. Before the merge, Simon pulled the branch's images in WSL with
+Docker only (`docker compose pull`, `docker compose up -d --pull never
+--no-build`, the presets through the `flag` service, traces in Aspire;
+2026-10-16). TC-007 can pass only after OTelFeature/poc#31, once the
+packages are public as well.
+
 Closed `poc` issues: #8, #9, #10, #12 (both halves landed), #13 (Java on the
 flagd in-process resolver), #22 (spike done), #24, #25, #26, #28, #29, #30,
-#38, #59, #64, #67; #11 and #61 closed as not planned.
+#38, #59, #64, #67, #91; #11 and #61 closed as not planned.
 
 ### Use case and test case status
 
