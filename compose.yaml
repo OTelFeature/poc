@@ -259,7 +259,7 @@ services:
   ########################
 
   otel-collector:
-    image: otel/opentelemetry-collector-contrib:0.163.2-386
+    image: otel/opentelemetry-collector-contrib:0.164.0
     container_name: otel-collector
     # root, so the docker_stats receiver can read the Docker socket. As
     # 10001 it works on Docker Desktop, but on a native engine (WSL2, Linux)
