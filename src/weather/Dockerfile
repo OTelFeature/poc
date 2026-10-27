@@ -34,7 +34,7 @@ ARG OTELFEATURE_EXTENSION_VERSION=v0.4.0
 RUN wget -q -O /otelfeature-java-extension.jar \
     https://github.com/OTelFeature/otelfeature-java-extension/releases/download/${OTELFEATURE_EXTENSION_VERSION}/otelfeature-java-extension.jar
 
-FROM --platform=$BUILDPLATFORM gradle:9.8.1-jdk21@sha256:d5c815d1281e3edc7e986ca573b1b309639747fa0d91a2199adadf327cfdf634 AS extension-git
+FROM --platform=$BUILDPLATFORM gradle:9.8.2-jdk21@sha256:37110d25b7a0f866d07f7e61968347b83d2e0fd01bd6ddf74c9ae2ff04000691 AS extension-git
 ARG OTELFEATURE_EXTENSION_REF=main
 ADD https://github.com/OTelFeature/otelfeature-java-extension.git#${OTELFEATURE_EXTENSION_REF} /src
 WORKDIR /src
@@ -46,7 +46,7 @@ RUN --mount=type=cache,target=/home/gradle/.gradle \
 FROM extension-${OTELFEATURE_EXTENSION_SOURCE} AS otelfeature-agent
 
 # ── Build stage ─────────────────────────────────────────────────────
-FROM --platform=$BUILDPLATFORM gradle:9-jdk25@sha256:e4f9e3d037cc0c7d8fc42cd97edb976dfd19a5b7314212b88b6de3807d13cd47 AS builder
+FROM --platform=$BUILDPLATFORM gradle:9-jdk25@sha256:ca424744a6a45a575f333edea680696d980999c461be38b1574a4c70d5455f24 AS builder
 
 WORKDIR /app
 
