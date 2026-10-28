@@ -11,8 +11,8 @@ confirmation.
 
 > [!NOTE]
 > The stage runs the pinned extension releases: otelfeature-instrument
-> **v0.3.0** in `geocode` (`src/geocode/pyproject.toml`, `uv.lock`) and
-> otelfeature-java-extension **v0.4.0** in `weather`
+> **v0.4.0** in `geocode` (`src/geocode/pyproject.toml`, `uv.lock`) and
+> otelfeature-java-extension **v0.5.0** in `weather`
 > (`OTELFEATURE_EXTENSION_VERSION` in `src/weather/Dockerfile`). Both
 > understand `otelEnabled`, `telemetryLevel` (including `OFF`), `recordSpan`,
 > `traceSampleRatio` and the semconv evaluation context. The stage never builds

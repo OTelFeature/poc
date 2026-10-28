@@ -17,7 +17,7 @@
 
 - The demo stack is running with the baseline flags: `otelEnabled=true`, `telemetryLevel=FULL`.
 - Traffic reaches both services and their traces are visible in the dashboard.
-- Both services run extension code that contains the policy and the `OFF` handling: the pinned released versions (C-006: otelfeature-instrument v0.3.0, otelfeature-java-extension v0.4.0; a git ref only when passed explicitly to the e2e suite, C-013).
+- Both services run extension code that contains the policy and the `OFF` handling: the pinned released versions (C-006: otelfeature-instrument v0.4.0, otelfeature-java-extension v0.5.0; a git ref only when passed explicitly to the e2e suite, C-013).
 
 ## Main Success Scenario
 

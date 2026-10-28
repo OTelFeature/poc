@@ -20,8 +20,8 @@ spans to `tests/e2e/.artifacts/`, and tears everything down.
 
 | Variable | Default | Meaning |
 |---|---|---|
-| `OTELFEATURE_INSTRUMENT_REF` | `release` | `release` = the otelfeature-instrument version pinned in `src/geocode/uv.lock` (v0.3.0); otherwise a git ref (branch, tag, commit) that geocode's extension is built from |
-| `OTELFEATURE_EXTENSION_REF` | `release` | `release` = the otelfeature-java-extension JAR pinned by `OTELFEATURE_EXTENSION_VERSION` in `src/weather/Dockerfile` (v0.4.0); otherwise a git ref that weather's agent extension is built from |
+| `OTELFEATURE_INSTRUMENT_REF` | `release` | `release` = the otelfeature-instrument version pinned in `src/geocode/uv.lock` (v0.4.0); otherwise a git ref (branch, tag, commit) that geocode's extension is built from |
+| `OTELFEATURE_EXTENSION_REF` | `release` | `release` = the otelfeature-java-extension JAR pinned by `OTELFEATURE_EXTENSION_VERSION` in `src/weather/Dockerfile` (v0.5.0); otherwise a git ref that weather's agent extension is built from |
 | `OTELFEATURE_ENFORCEMENT` | `processor` | Java enforcement mode, `processor` or `sampler` |
 | `PYTEST_ARGS` | `-m "not slow"` | Passed to pytest, e.g. `-k baseline -x` |
 | `E2E_KEEP` | unset | Set to keep the stack running afterwards (also when startup fails); `make e2e-down` removes it. Run `make e2e-down` before the next `make e2e` |

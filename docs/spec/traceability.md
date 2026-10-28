@@ -152,8 +152,8 @@ already honours it.
 OTelFeature/otelfeature-java-extension#23 was closed as not planned
 (2026-10-16): the extension writes no decision attributes (FR-014), so
 nothing was left in scope. The Java opt-in tracing hook is OTelFeature/otelfeature-java-extension#39
-(P2, open): it lands on `main` only, after v0.4.0, so the pinned stage does
-not have it.
+(P2): merged after v0.4.0 and released in v0.5.0 (2026-10-28), which `poc`
+pins.
 
 ### POC (`OTelFeature/poc`): merged
 
