@@ -30,7 +30,7 @@ RUN wget -q -O /opentelemetry-javaagent.jar \
 # (declared at the top: an ARG used in FROM must come before the first FROM)
 
 FROM --platform=$BUILDPLATFORM alpine:3.24 AS extension-release
-ARG OTELFEATURE_EXTENSION_VERSION=v0.4.0
+ARG OTELFEATURE_EXTENSION_VERSION=v0.5.0
 RUN wget -q -O /otelfeature-java-extension.jar \
     https://github.com/OTelFeature/otelfeature-java-extension/releases/download/${OTELFEATURE_EXTENSION_VERSION}/otelfeature-java-extension.jar
 

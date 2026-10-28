@@ -44,8 +44,8 @@ The committed `flagd.json` is the neutral baseline: every flag at its
 default, no targeting, so the services behave like stock OpenTelemetry. It is
 byte-for-byte the `00-baseline` preset (CI checks this). The flags other than
 `telemetryLevel` FULL/IO need otelfeature-instrument v0.3.0 /
-otelfeature-java-extension v0.4.0 or later, the versions the stack pins;
-older versions ignore them.
+otelfeature-java-extension v0.4.0 or later; older versions ignore them. The
+stack pins otelfeature-instrument v0.4.0 / otelfeature-java-extension v0.5.0.
 
 Flag descriptions live in each flag's `metadata`. A flag-level
 `"description"` key passes the flagd schema, but the Python in-process
@@ -133,8 +133,8 @@ block again and they log that it is static and go back to evaluating it once.
 > [!NOTE]
 > The evaluation context built from the span's semconv attributes (resource,
 > scope, span-start attributes; trace id as `targetingKey`) needs
-> otelfeature-instrument v0.3.0 / otelfeature-java-extension v0.4.0 or later,
-> the versions the stack pins. With older versions a rule has nothing to match
+> otelfeature-instrument v0.3.0 / otelfeature-java-extension v0.4.0 or later
+> (the stack pins v0.4.0 / v0.5.0). With older versions a rule has nothing to match
 > on beyond flagd's own `$flagd.*` properties.
 
 ## Verifying a flag's current value

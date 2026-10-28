@@ -14,7 +14,7 @@
 ## Preconditions
 
 - Stack running from `make start` with the baseline `src/flagd/flagd.json`.
-- Both services on extension code containing OTelFeature/poc#8 and OTelFeature/poc#9: the pinned released versions (C-006: otelfeature-instrument v0.3.0, otelfeature-java-extension v0.4.0; a git ref only when passed explicitly to the e2e suite, C-013).
+- Both services on extension code containing OTelFeature/poc#8 and OTelFeature/poc#9: the pinned released versions (C-006: otelfeature-instrument v0.4.0, otelfeature-java-extension v0.5.0; a git ref only when passed explicitly to the e2e suite, C-013).
 
 ## Flow
 
@@ -53,5 +53,5 @@
 - **How:** flips by copying the `01-otel-off` and baseline presets over `flagd.json`; spans are read from the collector's `file` exporter, not Aspire; the test sends its own traffic (load generator off).
 - **Hard floors:** `test_hard_floors` uses a separate override that starts one service with `OTEL_SDK_DISABLED=true`, then with `OTEL_TRACES_SAMPLER=always_off`, and asserts that it exports no spans whatever the flags say.
 - **Matrix:** runs in both Java enforcement modes (`processor`, `sampler`).
-- **Extension code:** the pinned released versions (C-006): otelfeature-instrument v0.3.0, otelfeature-java-extension v0.4.0. A git ref can be passed explicitly to check unreleased extension code (C-013).
+- **Extension code:** the pinned released versions (C-006): otelfeature-instrument v0.4.0, otelfeature-java-extension v0.5.0. A git ref can be passed explicitly to check unreleased extension code (C-013).
 - **Not automated:** items 1, 3, 4, 5, 8, 9 and 10 stay in the extension unit tests or are docs checks.

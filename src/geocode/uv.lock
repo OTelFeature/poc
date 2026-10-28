@@ -78,6 +78,22 @@ wheels = [
 ]
 
 [[package]]
+name = "cbor2"
+version = "5.9.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/bd/cb/09939728be094d155b5d4ac262e39877875f5f7e36eea66beb359f647bd0/cbor2-5.9.0.tar.gz", hash = "sha256:85c7a46279ac8f226e1059275221e6b3d0e370d2bb6bd0500f9780781615bcea", size = 111231, upload-time = "2026-03-22T15:56:50.638Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/08/7d/9ccc36d10ef96e6038e48046ebe1ce35a1e7814da0e1e204d09e6ef09b8d/cbor2-5.9.0-cp314-cp314-macosx_11_0_arm64.whl", hash = "sha256:23606d31ba1368bd1b6602e3020ee88fe9523ca80e8630faf6b2fc904fd84560", size = 71500, upload-time = "2026-03-22T15:56:31.876Z" },
+    { url = "https://files.pythonhosted.org/packages/70/e1/a6cca2cc72e13f00030c6a649f57ae703eb2c620806ab70c40db8eab33fa/cbor2-5.9.0-cp314-cp314-manylinux2014_aarch64.manylinux_2_17_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:0322296b9d52f55880e300ba8ba09ecf644303b99b51138bbb1c0fb644fa7c3e", size = 286953, upload-time = "2026-03-22T15:56:33.292Z" },
+    { url = "https://files.pythonhosted.org/packages/08/3c/24cd5ef488a957d90e016f200a3aad820e4c2f85edd61c9fe4523007a1ee/cbor2-5.9.0-cp314-cp314-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:422817286c1d0ce947fb2f7eca9212b39bddd7231e8b452e2d2cc52f15332dba", size = 285454, upload-time = "2026-03-22T15:56:34.703Z" },
+    { url = "https://files.pythonhosted.org/packages/a4/35/dca96818494c0ba47cdd73e8d809b27fa91f8fa0ce32a068a09237687454/cbor2-5.9.0-cp314-cp314-musllinux_1_2_aarch64.whl", hash = "sha256:9a4907e0c3035bb8836116854ed8e56d8aef23909d601fa59706320897ec2551", size = 279441, upload-time = "2026-03-22T15:56:35.888Z" },
+    { url = "https://files.pythonhosted.org/packages/a4/44/d3362378b16e53cf7e535a3f5aed8476e2109068154e24e31981ef5bde9e/cbor2-5.9.0-cp314-cp314-musllinux_1_2_x86_64.whl", hash = "sha256:fb7afe77f8d269e42d7c4b515c6fd14f1ccc0625379fb6829b269f493d16eddd", size = 279673, upload-time = "2026-03-22T15:56:37.08Z" },
+    { url = "https://files.pythonhosted.org/packages/43/d1/3533a697e5842fff7c2f64912eb251f8dcab3a8b5d88e228d6eebc3b5021/cbor2-5.9.0-cp314-cp314-win_amd64.whl", hash = "sha256:86baf870d4c0bfc6f79de3801f3860a84ab76d9c8b0abb7f081f2c14c38d79d3", size = 71940, upload-time = "2026-03-22T15:56:38.366Z" },
+    { url = "https://files.pythonhosted.org/packages/ff/e2/c6ba75f3fb25dfa15ab6999cc8709c821987e9ed8e375d7f58539261bcb9/cbor2-5.9.0-cp314-cp314-win_arm64.whl", hash = "sha256:7221483fad0c63afa4244624d552abf89d7dfdbc5f5edfc56fc1ff2b4b818975", size = 67639, upload-time = "2026-03-22T15:56:39.39Z" },
+    { url = "https://files.pythonhosted.org/packages/42/ff/b83492b096fbef26e9cb62c1a4bf2d3cef579ea7b33138c6c37c4ae66f67/cbor2-5.9.0-py3-none-any.whl", hash = "sha256:27695cbd70c90b8de5c4a284642c2836449b14e2c2e07e3ffe0744cb7669a01b", size = 24627, upload-time = "2026-03-22T15:56:48.847Z" },
+]
+
+[[package]]
 name = "certifi"
 version = "2026.7.22"
 source = { registry = "https://pypi.org/simple" }
@@ -187,7 +203,7 @@ requires-dist = [
     { name = "opentelemetry-instrumentation-fastapi", specifier = "==0.66b1" },
     { name = "opentelemetry-instrumentation-httpx", specifier = "==0.66b1" },
     { name = "opentelemetry-instrumentation-psycopg2", specifier = "==0.66b1" },
-    { name = "otelfeature-instrument", git = "https://github.com/OTelFeature/otelfeature-instrument?tag=v0.3.0" },
+    { name = "otelfeature-instrument", git = "https://github.com/OTelFeature/otelfeature-instrument?tag=v0.4.0" },
     { name = "psycopg2-binary", specifier = "==2.9.13" },
     { name = "uvicorn", extras = ["standard"], specifier = "==0.54.0" },
 ]
@@ -352,18 +368,19 @@ wheels = [
 
 [[package]]
 name = "openfeature-flagd-core"
-version = "1.0.0"
+version = "2.0.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
+    { name = "cbor2" },
     { name = "mmh3" },
     { name = "openfeature-flagd-api" },
     { name = "openfeature-sdk" },
     { name = "panzi-json-logic" },
     { name = "semver" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/19/f2/c32dcef17e160963ae1b0b6ee26535c5f12c306f645aa4ba7f9b9efec7b0/openfeature_flagd_core-1.0.0.tar.gz", hash = "sha256:e843d395de54dbc83d4d46fcee6cbc276204f3dfe5e8cc24ae3ea7247479c232", size = 11337, upload-time = "2026-04-30T21:11:25.097Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/89/5b/defdba9f4fc0039d8ed925def0684cca964a87b1510307e852c96cf505a1/openfeature_flagd_core-2.0.0.tar.gz", hash = "sha256:b416396949ee766f791ade3c5880fb15407b774349ee13b72f5e76ccfe932ca8", size = 12825, upload-time = "2026-10-15T21:14:21.969Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/a7/00/74300b66ba2629076b4f0772ab9b59b5c1342d11ff9b1f730306c615d90c/openfeature_flagd_core-1.0.0-py3-none-any.whl", hash = "sha256:c140259806c20e5fcda40452425131be6b58e4d790d7faa830d9cd89333e13ef", size = 14403, upload-time = "2026-04-30T21:11:23.875Z" },
+    { url = "https://files.pythonhosted.org/packages/7e/93/b3b06ad61d5fed8d7c444ba0bfeaa2a73d0d991c26eb3026866b9b054190/openfeature_flagd_core-2.0.0-py3-none-any.whl", hash = "sha256:1f7198cac5fd5a25907afb3500075223a8b271b960c736d05f75002ab1427214", size = 14837, upload-time = "2026-10-15T21:14:20.431Z" },
 ]
 
 [[package]]
@@ -382,7 +399,7 @@ wheels = [
 
 [[package]]
 name = "openfeature-provider-flagd"
-version = "0.5.2"
+version = "0.6.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "cachebox" },
@@ -392,9 +409,9 @@ dependencies = [
     { name = "protobuf" },
     { name = "pyyaml" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/a7/6b/7a259f2242c5ec508fc95835859c24e23e54afca1f57bbf21cfe785e15b2/openfeature_provider_flagd-0.5.2.tar.gz", hash = "sha256:6c10288afcca00a5889df475ddc03c09be53ba6d8f8060f1ba23e38fbc557054", size = 71848, upload-time = "2026-07-31T18:06:20.173Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/db/0e/92f85364eaf232e092e8ff7e5cab5526447fb405609c55bb1b7cba95363f/openfeature_provider_flagd-0.6.0.tar.gz", hash = "sha256:1a29f9a6b1946fe006989d3e5429a6fde3d3c76aa3afd46f9628c6eeff13bfce", size = 71842, upload-time = "2026-10-15T21:36:21.445Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/f4/ff/b17dc70fecd21be05d458161cd18e1020dafb6ce4ac6bc9da695d4721996/openfeature_provider_flagd-0.5.2-py3-none-any.whl", hash = "sha256:c87ad5e4481a56c3233c9419abc4a4c36ec3523e5345720f43b8b8ea4a7f927b", size = 64477, upload-time = "2026-07-31T18:06:19.014Z" },
+    { url = "https://files.pythonhosted.org/packages/e5/e9/bba482134c3e3741fa010e35b66394d4f28de09c8e070fea7055ac54cca3/openfeature_provider_flagd-0.6.0-py3-none-any.whl", hash = "sha256:91cfec21e713d7136d33d3ece4ef32e5c3cc280f022ec509119df6e04bd9493a", size = 64501, upload-time = "2026-10-15T21:36:19.95Z" },
 ]
 
 [[package]]
@@ -621,8 +638,8 @@ wheels = [
 
 [[package]]
 name = "otelfeature-instrument"
-version = "0.3.0"
-source = { git = "https://github.com/OTelFeature/otelfeature-instrument?tag=v0.3.0#a538a35358033f6fc98282ac5e4a1b19f32ff4fa" }
+version = "0.4.0"
+source = { git = "https://github.com/OTelFeature/otelfeature-instrument?tag=v0.4.0#effc2eb8ee58f9ab58b712c2443e6a1664f924b4" }
 dependencies = [
     { name = "openfeature-provider-flagd" },
     { name = "openfeature-sdk" },

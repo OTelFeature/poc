@@ -19,4 +19,4 @@ dependencies = [
 ]
 
 [tool.uv.sources]
-otelfeature-instrument = { git = "https://github.com/OTelFeature/otelfeature-instrument", tag = "v0.3.0" }
+otelfeature-instrument = { git = "https://github.com/OTelFeature/otelfeature-instrument", tag = "v0.4.0" }

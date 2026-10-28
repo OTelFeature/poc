@@ -140,7 +140,7 @@ locally first if the build complains about a stale lock file.
 > [pyproject.toml](pyproject.toml)). That's why the Dockerfile's builder
 > stage installs `git` before running `uv sync`: without it, resolving that
 > dependency fails with "Git executable not found." The source is pinned to
-> a release tag (`tag = "v0.3.0"`, C-006). To bump it, change `tag` in
+> a release tag (`tag = "v0.4.0"`, C-006). To bump it, change `tag` in
 > `pyproject.toml` and run `uv lock --upgrade-package otelfeature-instrument`.
 > Unreleased extension code goes through
 > `make e2e OTELFEATURE_INSTRUMENT_REF=<ref>` or a `v…-rc.N` pre-release
