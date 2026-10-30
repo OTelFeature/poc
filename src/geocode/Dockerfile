@@ -2,7 +2,7 @@
 ARG OTELFEATURE_INSTRUMENT_SOURCE=lock
 
 # A FROM, not an inline COPY --from image, so Dependabot keeps bumping uv.
-FROM ghcr.io/astral-sh/uv:0.13.5 AS uv
+FROM ghcr.io/astral-sh/uv:0.13.6 AS uv
 
 # The builder runs on the runtime's image: the venv only works under the
 # Python minor version it was built with (its site-packages path names it).
