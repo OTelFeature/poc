@@ -6,7 +6,7 @@
 # (compose.e2e.yaml), `make test` / `make shell` the whole repo at /workspace.
 #
 # Base image pinned by tag and digest; Dependabot (docker, /ci) bumps both.
-FROM ghcr.io/astral-sh/uv:0.13.5-python3.14-trixie-slim@sha256:d8e732839dfc4225a1ff698803b478b2223c05636c055d3add41ab9dbec0f315
+FROM ghcr.io/astral-sh/uv:0.13.6-python3.14-trixie-slim@sha256:637619278855a77885a94312efa7decd8479ca6cec5f959e134cbab96582821e
 
 ENV UV_PROJECT_ENVIRONMENT=/opt/e2e-venv \
     UV_COMPILE_BYTECODE=1 \
