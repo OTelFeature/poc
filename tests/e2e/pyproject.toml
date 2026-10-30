@@ -5,12 +5,12 @@ description = "End-to-end tests: the talk's demo beats against the running stack
 requires-python = ">=3.14"
 dependencies = [
     "httpx==0.28.1",
-    "pytest==9.1.1",
+    "pytest==9.2.0",
     "pytest-repeat==0.9.4",
     # Preset checks (`make test`): schema, and the flagd evaluator geocode
     # uses. Version in step with src/geocode/uv.lock.
-    "check-jsonschema==0.38.2",
-    "openfeature-provider-flagd==0.6.0",
+    "check-jsonschema==0.39.0",
+    "openfeature-provider-flagd==0.6.1",
     # Measurement harness (bench/): OTLP protobuf sizes per service.
     "opentelemetry-proto==1.45.1",
 ]
