@@ -502,6 +502,7 @@ manual runs; pull requests build them for both platforms without pushing
 | `ghcr.io/otelfeature/poc-geocode` | `src/geocode` | `linux/amd64`, `linux/arm64` | `main`, `sha-<short>` | `io.github.otelfeature.instrument.version`: the `otelfeature-instrument` tag in `uv.lock` (C-006) |
 | `ghcr.io/otelfeature/poc-weather` | `src/weather` | `linux/amd64`, `linux/arm64` | `main`, `sha-<short>` | `io.github.otelfeature.java-extension.version`: `OTELFEATURE_EXTENSION_VERSION` (C-006); `io.opentelemetry.javaagent.version`: `OTEL_AGENT_VERSION` |
 | `ghcr.io/otelfeature/poc-stub-apis` | `src/stub-apis` | `linux/amd64`, `linux/arm64` | `main`, `sha-<short>` | none |
+| `ghcr.io/otelfeature/poc-flagsmith-proxy` | `src/flagsmith-proxy/Dockerfile`, context `src` (it bakes in `src/flagd/presets`) | `linux/amd64`, `linux/arm64` | `main`, `sha-<short>` | `io.github.otelfeature.edge-proxy.version`, `io.github.otelfeature.flagsmith-cli.version`: the base image tags in the Dockerfile. Flagsmith mode only (FR-027, UC-008 A4) |
 
 Every image also carries `org.opencontainers.image.source` (the repository),
 `org.opencontainers.image.revision` (the full commit) and

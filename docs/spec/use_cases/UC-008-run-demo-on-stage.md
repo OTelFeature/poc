@@ -149,4 +149,4 @@ The proxy is Flagsmith's Edge Proxy with a flagd endpoint added. It fetches the 
 
 ### BR-012: Flagsmith mode is not the stage default
 
-Flagsmith mode (A4) needs network, unlike the Goal and BR-001, and its proxy image is built locally, unlike BR-008. Both stand until OQ-16 decides whether Flagsmith mode goes on stage; until then the file mode is the stage run and the fallback (Simon, 2026-11-03).
+Flagsmith mode (A4) needs network, unlike the Goal and BR-001. Its proxy image is published like the others (BR-008, NFR-017), so the operator pulls it while online. This stands until OQ-16 decides whether Flagsmith mode goes on stage; until then the file mode is the stage run and the fallback (Simon, 2026-11-03).
