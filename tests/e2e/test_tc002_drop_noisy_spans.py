@@ -109,9 +109,12 @@ def _io_problem(trace: list[Span], service: str) -> str | None:
 
 
 def _full_problem(trace: list[Span], service: str) -> str | None:
-    """The same trace at baseline: the INTERNAL spans are back."""
-    if not any(s.kind == "internal" for s in trace):
-        return f"{service}: no INTERNAL span yet:\n{describe(trace)}"
+    """The same trace at baseline: the INTERNAL spans are back, the
+    application's own (geocode.resolve, weather's controller span), not just
+    weather's error-handling spans on the 404."""
+    prefix = "geocode.resolve" if service == "geocode" else "WeatherController."
+    if not any(s.kind == "internal" and s.name.startswith(prefix) for s in trace):
+        return f"{service}: no INTERNAL {prefix} span yet:\n{describe(trace)}"
     return complete_problem(trace, service)
 
 

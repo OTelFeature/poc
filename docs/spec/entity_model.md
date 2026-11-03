@@ -404,6 +404,7 @@ Demo stack (`compose.yaml`, NFR-017, OTelFeature/poc#91):
 |---|---|---|
 | `POC_IMAGE_TAG` | `main` | Tag of the prebuilt `geocode`, `weather` and `stub-apis` images that `docker compose pull` and `up` use: `main`, or a `sha-<short commit>` to pin exactly the images of one commit (for example the rehearsed ones). Ignored by the e2e suite, which builds its own images |
 | `FLAG_CONFIRM_TIMEOUT` | `10` | Seconds the `flag` compose service waits for flagd to serve the preset it wrote before it fails |
+| `OTEL_INSTRUMENTATION_COMMON_EXPERIMENTAL_CONTROLLER_TELEMETRY_ENABLED` | `true` (set for `weather` in `compose.yaml`; the Java agent's own default is `false`) | Makes the Java agent create Spring MVC controller spans (`INTERNAL`), so `weather` has `INTERNAL` spans for `telemetryLevel=IO` to suppress in Demo 2 (UC-002 A9) |
 | `FLAGD_OFREP_URL` | `http://flagd:8016` | flagd's OFREP endpoint that the `flag` service and the e2e flag helper confirm a write against |
 
 ### Prebuilt images

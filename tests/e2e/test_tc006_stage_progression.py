@@ -88,17 +88,18 @@ def _sender(step: Step, instance: str):
     return send
 
 
-def _io_problem(spans, instance: str, beat: str, want_jdbc: bool) -> str | None:
-    """Under telemetryLevel IO: a server span, no INTERNAL span, DB spans
-    present (02) or JDBC spans dropped (03 on, weather), tree connected."""
+def _io_problem(spans, instance: str, beat: str, want_db: bool) -> str | None:
+    """Under telemetryLevel IO: a server span, no INTERNAL span, and DB
+    spans present (want_db) or no JDBC span (03's rule, weather); tree
+    connected."""
     if not any(s.kind == "server" for s in spans):
         return f"{beat}: {instance} server span not exported yet"
     if internal := [s for s in spans if s.kind == "internal"]:
         return f"{beat}: {instance} INTERNAL spans still exported:\n{describe(internal)}"
     db = [s for s in spans if is_db(s)]
-    if want_jdbc and not db:
+    if want_db and not db:
         return f"{beat}: {instance} DB spans missing:\n{describe(spans)}"
-    if not want_jdbc and (jdbc := [s for s in db if s.scope == "io.opentelemetry.jdbc"]):
+    if not want_db and (jdbc := [s for s in db if s.scope == "io.opentelemetry.jdbc"]):
         return f"{beat}: {instance} JDBC spans still exported:\n{describe(jdbc)}"
     return tree_problem(spans)
 
@@ -134,7 +135,9 @@ def test_stage_progression(step: Step, flags: Flags):
 
     wait_until(geocode_back, timeout=3 * FLIP_BUDGET_SECONDS, interval=0)
     for instance in ("geocode", "weather"):
-        step.wait_for_trace(_sender(step, instance), lambda t, i=instance: _io_problem(t, i, "02", want_jdbc=True))
+        latency = step.wait_for_trace(_sender(step, instance),
+                                      lambda t, i=instance: _io_problem(t, i, "02", want_db=True))
+        assert latency <= FLIP_BUDGET_SECONDS, f"02: {instance} at IO after {latency:.1f}s"
 
     # 03-semconv-rules: production at 0.1, staging at 1.0; 02's IO cut stays,
     # and the recordSpan rules drop geocode's /health and weather's JDBC spans.
@@ -149,8 +152,11 @@ def test_stage_progression(step: Step, flags: Flags):
     wait_until(sampled_down, timeout=3 * FLIP_BUDGET_SECONDS, interval=0)
     # The rules, checked in staging (1.0), where an absence can't be sampling.
     step.wait_tracing("geocode-staging", traced=False, path="/health")
-    step.wait_for_trace(_sender(step, "weather-staging"),
-                        lambda t: _io_problem(t, "weather-staging", "03", want_jdbc=False))
+    latency = step.wait_for_trace(_sender(step, "weather-staging"),
+                                  lambda t: _io_problem(t, "weather-staging", "03", want_db=False))
+    assert latency <= FLIP_BUDGET_SECONDS, f"03: weather-staging JDBC spans dropped after {latency:.1f}s"
+    step.wait_for_trace(_sender(step, "geocode-staging"),
+                        lambda t: _io_problem(t, "geocode-staging", "03", want_db=True))
     _all_traced(step, {
         "weather-staging": (_batch(step, "weather-staging", 10), 10),
         "geocode-staging /geocode": (_batch(step, "geocode-staging", 10, "geocode"), 10),
@@ -189,11 +195,20 @@ def test_stage_progression(step: Step, flags: Flags):
 
     wait_until(fully_sampled, timeout=30.0, interval=0)
     _geocode_production_low(step, "03b")  # the loop raises only the failing service
+    # Cumulative: the IO cut and the /health rule are still on in 03b
+    # (geocode-staging: 1.0, no fault, so an absence is the rule's).
+    step.wait_tracing("geocode-staging", traced=False, path="/health")
+    step.wait_for_trace(_sender(step, "geocode-staging"),
+                        lambda t: _io_problem(t, "geocode-staging", "03b", want_db=True))
 
     # Incident over: back to 03a. The fault and the loop rule go with the
     # preset, so weather is back at 0.5 on the flip (OQ-14).
     flags.apply("03a-weather-boost")
     wait_until(about_half, timeout=3 * FLIP_BUDGET_SECONDS, interval=0)
+    # ... and 03a still carries the IO cut and both recordSpan rules.
+    step.wait_tracing("geocode-staging", traced=False, path="/health")
+    step.wait_for_trace(_sender(step, "weather-staging"),
+                        lambda t: _io_problem(t, "weather-staging", "03a", want_db=False))
 
 
 def test_tc006_rapid_flips(step: Step, flags: Flags):

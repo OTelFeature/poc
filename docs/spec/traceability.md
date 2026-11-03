@@ -57,7 +57,7 @@ the end-to-end suite and the toolchain images.
 | OTelFeature/poc#31 | Public repo | P1 | FR-020 | UC-009 | TC-007 |
 | OTelFeature/poc#32 | Fallback video | P2 | C-008 | UC-008 | TC-006 |
 | OTelFeature/poc#33 | OTel Demo footage | P1 | C-007 | UC-008 | TC-006 |
-| OTelFeature/poc#38 | k6 health-check scenario, split out of OTelFeature/poc#23 (answers OQ-5) | P0 | FR-006 (Demo 2 traffic) | UC-002 | TC-002 |
+| OTelFeature/poc#38 | k6 health-check scenario, split out of OTelFeature/poc#23 (answers OQ-5) | P0 | FR-006 (traffic for the health-check rule, Demo 3 since OTelFeature/poc#110) | UC-002 | TC-002 |
 | OTelFeature/poc#59 | Cross-service path: `geocode` calls `weather` | P1 | FR-026 | UC-004 | TC-004 |
 | OTelFeature/poc#35 | End-to-end suite in CI, safety net before merging | P1 | NFR-015, C-013 (verifies NFR-004, NFR-012) | UC-008 (BR-005) | TC-001, TC-002, TC-004, TC-005, TC-006 |
 | OTelFeature/poc#64 | Pin released extensions (v0.3.0 / v0.4.0) for stage and e2e | P0 | C-006, C-013 | UC-008 | TC-006 |
@@ -166,7 +166,7 @@ Every PR below is on `main`. The first stack (#36 ← #37 ← #40 ← #41 ← #4
 |---|---|---|---|---|
 | OTelFeature/poc#36 | OTelFeature/poc#24 (closed) | FR-018, C-009 | UC-008, UC-009 | TC-006 |
 | OTelFeature/poc#37 | OTelFeature/poc#25 (closed) | FR-010 | UC-004 | TC-004 |
-| OTelFeature/poc#40 | OTelFeature/poc#38 (closed, answers OQ-5) | FR-006 (traffic for Demo 2), FR-017 (health-check part) | UC-002 | TC-002 |
+| OTelFeature/poc#40 | OTelFeature/poc#38 (closed, answers OQ-5) | FR-006 (traffic for the health-check rule, Demo 3 since OTelFeature/poc#110), FR-017 (health-check part) | UC-002 | TC-002 |
 | OTelFeature/poc#41 | OTelFeature/poc#26 (closed) | FR-019, NFR-004 | UC-008 | TC-006 |
 | OTelFeature/poc#42 | OTelFeature/poc#28 (closed) | FR-012 | UC-006 | TC-005 |
 | OTelFeature/poc#43, #44, #52, #53, #54, #57 | OTelFeature/poc#35, phases 1 to 5 and the TC-006 stage progression (#57) (open: the nightly flake check has not run yet) | NFR-015, C-013 | UC-008 (BR-005) | TC-001, TC-002, TC-004, TC-005, TC-006 |

@@ -6,13 +6,13 @@
 **Use Case Name:** Drop noisy spans before they are created  
 **Primary Actor:** Operator  
 **Secondary Actors:** flagd, geocode, weather, Aspire dashboard  
-**Goal:** The operator first cuts traces down to the I/O boundary by span kind (`telemetryLevel=IO`, Demo 2), then writes one `recordSpan` targeting rule per noise source (health-check requests in `geocode`, database spans in `weather`, Demo 3), so that those spans are never created while every other span in both services is kept and correctly parented.
-**Status:** Tested
-**Requirements:** FR-003, FR-004, FR-005, FR-006, FR-007, FR-008, FR-023, NFR-002, NFR-003, NFR-005, NFR-007, C-003, C-004, C-011
-**Work Items:** OTelFeature/poc#22, OTelFeature/otelfeature-instrument#7, OTelFeature/otelfeature-java-extension#20, OTelFeature/otelfeature-java-extension#21, OTelFeature/otelfeature-instrument#14, OTelFeature/otelfeature-java-extension#27, OTelFeature/poc#12, OTelFeature/poc#9, OTelFeature/poc#110
-**Test Cases:** TC-002
-**Script Beat:** Demo 2 (span kind: `telemetryLevel` FULL → IO, preset `02-quiet-noise`, steps 1 to 4); Demo 3 ("service name, instrumentation scope, the path": the `recordSpan` rules, preset `03-semconv-rules`, steps 5 to 11). See BR-009.
-**Open Questions:** none (OQ-1 answered: `processor`, UC-003 BR-004; OQ-5 resolved)
+**Goal:** The operator first cuts traces down to the I/O boundary by span kind (`telemetryLevel=IO`, Demo 2), then writes one `recordSpan` targeting rule per noise source (health-check requests in `geocode`, database spans in `weather`, Demo 3), so that those spans are never created while every other span in both services is kept and correctly parented.  
+**Status:** Tested  
+**Requirements:** FR-003, FR-004, FR-005, FR-006, FR-007, FR-008, FR-023, NFR-002, NFR-003, NFR-005, NFR-007, C-003, C-004, C-011  
+**Work Items:** OTelFeature/poc#22, OTelFeature/otelfeature-instrument#7, OTelFeature/otelfeature-java-extension#20, OTelFeature/otelfeature-java-extension#21, OTelFeature/otelfeature-instrument#14, OTelFeature/otelfeature-java-extension#27, OTelFeature/poc#12, OTelFeature/poc#9, OTelFeature/poc#110  
+**Test Cases:** TC-002  
+**Script Beat:** Demo 2 (span kind: `telemetryLevel` FULL → IO, preset `02-quiet-noise`, steps 1 to 4); Demo 3 ("service name, instrumentation scope, the path": the `recordSpan` rules, preset `03-semconv-rules`, steps 5 to 11). See BR-009.  
+**Open Questions:** none (OQ-1 answered: `processor`, UC-003 BR-004; OQ-5 resolved)  
 
 ## Preconditions
 
@@ -116,7 +116,7 @@
 
 **Flow:**
 
-1. In both `processor` and `sampler` mode the processor suppresses the `INTERNAL` spans at `onStart` and re-parents their children; the sampler does not drop mid-trace spans (BR-004).
+1. In both `processor` and `sampler` mode the processor suppresses the `INTERNAL` spans at `onStart`, and the exporter re-parents their children; the sampler does not drop mid-trace spans (BR-004).
 2. The trace looks the same in the dashboard as in Python, where the tracer wrapper does not create the `INTERNAL` span at all; the Java service still spends CPU creating it.
 3. Use case continues at step 4.
 
@@ -172,7 +172,7 @@ A span's fate is decided once, at start (NFR-007).
 
 ### BR-006: Which flag carries the drop rule
 
-The drop rules are targeting on the dedicated boolean flag `recordSpan` (default `true`, key override `OTELFEATURE_RECORD_SPAN_FLAG_NAME`), evaluated per span against the semconv context (OQ-8 resolved). `otelEnabled` and `telemetryLevel` stay global switches. Precedence: hard floors (`OTEL_SDK_DISABLED=true`, `OTEL_TRACES_SAMPLER=always_off`) > `otelEnabled`/`telemetryLevel=OFF` > `recordSpan`. `recordSpan=true` never re-enables anything a higher level turned off.
+The drop rules are targeting on the dedicated boolean flag `recordSpan` (default `true`, key override `OTELFEATURE_RECORD_SPAN_FLAG_NAME`), evaluated per span against the semconv context (OQ-8 resolved). `otelEnabled` and `telemetryLevel` stay global switches. Precedence: hard floors (`OTEL_SDK_DISABLED=true`, `OTEL_TRACES_SAMPLER=always_off`) > `otelEnabled`/`telemetryLevel=OFF` > `telemetryLevel=IO` for `INTERNAL` spans (BR-008) > `recordSpan`. `recordSpan=true` never re-enables anything a higher level turned off.
 
 ### BR-007: When Python decides per tracer
 

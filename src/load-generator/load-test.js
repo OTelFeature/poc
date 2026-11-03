@@ -31,7 +31,7 @@ const DURATION = __ENV.DURATION || '1h';
 const REQUEST_RATE = Number(__ENV.REQUEST_RATE) || 1;
 
 // Health checks: GET /health on both services, like a kubelet probe, so
-// Demo 2 has health-check spans to drop (OTelFeature/poc#38). Requests per
+// Demo 3 has health-check spans to drop (OTelFeature/poc#38, #110). Requests per
 // second, per service; 0 turns the scenario off. k6 sends no traceparent, so
 // every check is a root SERVER span. /health makes no outgoing calls, so the
 // rate is independent of the external-API limits above.

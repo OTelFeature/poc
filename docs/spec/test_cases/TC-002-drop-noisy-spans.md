@@ -48,7 +48,7 @@
 15. **Health checks gone, exactly (OTelFeature/poc#35):** with the `recordSpan` rules of the semconv-rules preset, the collector exports no `geocode` `/health` span; `/geocode` traces are unchanged. [e2e: `test_tc002_drop_noisy_spans`]
 16. **Database spans gone, tree intact (OTelFeature/poc#35):** new `weather` traces contain the server and HTTP client spans and no database spans, and every parent id resolves within the trace (no orphans). The baseline preset brings back both the health-check and the database spans. [e2e: `test_tc002_drop_noisy_spans`]
 17. **Proxied health check (OTelFeature/poc#35):** a `/health` request that arrives with a sampled `traceparent` leaves no spans in `geocode`, because a remote-parent entry span counts as a root. [e2e: `test_tc002_drop_noisy_spans`]
-18. **Flip latency (OTelFeature/poc#35, NFR-004):** after applying and removing the preset, a probe request shows the new behaviour within the poll timeout. [e2e: `test_tc002_drop_noisy_spans`]
+18. **Flip latency (OTelFeature/poc#35, NFR-004):** after applying and removing the rules, a probe request shows the new behaviour within the poll timeout. [e2e: `test_tc002_drop_noisy_spans`]
 19. **Span-kind cut (OTelFeature/poc#110, FR-003):** with the quiet-noise preset, neither service exports an `INTERNAL` span (`geocode`: the ASGI `http receive`/`http send` spans and `geocode.resolve`; `weather`: the controller spans); every server, HTTP client and database span is still exported, and every parent id resolves within its trace (the children of `geocode.resolve` attach to the server span). The baseline brings the `INTERNAL` spans back. [e2e: `test_tc002_span_kind_level`]
 
 ## Postconditions
