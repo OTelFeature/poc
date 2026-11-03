@@ -26,7 +26,6 @@ processors:
           - name == "github.com/open-telemetry/opentelemetry-collector-contrib/receiver/dockerstatsreceiver"
         statements:
           - set(resource.attributes["service.name"], "docker-stats")
-  cumulativetodelta: {}
 
 connectors:
   span_metrics: {}
@@ -39,33 +38,23 @@ exporters:
       insecure: true
     sending_queue:
       batch:
-  otlp_http/datadog:
-    endpoint: "https://otlp.${env:DD_SITE}/"
-    headers:
-      dd-api-key: ${env:DD_API_KEY}
-      dd-otel-metric-config: '{"resource_attributes_as_tags": true}'
-      dd-otel-span-mapping: '{span_name_as_resource_name: true}'
-      compute_stats: 'true'
-    sending_queue:
-      batch:
-        min_size: 10
-        max_size: 100
-        flush_timeout: 10s
 
+# Dash0, opt-in per laptop (C-016): dash0.yaml, merged on top of this file
+# by compose.dash0.yaml. Keep its exporter lists in step with these.
 service:
   pipelines:
     traces:
       receivers: [otlp]
       processors: [resource]
-      exporters: [debug, otlp_grpc/aspire, span_metrics, otlp_http/datadog]
+      exporters: [debug, otlp_grpc/aspire, span_metrics]
     metrics:
       receivers: [otlp, span_metrics, docker_stats]
-      processors: [transform, resource, cumulativetodelta]
-      exporters: [debug, otlp_grpc/aspire, otlp_http/datadog]
+      processors: [transform, resource]
+      exporters: [debug, otlp_grpc/aspire]
     logs:
       receivers: [otlp]
       processors: [resource]
-      exporters: [debug, otlp_grpc/aspire, otlp_http/datadog]
+      exporters: [debug, otlp_grpc/aspire]
 
   telemetry:
     metrics:

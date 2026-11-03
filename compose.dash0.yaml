@@ -1,0 +1,21 @@
+# Dash0 as the observability backend, opt-in per laptop (C-016). On the
+# laptop that uses it, put this in the repo's git-ignored .env (see
+# .env.dash0.example), and every docker compose command, make target and
+# stage command picks it up unchanged (UC-008 BR-002):
+#
+#   COMPOSE_FILE=compose.yaml:compose.dash0.yaml
+#   DASH0_ENDPOINT=ingress.<region>.aws.dash0.com:4317
+#   DASH0_AUTH_TOKEN=auth_…
+#
+# Aspire stays on as well. The e2e suite never loads this file.
+services:
+  otel-collector:
+    command:
+      - --config=/etc/otel-collector-config.yaml
+      - --config=/etc/otel-collector-dash0.yaml
+    volumes:
+      - ./src/otel-collector/dash0.yaml:/etc/otel-collector-dash0.yaml
+    environment:
+      - DASH0_ENDPOINT=${DASH0_ENDPOINT:?set DASH0_ENDPOINT to the Dash0 OTLP/gRPC ingress, e.g. ingress.eu-west-1.aws.dash0.com:4317}
+      - DASH0_AUTH_TOKEN=${DASH0_AUTH_TOKEN:?set DASH0_AUTH_TOKEN to a Dash0 auth token}
+      - DASH0_DATASET=${DASH0_DATASET:-default}

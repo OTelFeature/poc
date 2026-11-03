@@ -1,0 +1,24 @@
+# Dash0 export, opt-in per laptop (C-016, UC-008 BR-009). Merged on top of
+# config.yaml by compose.dash0.yaml (a second --config). The collector merges
+# maps but replaces lists, so each pipeline below repeats config.yaml's
+# exporters and adds Dash0: keep them in step.
+#
+# Offline the exporter retries, queues in memory and drops when the queue is
+# full; it never holds up the pipelines, so Aspire keeps everything.
+exporters:
+  otlp_grpc/dash0:
+    endpoint: ${env:DASH0_ENDPOINT}
+    headers:
+      Authorization: Bearer ${env:DASH0_AUTH_TOKEN}
+      Dash0-Dataset: ${env:DASH0_DATASET:-default}
+    sending_queue:
+      batch:
+
+service:
+  pipelines:
+    traces:
+      exporters: [debug, otlp_grpc/aspire, span_metrics, otlp_grpc/dash0]
+    metrics:
+      exporters: [debug, otlp_grpc/aspire, otlp_grpc/dash0]
+    logs:
+      exporters: [debug, otlp_grpc/aspire, otlp_grpc/dash0]

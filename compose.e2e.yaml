@@ -16,7 +16,7 @@
 #   ref is ignored and the pinned release is built
 # - no fixed container names or host ports, own network
 # - the collector writes every span to a JSON file on the e2e-out volume
-#   (tests/e2e/collector.yaml); no Aspire, no Datadog, no docker_stats
+#   (tests/e2e/collector.yaml); no Aspire, no Dash0, no docker_stats
 # - flagd reads its flags from the e2e-flags volume, which the tests rewrite;
 #   src/flagd/flagd.json is never modified
 # - no load generator: the tests send every request themselves

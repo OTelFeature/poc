@@ -66,7 +66,7 @@ flowchart LR
     classDef aspire fill:#9966ff,color:white;
     classDef docker fill:#607d8b,color:white;
     classDef flagd fill:#f57c00,color:white;
-    classDef datadog fill:#632ca6,color:white;
+    classDef dash0 fill:#1f2937,color:white;
 
 
     subgraph Service Diagram
@@ -78,7 +78,7 @@ flowchart LR
         docker[("Docker socket")]:::docker
         coordinates[(coordinates-db<br/>PostgreSQL)]
         aspire[aspire]:::aspire
-        datadog("Datadog<br/>(optional)"):::datadog
+        dash0("Dash0<br/>(opt-in per laptop)"):::dash0
 
         docker -..->|docker_stats| otelcol
         load -->|OTLP/gRPC| otelcol
@@ -97,7 +97,7 @@ flowchart LR
         weather -..->|cache miss| stub
         flagd -->|OTLP/HTTP| otelcol
         otelcol -->|OTLP/gRPC| aspire
-        otelcol -.->|OTLP/HTTP| datadog
+        otelcol -.->|OTLP/gRPC| dash0
     end
 ```
 
@@ -144,7 +144,8 @@ flowchart LR
 - **otel-collector** ([src/otel-collector](src/otel-collector)) — an
   `opentelemetry-collector-contrib` instance that receives OTLP from the
   services, also scrapes Docker container stats, derives span metrics, and
-  forwards everything to the Aspire Dashboard — and, optionally, to Datadog.
+  forwards everything to the Aspire Dashboard — and, on a laptop that opts in,
+  to Dash0.
 - **aspire-dashboard** — Microsoft's Aspire Dashboard, used here purely as a
   local OTLP viewer/UI.
 
@@ -253,9 +254,9 @@ resolved is a cache hit for the other.
 The default stack needs no network once its images exist. `geocode` and
 `weather` call [stub-apis](src/stub-apis) instead of Nominatim and Open-Meteo,
 and nothing else in the stack needs to reach outside the compose network.
-One exception: the collector's optional Datadog exporter is always in the
-pipelines and, without `DD_SITE`/`DD_API_KEY`, logs export errors (which
-also show up in Aspire as collector logs). Ignore them.
+On a laptop that sends to Dash0 (below), its exporter logs export errors
+while offline (they also show up in Aspire as collector logs) and drops what
+it can't send; Aspire is unaffected. Ignore them.
 
 1. While online: `make prepare-offline` (without make:
    `docker compose --profile staging --profile tools pull`). This pulls every
@@ -381,6 +382,7 @@ src/
 > own risk of getting rate-limited (HTTP 429).
 
 > [!NOTE]
-> Forwarding telemetry to Datadog (`otel-collector`'s `otlp_http/datadog`
-> exporter) is optional and off by default — see
-> [otel-collector's README](src/otel-collector/README.md#datadog-export).
+> Forwarding telemetry to Dash0 is opt-in per laptop and off by default: copy
+> [.env.dash0.example](.env.dash0.example) to `.env` and fill in the token.
+> Every `docker compose` and `make` command then includes it (C-016) — see
+> [otel-collector's README](src/otel-collector/README.md#dash0-export).

@@ -4,25 +4,28 @@ An `otel/opentelemetry-collector-contrib` instance that's the hub of this
 repo's telemetry: it receives OTLP from [geocode](../geocode),
 [load-generator](../load-generator), and [flagd](../flagd), scrapes Docker
 container stats directly, derives span metrics, and forwards everything to
-the Aspire Dashboard — and, optionally, to Datadog.
+the Aspire Dashboard — and, on a laptop that opts in, to Dash0.
 
-Configured entirely by [config.yaml](config.yaml), mounted read-only into the
-container via [compose.yaml](../../compose.yaml).
+Configured by [config.yaml](config.yaml), mounted into the container via
+[compose.yaml](../../compose.yaml), plus [dash0.yaml](dash0.yaml) where
+[compose.dash0.yaml](../../compose.dash0.yaml) is enabled.
 
 ## Pipelines
 
 - **traces**: `otlp` receiver → `resource` processor → `debug` +
-  `otlp_grpc/aspire` + `otlp_http/datadog` exporters, and the `span_metrics`
-  connector (derives RED metrics from spans).
+  `otlp_grpc/aspire` exporters, and the `span_metrics` connector (derives
+  RED metrics from spans).
 - **metrics**: `otlp` + `span_metrics` + `docker_stats` receivers → a
   `transform` processor (relabels `docker_stats`-sourced metrics'
   `service.name` to `docker-stats`, so they show up as their own service in
-  Aspire rather than under `otelcol-contrib`), a `resource` processor, and
-  `cumulativetodelta` (Datadog's metrics intake expects delta temporality,
-  not the OTLP default of cumulative) → `debug` + `otlp_grpc/aspire` +
-  `otlp_http/datadog` exporters.
+  Aspire rather than under `otelcol-contrib`) and a `resource` processor →
+  `debug` + `otlp_grpc/aspire` exporters. Metrics stay cumulative, the OTLP
+  default; the `cumulativetodelta` processor went with the Datadog exporter,
+  whose intake needed delta.
 - **logs**: `otlp` receiver → `resource` processor → `debug` +
-  `otlp_grpc/aspire` + `otlp_http/datadog` exporters.
+  `otlp_grpc/aspire` exporters.
+
+With Dash0 enabled, every pipeline also exports to `otlp_grpc/dash0`.
 
 ## Resource processor
 
@@ -32,16 +35,28 @@ The `resource` processor sets `deployment.environment.name=otelfeature` with
 (`production` or `staging`) because the flag rules that read it run inside
 their SDKs; the collector must not overwrite it.
 
-## Datadog export
+## Dash0 export
 
-`otlp_http/datadog` forwards all three signals to Datadog's OTLP intake
-(`https://otlp.${DD_SITE}/`), authenticated via `DD_API_KEY`. Both are read
-from the environment with no default — see [Configuration](#configuration).
-This is optional: if `DD_SITE`/`DD_API_KEY` are unset, the exporter still
-starts, but with a malformed endpoint (`https://otlp./`) and no valid API
-key, so those requests just fail — everything else (Aspire, `debug` logging)
-keeps working unaffected. Set both in a git-ignored `.env` file at the repo
-root to enable it (`docker compose` loads `.env` automatically).
+Opt-in per laptop (C-016). [dash0.yaml](dash0.yaml) adds the
+`otlp_grpc/dash0` exporter (OTLP/gRPC to `DASH0_ENDPOINT`, with
+`Authorization: Bearer ${DASH0_AUTH_TOKEN}` and `Dash0-Dataset`) and repeats
+each pipeline's exporter list with it added. The collector merges maps but
+replaces lists, so keep those lists in step with config.yaml.
+[compose.dash0.yaml](../../compose.dash0.yaml) passes it as a second
+`--config`. To enable it on one laptop, copy
+[.env.dash0.example](../../.env.dash0.example) to the git-ignored `.env` at the
+repo root and fill in the token: `COMPOSE_FILE` there makes every
+`docker compose` command, `make` target and stage command use the overlay,
+so the stage commands don't change. Without `.env` nothing goes to Dash0.
+
+Offline, the exporter retries, queues in memory and drops when the queue is
+full; it never blocks the pipelines (UC-008 BR-009).
+
+Check a change with the pinned image (any values for the variables):
+
+```sh
+docker run --rm -v "$PWD/src/otel-collector:/c:ro"   -e OTEL_COLLECTOR_HOST=0.0.0.0 -e OTEL_COLLECTOR_PORT_GRPC=4317 -e OTEL_COLLECTOR_PORT_HTTP=4318   -e DASH0_ENDPOINT=x:4317 -e DASH0_AUTH_TOKEN=x   otel/opentelemetry-collector-contrib:0.164.0 validate --config=/c/config.yaml --config=/c/dash0.yaml
+```
 
 ## Self-telemetry
 
@@ -76,17 +91,18 @@ privilege needed; running as full root isn't necessary.
 
 ## Configuration
 
-Reads its own OTLP receiver endpoints, plus Datadog export credentials, from
-environment variables (set in [compose.yaml](../../compose.yaml), which
-passes `DD_SITE`/`DD_API_KEY` through from the shell/`.env` unchanged):
+Reads its own OTLP receiver endpoints from environment variables set in
+[compose.yaml](../../compose.yaml), and the Dash0 settings from
+[compose.dash0.yaml](../../compose.dash0.yaml), which reads them from `.env`:
 
 | Environment variable       | Default           | Description                                     |
 |----------------------------|-------------------|-------------------------------------------------|
 | `OTEL_COLLECTOR_HOST`      | `otel-collector`  | Bind host for the OTLP receivers                |
 | `OTEL_COLLECTOR_PORT_GRPC` | `4317`            | OTLP/gRPC receiver port                         |
 | `OTEL_COLLECTOR_PORT_HTTP` | `4318`            | OTLP/HTTP receiver port                         |
-| `DD_SITE`                  | -                 | Datadog site to export to, e.g. `datadoghq.com` |
-| `DD_API_KEY`               | -                 | Datadog API key                                 |
+| `DASH0_ENDPOINT`           | -                 | Dash0 OTLP/gRPC ingress, `ingress.<region>.aws.dash0.com:4317` (Dash0 only) |
+| `DASH0_AUTH_TOKEN`         | -                 | Dash0 auth token (Dash0 only)                   |
+| `DASH0_DATASET`            | `default`         | Dash0 dataset (Dash0 only)                      |
 
 ## Debugging
 
