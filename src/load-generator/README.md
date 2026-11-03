@@ -18,8 +18,9 @@ The script defines four k6 scenarios that run **concurrently**:
 | `healthchecks` | both services | `GET /health` | `HEALTHCHECK_RATE` requests / second, per service |
 | `forecast` | `geocode`, which calls `weather` | `POST /forecast` | 1 request / `FORECAST_INTERVAL_SECONDS` (15) |
 
-`healthchecks` stands in for a kubelet probe, so Demo 2 has health-check
-spans to drop (OTelFeature/poc#38, open question OQ-5). k6 sends no trace
+`healthchecks` stands in for a kubelet probe, so Demo 3 has health-check
+spans to drop (OTelFeature/poc#38, open question OQ-5; in Demo 2 they only
+lose their `INTERNAL` children). k6 sends no trace
 context, so every check is a root `SERVER` span of its own trace. With the
 default of 2/s, health checks outnumber the business traces. `/health`
 makes no outgoing calls, so this rate doesn't count against the external-API

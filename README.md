@@ -36,8 +36,8 @@ Flip flags with the `flag` service. It applies a preset from
 
 ```sh
 docker compose run --rm flag 01-otel-off       # Demo 1: tracing off
-docker compose run --rm flag 02-quiet-noise    # Demo 2: health checks and DB spans dropped
-docker compose run --rm flag 03-semconv-rules  # Demo 3: sample by environment
+docker compose run --rm flag 02-quiet-noise    # Demo 2: INTERNAL spans off (span kind only)
+docker compose run --rm flag 03-semconv-rules  # Demo 3: drop health checks, DB spans; sample by environment
 docker compose run --rm flag 03a-weather-boost
 docker compose run --rm flag 03b-incident      # fault injection + error-driven sampling
 docker compose run --rm flag 00-baseline       # back to the start

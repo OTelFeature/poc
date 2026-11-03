@@ -72,8 +72,12 @@ def _production(service: str | None = None) -> list[str]:
 
 
 # From 02 on, presets are cumulative: each beat keeps the previous beat's
-# rules (01, the kill switch, stands alone).
-QUIET_NOISE = {
+# rules (01, the kill switch, stands alone). Demo 2 cuts by span kind only
+# (telemetryLevel IO, no targeting); the recordSpan rules on the semconv
+# context come with 03 (UC-002 BR-009, OTelFeature/poc#110).
+QUIET_NOISE = {(span, "telemetryLevel"): "IO" for span in SPANS}
+SEMCONV_DROPS = {
+    **QUIET_NOISE,
     ("geocode /health", "recordSpan"): False,
     ("weather jdbc", "recordSpan"): False,
 }
@@ -85,11 +89,11 @@ EXPECTED = {
     "02-quiet-noise": QUIET_NOISE,
     # The ratio resolves for every span, but only root spans use it.
     "03-semconv-rules": {
-        **QUIET_NOISE,
+        **SEMCONV_DROPS,
         **{(span, "traceSampleRatio"): 0.1 for span in _production()},
     },
     "03a-weather-boost": {
-        **QUIET_NOISE,
+        **SEMCONV_DROPS,
         **{(span, "traceSampleRatio"): 0.1 for span in _production("geocode")},
         **{(span, "traceSampleRatio"): 0.5 for span in _production("weather")},
     },
@@ -97,7 +101,7 @@ EXPECTED = {
     # a service is sampled fully, whatever its environment rule says; without
     # the key, or at exactly 5%, the 03a rules apply.
     "03b-incident": {
-        **QUIET_NOISE,
+        **SEMCONV_DROPS,
         **{(span, "traceSampleRatio"): 0.1 for span in _production("geocode")},
         **{(span, "traceSampleRatio"): 0.5 for span in _production("weather")},
         **{(span, "weatherUpstreamFailure"): 0.5 for span in SPANS},

@@ -25,8 +25,8 @@
 | 2 | Start | Start the stack and reset | `make start`, `make demo-reset` | [UC-008](../use_cases/UC-008-run-demo-on-stage.md) |
 | 3 | Verify healthy | End-to-end traces appear; client spans show the stub as `server.address` | - | - |
 | 4 | Demo 1 | Apply tracing-off preset, then baseline | `01-otel-off` | [UC-001](../use_cases/UC-001-switch-tracing-off-and-on.md) |
-| 5 | Demo 2 | Apply quiet-noise preset | `02-quiet-noise` | [UC-002](../use_cases/UC-002-drop-noisy-spans.md) |
-| 6 | Demo 3 | Apply semconv-rules preset, then weather-boost, then incident | `03-semconv-rules`, `03a-weather-boost`, `03b-incident` | [UC-004](../use_cases/UC-004-target-trace-sampling.md) |
+| 5 | Demo 2 | Apply quiet-noise preset: no `INTERNAL` spans (span kind only) | `02-quiet-noise` | [UC-002](../use_cases/UC-002-drop-noisy-spans.md) |
+| 6 | Demo 3 | Apply semconv-rules preset (the `recordSpan` drop rules and the production ratio), then weather-boost, then incident | `03-semconv-rules`, `03a-weather-boost`, `03b-incident` | [UC-002](../use_cases/UC-002-drop-noisy-spans.md), [UC-004](../use_cases/UC-004-target-trace-sampling.md) |
 | 7 | Reset | Restore baseline | `make demo-reset` | [UC-008](../use_cases/UC-008-run-demo-on-stage.md) |
 
 ## Validation
@@ -41,7 +41,7 @@
 
 ## Stage progression in CI
 
-The e2e suite runs this whole sequence as one ordered test, `test_stage_progression` (OTelFeature/poc#35): presets 00 → 01 → 02 → 03 → 03a → 03b in order, **no resets**, asserting the expected spans and sampling after each flip. A preset that only works after a reset fails CI. It runs on pushes to `main`, nightly and on manual runs, not on pull requests: every beat it walks through has its own per-PR test, and the run-through takes about 40 s per job (NFR-015, decided by Simon, 2026-10-16, OTelFeature/poc#70). The three-flips check (`test_tc006_rapid_flips`) runs on every pull request. In the 03b beat about half of the `/weather` requests fail (UC-006 BR-003), and the test asserts that the loop then samples production `weather` fully.
+The e2e suite runs this whole sequence as one ordered test, `test_stage_progression` (OTelFeature/poc#35): presets 00 → 01 → 02 → 03 → 03a → 03b in order, **no resets**, asserting the expected spans and sampling after each flip: from 02 on no `INTERNAL` span is exported, from 03 on `geocode`'s `/health` and `weather`'s JDBC spans are dropped (UC-008 BR-006, OTelFeature/poc#110). A preset that only works after a reset fails CI. It runs on pushes to `main`, nightly and on manual runs, not on pull requests: every beat it walks through has its own per-PR test, and the run-through takes about 40 s per job (NFR-015, decided by Simon, 2026-10-16, OTelFeature/poc#70). The three-flips check (`test_tc006_rapid_flips`) runs on every pull request. In the 03b beat about half of the `/weather` requests fail (UC-006 BR-003), and the test asserts that the loop then samples production `weather` fully.
 
 ## Postconditions
 

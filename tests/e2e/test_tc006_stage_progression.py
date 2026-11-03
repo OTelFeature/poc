@@ -14,8 +14,9 @@ The run-through is marked `stage_run`: it runs on pushes to main, nightly
 and on manual runs, not on pull requests (NFR-015; every beat has its own
 per-PR test). test_tc006_rapid_flips runs on every pull request.
 
-Production geocode is counted on POST /geocode, because 02's rule drops its
-/health from 02 on.
+Production geocode is counted on POST /geocode, because 03's recordSpan rule
+drops its /health from 03 on. 02 cuts by span kind only (telemetryLevel IO,
+OTelFeature/poc#110): from 02 on, no INTERNAL span is exported.
 """
 
 from __future__ import annotations
@@ -27,7 +28,8 @@ import pytest
 
 from conftest import FLIP_BUDGET_SECONDS, QUIET_SECONDS, URLS, Step
 from flags import Flags
-from spans import STEP_HEADER, describe, wait_until
+from checks import is_db
+from spans import STEP_HEADER, describe, tree_problem, wait_until
 
 KNOWN = {"city": "linz", "country": "austria"}  # cached and stub-known: 200
 N = 60
@@ -75,6 +77,33 @@ def _all_traced(step: Step, tags: dict[str, tuple[str, int]], timeout: float = 1
     wait_until(problem, timeout=timeout)
 
 
+def _sender(step: Step, instance: str):
+    """send(headers) for wait_for_trace: one request to `instance` that
+    reads the database (POST /geocode or /weather, a cached location)."""
+    path = "/geocode" if instance.startswith("geocode") else "/weather"
+
+    def send(headers: dict) -> None:
+        r = step.http.post(f"{URLS[instance]}{path}", json=KNOWN, headers=headers)
+        assert r.status_code == 200, f"{instance}{path}: HTTP {r.status_code}"
+    return send
+
+
+def _io_problem(spans, instance: str, beat: str, want_db: bool) -> str | None:
+    """Under telemetryLevel IO: a server span, no INTERNAL span, and DB
+    spans present (want_db) or no JDBC span (03's rule, weather); tree
+    connected."""
+    if not any(s.kind == "server" for s in spans):
+        return f"{beat}: {instance} server span not exported yet"
+    if internal := [s for s in spans if s.kind == "internal"]:
+        return f"{beat}: {instance} INTERNAL spans still exported:\n{describe(internal)}"
+    db = [s for s in spans if is_db(s)]
+    if want_db and not db:
+        return f"{beat}: {instance} DB spans missing:\n{describe(spans)}"
+    if not want_db and (jdbc := [s for s in db if s.scope == "io.opentelemetry.jdbc"]):
+        return f"{beat}: {instance} JDBC spans still exported:\n{describe(jdbc)}"
+    return tree_problem(spans)
+
+
 def _geocode_production_low(step: Step, beat: str) -> None:
     """Production geocode stays at 0.1 (1..20 of 60; the odds of a false
     failure at 0.1 are about 1e-7)."""
@@ -93,9 +122,9 @@ def test_stage_progression(step: Step, flags: Flags):
         latency = step.wait_tracing(service, traced=False)
         assert latency <= FLIP_BUDGET_SECONDS, f"01: {service} off after {latency:.1f}s"
 
-    # 02-quiet-noise, straight from 01: tracing back on (proved first, so
-    # the /health absence below can't be 01 lingering), with geocode's
-    # /health and weather's JDBC spans dropped.
+    # 02-quiet-noise, straight from 01: tracing back on, by span kind only
+    # (telemetryLevel IO): requests in both services are traced again, with
+    # no INTERNAL span and the DB spans still there.
     flags.apply("02-quiet-noise")
     step.wait_tracing("weather", traced=True)
 
@@ -105,21 +134,13 @@ def test_stage_progression(step: Step, flags: Flags):
         return None if _server_count(step, tag) else "02: geocode /geocode not traced yet"
 
     wait_until(geocode_back, timeout=3 * FLIP_BUDGET_SECONDS, interval=0)
-    step.wait_tracing("geocode", traced=False, path="/health")
+    for instance in ("geocode", "weather"):
+        latency = step.wait_for_trace(_sender(step, instance),
+                                      lambda t, i=instance: _io_problem(t, i, "02", want_db=True))
+        assert latency <= FLIP_BUDGET_SECONDS, f"02: {instance} at IO after {latency:.1f}s"
 
-    def send_weather(headers: dict) -> None:
-        r = step.http.post(f"{URLS['weather']}/weather", json=KNOWN, headers=headers)
-        assert r.status_code == 200, f"/weather: HTTP {r.status_code}"
-
-    def no_jdbc(spans) -> str | None:
-        if not any(s.kind == "server" for s in spans):
-            return "weather /weather server span not exported yet"
-        jdbc = [s for s in spans if s.scope == "io.opentelemetry.jdbc"]
-        return f"02: JDBC spans still exported:\n{describe(jdbc)}" if jdbc else None
-
-    step.wait_for_trace(send_weather, no_jdbc)
-
-    # 03-semconv-rules: production at 0.1, staging at 1.0; 02's drops stay.
+    # 03-semconv-rules: production at 0.1, staging at 1.0; 02's IO cut stays,
+    # and the recordSpan rules drop geocode's /health and weather's JDBC spans.
     flags.apply("03-semconv-rules")
 
     def sampled_down() -> str | None:
@@ -129,7 +150,13 @@ def test_stage_progression(step: Step, flags: Flags):
         return None if _server_count(step, tag) < 20 else "03: production weather still fully sampled"
 
     wait_until(sampled_down, timeout=3 * FLIP_BUDGET_SECONDS, interval=0)
-    step.wait_tracing("geocode-staging", traced=False, path="/health")  # 02's drop, in staging too
+    # The rules, checked in staging (1.0), where an absence can't be sampling.
+    step.wait_tracing("geocode-staging", traced=False, path="/health")
+    latency = step.wait_for_trace(_sender(step, "weather-staging"),
+                                  lambda t: _io_problem(t, "weather-staging", "03", want_db=False))
+    assert latency <= FLIP_BUDGET_SECONDS, f"03: weather-staging JDBC spans dropped after {latency:.1f}s"
+    step.wait_for_trace(_sender(step, "geocode-staging"),
+                        lambda t: _io_problem(t, "geocode-staging", "03", want_db=True))
     _all_traced(step, {
         "weather-staging": (_batch(step, "weather-staging", 10), 10),
         "geocode-staging /geocode": (_batch(step, "geocode-staging", 10, "geocode"), 10),
@@ -168,11 +195,20 @@ def test_stage_progression(step: Step, flags: Flags):
 
     wait_until(fully_sampled, timeout=30.0, interval=0)
     _geocode_production_low(step, "03b")  # the loop raises only the failing service
+    # Cumulative: the IO cut and the /health rule are still on in 03b
+    # (geocode-staging: 1.0, no fault, so an absence is the rule's).
+    step.wait_tracing("geocode-staging", traced=False, path="/health")
+    step.wait_for_trace(_sender(step, "geocode-staging"),
+                        lambda t: _io_problem(t, "geocode-staging", "03b", want_db=True))
 
     # Incident over: back to 03a. The fault and the loop rule go with the
     # preset, so weather is back at 0.5 on the flip (OQ-14).
     flags.apply("03a-weather-boost")
     wait_until(about_half, timeout=3 * FLIP_BUDGET_SECONDS, interval=0)
+    # ... and 03a still carries the IO cut and both recordSpan rules.
+    step.wait_tracing("geocode-staging", traced=False, path="/health")
+    step.wait_for_trace(_sender(step, "weather-staging"),
+                        lambda t: _io_problem(t, "weather-staging", "03a", want_db=False))
 
 
 def test_tc006_rapid_flips(step: Step, flags: Flags):
@@ -180,11 +216,23 @@ def test_tc006_rapid_flips(step: Step, flags: Flags):
     state (each write gets a strictly newer mtime, so none is ignored). The
     last state, 02-quiet-noise, differs from the start and from the first
     flip, so the services must have applied the last write."""
+    def no_internal(spans) -> str | None:
+        if not any(s.kind == "server" for s in spans):
+            return "geocode /health server span not exported yet"
+        internal = [s for s in spans if s.kind == "internal"]
+        return f"INTERNAL spans still exported:\n{describe(internal)}" if internal else None
+
     flags.write(flags.preset("01-otel-off"), wait=False)
     flags.write(flags.preset("00-baseline"), wait=False)
     flags.write(flags.preset("02-quiet-noise"))  # waits until flagd serves this one
     assert flags.evaluate("otelEnabled") is True
     # Tracing is on (not 01) ...
     step.wait_tracing("weather", traced=True)
-    # ... and geocode's /health is dropped (not 00).
-    step.wait_tracing("geocode", traced=False, path="/health")
+    # ... at telemetryLevel IO (not 00): geocode's /health trace without its
+    # INTERNAL http send spans.
+    assert flags.evaluate("telemetryLevel") == "IO"
+
+    def send_health(headers: dict) -> None:
+        assert step.http.get(f"{URLS['geocode']}/health", headers=headers).status_code == 200
+
+    step.wait_for_trace(send_health, no_internal)

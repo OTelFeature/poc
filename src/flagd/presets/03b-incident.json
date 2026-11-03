@@ -17,14 +17,14 @@
     },
     "telemetryLevel": {
       "state": "ENABLED",
-      "defaultVariant": "full",
+      "defaultVariant": "io",
       "variants": {
         "full": "FULL",
         "io": "IO",
         "off": "OFF"
       },
       "metadata": {
-        "description": "Trace verbosity: FULL, IO (drop INTERNAL spans) or OFF (same as otelEnabled=off)"
+        "description": "Trace verbosity: FULL, IO (drop INTERNAL spans, Demo 2) or OFF (same as otelEnabled=off)"
       }
     },
     "recordSpan": {
@@ -93,7 +93,7 @@
         ]
       },
       "metadata": {
-        "description": "Per-span drop flag, evaluated against the semconv context; false = the span is not created (Demo 2)"
+        "description": "Per-span drop flag, evaluated against the semconv context; false = the span is not created (Demo 3)"
       }
     },
     "traceSampleRatio": {

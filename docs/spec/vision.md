@@ -58,10 +58,12 @@ dashboard and k6.
 
 1. **Demo 1.** One boolean flag turns tracing off and back on at runtime, in
    both services, without a restart.
-2. **Demo 2.** Flags drop specific spans per service and per instrumentation
-   (health checks in one service, DB spans in another) before they are created,
+2. **Demo 2.** One flag cuts traces down to the I/O boundary by span kind
+   (`telemetryLevel=IO`: no `INTERNAL` spans, the tree stays connected),
    with CPU, memory and export savings measured at the service.
-3. **Demo 3.** Semantic conventions as evaluation context make rules generic;
+3. **Demo 3.** Semantic conventions as evaluation context make rules generic:
+   flags drop specific spans per service and per instrumentation (health
+   checks in one service, DB spans in another) before they are created;
    the trace sample ratio is a number flag targeted by environment and service;
    a control loop raises sampling for a service whose error rate goes up, and
    the application's own flag evaluations (the injected failure) show up in

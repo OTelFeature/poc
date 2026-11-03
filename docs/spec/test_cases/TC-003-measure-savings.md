@@ -32,6 +32,7 @@
 2. **D3 recommendation (OTelFeature/poc#27):** sampler vs processor recommendation posted with numbers and the effort notes from OTelFeature/otelfeature-java-extension#21.
 3. **Live view:** a view usable on stage shows the drop within seconds of the flip.
 4. **No dependency on OTelFeature/poc#23:** the harness runs on the stack's normal traffic.
+5. **Demo 2 is the span-kind cut (OTelFeature/poc#110):** the Demo 2 runs apply `02-quiet-noise` (`telemetryLevel=IO`); the numbers posted for the slide are from that preset, not from the earlier `recordSpan` rules (UC-003 BR-008).
 
 ## Postconditions
 

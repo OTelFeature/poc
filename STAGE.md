@@ -54,8 +54,8 @@ needs the staging twins.
 |---|---|---|
 | Cold open: wall of spans | none (OTel Demo footage, D1) | n/a |
 | Demo 1: one flag turns tracing off | `docker compose run --rm flag 01-otel-off` | No new traces from `geocode` or `weather`; their metrics, and flagd's own traces, keep flowing |
-| Demo 2: tracing back, noise dropped | `docker compose run --rm flag 02-quiet-noise` | Traces again, but no `GET /health` traces from `geocode`, and `/weather` traces with no `SELECT`/`INSERT` (JDBC) spans. `weather`'s own `/health` traces stay |
-| Demo 3: rules on semconv attributes | `docker compose run --rm flag 03-semconv-rules` | About 1 in 10 production traces from both services; all staging traces (filter by `deployment.environment.name`). Demo 2's drops stay on |
+| Demo 2: tracing back, by span kind only | `docker compose run --rm flag 02-quiet-noise` | Traces again, but only the I/O boundary (`telemetryLevel` IO): no `INTERNAL` spans. `geocode` loses the ASGI `http receive`/`http send` spans and `geocode.resolve`, `weather` its controller spans (`WeatherController.*`); server, HTTP client and DB spans stay, re-attached to their real parent. A `GET /health` trace shrinks to its single server span |
+| Demo 3: rules on semconv attributes | `docker compose run --rm flag 03-semconv-rules` | No more `GET /health` traces from `geocode`, and `/weather` traces with no `SELECT`/`INSERT` (JDBC) spans (`recordSpan` rules on `service.name`, `span.kind`, `url.path`, `otel.scope.name`); `weather`'s own `/health` traces stay. About 1 in 10 production traces from both services; all staging traces (filter by `deployment.environment.name`). Demo 2's IO cut stays on |
 | Demo 3: boost one service | `docker compose run --rm flag 03a-weather-boost` | Production `weather` at about half its traces; production `geocode` stays at about 1 in 10 |
 | Demo 3: incident | `docker compose run --rm flag 03b-incident` | About half of the `POST /weather` requests fail (HTTP 503, span status ERROR, `error.type=503`), in `weather` and `weather-staging` (the fault flag has no targeting). Within one or two error-rate intervals (10 s), weather's error rate passes 5% and the loop rule samples it fully: production `weather` goes from about half to all traces; `geocode` stays at 1 in 10. See the note below on the margin |
 | Demo 3: incident over | `docker compose run --rm flag 03a-weather-boost` | No new errors; production `weather` is back at about half right away, because the loop rule goes with the fault (OQ-14). Not a reset |
@@ -78,13 +78,14 @@ If a beat doesn't show its effect, switch to the fallback video for that demo
 ## What each preset sets
 
 Presets follow the talk's order and are **cumulative**: each one keeps the
-rules of the beat before it, so Demo 2's dropped health checks and DB spans
-stay dropped through Demo 3. The demo is a **progression with no resets**
+rules of the beat before it, so Demo 2's IO cut stays on through Demo 3,
+and Demo 3's dropped health checks and DB spans stay dropped through the
+incident. The demo is a **progression with no resets**
 (UC-008 BR-006): `00-baseline` → `01-otel-off` → `02-quiet-noise` →
 `03-semconv-rules` → `03a-weather-boost` → `03b-incident`, and back to
 `03a-weather-boost` when the incident is over. `01-otel-off` is
 the exception: it is the baseline with tracing off, and `02-quiet-noise`
-turns tracing back on with its drop rules. `make demo-reset` is for
+turns tracing back on at `telemetryLevel` IO. `make demo-reset` is for
 rehearsals, never between beats.
 
 Every preset is still a full flag file, so any one can be applied directly.
@@ -96,8 +97,8 @@ ratio's other variants are `half` 0.5, `tenth` 0.1 and `none` 0.0.
 |---|---|
 | `00-baseline` | none; identical to the committed `flagd.json` |
 | `01-otel-off` | `otelEnabled` default `off` |
-| `02-quiet-noise` | `recordSpan` targeting → `off` for `service.name=geocode` + `span.kind=server` + `url.path=/health`, and for `service.name=weather` + `otel.scope.name=io.opentelemetry.jdbc` |
-| `03-semconv-rules` | `02-quiet-noise` plus `traceSampleRatio` targeting: production → 0.1, everything else (staging, or no environment) → 1.0 |
+| `02-quiet-noise` | `telemetryLevel` default `io` (no `INTERNAL` spans); no targeting anywhere |
+| `03-semconv-rules` | `02-quiet-noise` plus `recordSpan` targeting → `off` for `service.name=geocode` + `span.kind=server` + `url.path=/health`, and for `service.name=weather` + `otel.scope.name=io.opentelemetry.jdbc`, plus `traceSampleRatio` targeting: production → 0.1, everything else (staging, or no environment) → 1.0 |
 | `03a-weather-boost` | `03-semconv-rules` plus production `weather` → 0.5 (other production 0.1, everything else 1.0) |
 | `03b-incident` | `03a-weather-boost` plus `weatherUpstreamFailure` default `incident` (0.5) and the control-loop rule: `otelfeature.http.server.error_rate > 0.05` → 1.0, ahead of the other ratio rules |
 
