@@ -117,4 +117,4 @@ Measured 2026-11-03 on the branch of OTelFeature/poc#110 (`make bench`, stage lo
 | `geocode` | 13.85 → 4.66 (−66 %) | 3.41 → 2.13 (−37 %) | about two thirds: two ASGI `http receive`/`http send` spans per request, plus `geocode.resolve` | within the run-to-run noise (14 %) |
 | `weather` | 9.27 → 5.72 (−38 %) | 3.85 → 2.88 (−25 %) | about two fifths: one controller span per request | within the run-to-run noise |
 
-Bytes fall less than spans because the `INTERNAL` spans are the small ones. A single run; the reproducibility check (BR-003, step 7) is still open.
+Bytes fall less than spans because the `INTERNAL` spans are the small ones. The `weather` numbers depend on its controller spans, which the stack turns on (C-015, UC-002 BR-010); with the Java agent's default they would be close to zero. A single run; the reproducibility check (BR-003, step 7) is still open.
