@@ -1,6 +1,6 @@
 # Measurement harness
 
-`make bench` measures what the Demo 2 rules save, at the service, and what
+`make bench` measures what Demo 2 (`telemetryLevel` IO) saves, at the service, and what
 the targeted flag decision costs (OTelFeature/poc#27, UC-003, TC-003). It also
 gave the numbers for decision D3 (Java `processor` vs `sampler` mode, OQ-1: decided `processor`).
 
@@ -22,7 +22,7 @@ generator on and the staging and hard-floor instances off.
 |---|---|---|
 | `baseline` | `00-baseline` | processor |
 | `noop` | baseline plus a `recordSpan` rule that reads `url.path` but never matches | processor |
-| `quiet-noise-processor` | `02-quiet-noise` (Demo 2) | processor |
+| `quiet-noise-processor` | `02-quiet-noise` (Demo 2: `telemetryLevel` IO, no `INTERNAL` spans) | processor |
 | `baseline-sampler` | `00-baseline` | sampler |
 | `noop-sampler` | as `noop` | sampler |
 | `quiet-noise-sampler` | `02-quiet-noise` | sampler |

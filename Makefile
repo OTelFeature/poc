@@ -225,7 +225,7 @@ spec-lint:
 # business requests and the health checks). Six runs, each from freshly
 # created geocode, weather and load generator, warmed up first:
 #   baseline, noop (a targeted rule that never matches: the decision cost,
-#   UC-003 BR-006) and 02-quiet-noise (Demo 2), each with weather in
+#   UC-003 BR-006) and 02-quiet-noise (Demo 2, telemetryLevel IO), each with weather in
 #   processor mode and again in sampler mode (decision D3).
 # Prints per-service tables and saves them, with the raw results, to
 # bench/.results/. Takes about 6 x (BENCH_WARMUP + BENCH_SECONDS) seconds.

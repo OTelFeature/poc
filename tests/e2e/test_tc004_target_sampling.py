@@ -34,7 +34,7 @@ def _eq(key: str, value: str) -> dict:
 def _ratio_rule(flags: Flags, weather_full: bool) -> dict:
     """The shape of 03-semconv-rules / 03a's weather override, with 0.0
     instead of 0.1. Built on 00-baseline, *not* on the stage presets: those
-    are cumulative and keep 02-quiet-noise's rule dropping geocode /health,
+    carry 03-semconv-rules' recordSpan rule dropping geocode /health,
     which would make every geocode probe here untraced whatever the ratio."""
     config = flags.preset("00-baseline")
     branches = []
@@ -114,7 +114,7 @@ def test_tc004_stage_preset_ratio(step: Step, flags: Flags):
     UC-004 step 6). 300 roots per service: the expected 30 has a standard
     deviation of about 5, so 10..55 still fails on 0.0, 0.5 or 1.0.
 
-    The preset keeps 02-quiet-noise's rules, so geocode is counted on
+    The preset carries the recordSpan rules, so geocode is counted on
     POST /geocode (a location the stub knows), not /health."""
     # Start from a deterministic 0.0 (barrier), so a late flip to 0.1 can
     # only deflate the counts by a few, never inflate them toward 1.0.
