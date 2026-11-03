@@ -8,7 +8,7 @@
 **Secondary Actors:** flagd, geocode, weather, Aspire dashboard  
 **Goal:** The operator first cuts traces down to the I/O boundary by span kind (`telemetryLevel=IO`, Demo 2), then writes one `recordSpan` targeting rule per noise source (health-check requests in `geocode`, database spans in `weather`, Demo 3), so that those spans are never created while every other span in both services is kept and correctly parented.  
 **Status:** Tested  
-**Requirements:** FR-003, FR-004, FR-005, FR-006, FR-007, FR-008, FR-023, NFR-002, NFR-003, NFR-005, NFR-007, C-003, C-004, C-011  
+**Requirements:** FR-003, FR-004, FR-005, FR-006, FR-007, FR-008, FR-023, NFR-002, NFR-003, NFR-005, NFR-007, C-003, C-004, C-011, C-015  
 **Work Items:** OTelFeature/poc#22, OTelFeature/otelfeature-instrument#7, OTelFeature/otelfeature-java-extension#20, OTelFeature/otelfeature-java-extension#21, OTelFeature/otelfeature-instrument#14, OTelFeature/otelfeature-java-extension#27, OTelFeature/poc#12, OTelFeature/poc#9, OTelFeature/poc#110  
 **Test Cases:** TC-002  
 **Script Beat:** Demo 2 (span kind: `telemetryLevel` FULL → IO, preset `02-quiet-noise`, steps 1 to 4); Demo 3 ("service name, instrumentation scope, the path": the `recordSpan` rules, preset `03-semconv-rules`, steps 5 to 11). See BR-009.  
@@ -19,7 +19,7 @@
 - UC-001 preconditions hold, with tracing on and `telemetryLevel=FULL`.
 - Both extensions build an evaluation context from semantic conventions, nested by dot segment (OTelFeature/poc#22).
 - `recordSpan` is defined with default `true` and no targeting.
-- Both services create `INTERNAL` spans under their server spans, `/health` included: `geocode` the ASGI `http receive`/`http send` spans of its FastAPI instrumentation and its own `geocode.resolve` span, `weather` its Spring MVC controller spans (controller telemetry is on in the stack, A9) and, on failed requests, servlet error-handling spans.
+- Both services create `INTERNAL` spans under their server spans, `/health` included: `geocode` the ASGI `http receive`/`http send` spans of its FastAPI instrumentation and its own `geocode.resolve` span, `weather` its Spring MVC controller spans (controller telemetry is on in the stack, BR-010, A9) and, on failed requests, servlet error-handling spans.
 - Health-check requests reach `geocode` and `/weather` requests in `weather` read from the database (see OQ-5 for where the health-check traffic comes from).
 
 ## Main Success Scenario
@@ -126,7 +126,7 @@
 
 **Flow:**
 
-1. `weather` has almost no `INTERNAL` spans left to suppress (only error-handling spans on failed requests); its traces are nearly the same under `FULL` and `IO`.
+1. This is the Java agent's default (BR-010, C-015). `weather` has almost no `INTERNAL` spans left to suppress (only error-handling spans on failed requests); its traces are nearly the same under `FULL` and `IO`.
 2. Use case continues at step 4, with the effect visible in `geocode` only (UC-003 BR-008 has the measured share per service).
 
 ## Postconditions
@@ -185,3 +185,7 @@ Python decides once per tracer only when every key the rule can read is present 
 ### BR-009: Demo 2 cuts by span kind, Demo 3 by semantic conventions
 
 Decided by Simon, 2026-11-03 (OTelFeature/poc#110). Demo 2 limits traces by span kind only: `02-quiet-noise` sets `telemetryLevel` to `IO` and leaves `recordSpan` at `true` without targeting, so no service, path or scope condition is involved. The `recordSpan` targeting rules on the semconv context (steps 5 and 6) arrive in Demo 3, in `03-semconv-rules`, next to the `traceSampleRatio` rules (UC-004), because Demo 3 is the beat about rules on semantic conventions. The presets are cumulative (UC-008 BR-006): `03-semconv-rules`, `03a-weather-boost` and `03b-incident` keep `telemetryLevel=IO` and the `recordSpan` rules. Before this decision, Demo 2 used the `recordSpan` rules and kept `telemetryLevel=FULL` (OTelFeature/poc#26).
+
+### BR-010: Demo 2 needs INTERNAL detail to cut
+
+`telemetryLevel=IO` saves only as much as the instrumentation produces `INTERNAL` spans. `geocode`'s come with the FastAPI instrumentation's defaults (two ASGI spans per request) and its own `geocode.resolve`. `weather`'s come from Spring MVC controller telemetry, which is experimental and off by default in the Java agent; the stack turns it on, so Demo 2 shows an effect in both services (C-015, decided by Simon, 2026-11-03, OTelFeature/poc#110). Without it, A9 applies. The measured share per service is in UC-003 BR-008.

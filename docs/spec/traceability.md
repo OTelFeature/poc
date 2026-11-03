@@ -14,7 +14,7 @@ Issue refs: `OTelFeature/poc#N` (poc), `OTelFeature/otelfeature-instrument#N`
 | Cold open: wall of spans (OTel Demo) | C-007 | UC-008 | TC-006 | OTelFeature/poc#33 |
 | "Let me show you on something smaller" (transition to POC) | FR-018, FR-019, NFR-017 | UC-008 | TC-006 | OTelFeature/poc#24, OTelFeature/poc#26, OTelFeature/poc#91 |
 | Demo 1: one flag turns OTel off, zero span ingest | FR-001, FR-002, FR-004, NFR-001, NFR-003, NFR-004, C-011 | UC-001 | TC-001 | OTelFeature/poc#8, OTelFeature/poc#9, OTelFeature/otelfeature-java-extension#21 |
-| Demo 2: one flag cuts traces to the I/O boundary by span kind (`telemetryLevel` IO) | FR-003, NFR-003 | UC-002 (steps 1 to 4, BR-008, BR-009) | TC-002 | OTelFeature/poc#110 |
+| Demo 2: one flag cuts traces to the I/O boundary by span kind (`telemetryLevel` IO) | FR-003, NFR-003, C-015 | UC-002 (steps 1 to 4, BR-008, BR-009, BR-010) | TC-002 | OTelFeature/poc#110 |
 | Demo 3: the SDK asks OpenFeature before the span exists | FR-006, FR-008, FR-023, C-004 | UC-002 | TC-002 | OTelFeature/otelfeature-java-extension#21, OTelFeature/otelfeature-instrument#14, OTelFeature/otelfeature-java-extension#27 |
 | Demo 3: context = service name, instrumentation scope, the path | FR-005, C-003 | UC-002 | TC-002 | OTelFeature/poc#22, OTelFeature/otelfeature-instrument#7, OTelFeature/otelfeature-java-extension#20 |
 | Demo 3: health checks off in one service, DB spans off in another | FR-006, FR-007, FR-023, NFR-007 | UC-002 | TC-002 | OTelFeature/otelfeature-instrument#7, OTelFeature/otelfeature-java-extension#20, OTelFeature/otelfeature-java-extension#21, OTelFeature/otelfeature-instrument#14, OTelFeature/otelfeature-java-extension#27, OTelFeature/poc#12 |

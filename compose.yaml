@@ -73,6 +73,8 @@ x-weather-env: &weather-env
   OTEL_SERVICE_NAME: weather
   OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4318
   OTEL_EXPORTER_OTLP_PROTOCOL: http/protobuf
+  # Controller spans (INTERNAL, experimental, off by default in the Java
+  # agent): without them IO in Demo 2 barely changes weather. Spec C-015.
   OTEL_INSTRUMENTATION_COMMON_EXPERIMENTAL_CONTROLLER_TELEMETRY_ENABLED: "true"
   POSTGRES_HOST: coordinates-db
   POSTGRES_PORT: "5432"

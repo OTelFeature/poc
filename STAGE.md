@@ -61,6 +61,12 @@ needs the staging twins.
 | Demo 3: incident over | `docker compose run --rm flag 03a-weather-boost` | No new errors; production `weather` is back at about half right away, because the loop rule goes with the fault (OQ-14). Not a reset |
 | End | `docker compose run --rm flag 00-baseline` (or `make demo-reset`, which also restarts k6) | Baseline |
 
+**How much Demo 2 saves** depends on how much `INTERNAL` detail the
+instrumentation produces: `geocode`'s come with FastAPI's defaults, while
+`weather` has Spring controller telemetry switched on (experimental, off by
+default in the Java agent; spec C-015). Measured: spans −66 % / −38 %, export
+bytes −37 % / −25 % (`geocode` / `weather`, OTelFeature/poc#110).
+
 **Incident margin.** The loop reads weather's error rate over *all* its
 requests in a 10 s interval, and only `POST /weather` fails. With the stage
 load (k6: `/weather` 1/s and `/health` 2/s, plus the compose healthcheck
