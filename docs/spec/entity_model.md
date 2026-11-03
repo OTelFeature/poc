@@ -333,7 +333,7 @@ last flag set it translated (UC-008 A5).
 | `FLAGSMITH_CLIENT_KEY` | none, required | Client-side key of the same environment: names its real-time stream and is the CLI's `FLAGSMITH_ENVIRONMENT` |
 | `FLAGSMITH_API_KEY` | none, for the preset command | Flagsmith Admin API key the CLI writes with |
 | `FLAGSMITH_PROJECT` | none, for the preset command | Flagsmith project, by id or name |
-| `FLAGSMITH_API_URL` | `https://edge.api.flagsmith.com/api/v1` | Where the proxy fetches the environment document (the Edge Proxy's `API_URL`) |
+| `FLAGSMITH_EDGE_API_URL` | `https://edge.api.flagsmith.com/api/v1` | Where the proxy and the preset command fetch the environment document (the Edge Proxy's `API_URL`). Not `FLAGSMITH_API_URL`: the CLI reads that as its Admin API URL |
 | `FLAGSMITH_REALTIME_URL` | `https://realtime.flagsmith.com/` | Flagsmith's real-time stream; empty switches the stream off and leaves only the poll |
 | `FLAGSMITH_POLL_SECONDS` | `60` | The proxy's fallback poll of the environment document |
 | `FLAG_CONFIRM_TIMEOUT` | `10` | Seconds the preset command waits for flagd to serve the preset |
