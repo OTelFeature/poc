@@ -10,6 +10,7 @@ flowchart LR
     operator["👤 Operator"]
     adopter["👤 Adopter"]
     flagd["⚙️ flagd"]
+    flagsmith["⚙️ Flagsmith"]
 
     subgraph demo["OTelFeature demo"]
         UC001(["UC-001<br/>Switch tracing off and on at runtime"])
@@ -38,6 +39,7 @@ flowchart LR
     UC004 --> flagd
     UC005 --> flagd
     UC006 --> flagd
+    UC008 -. A4 .-> flagsmith
 
     UC005 -. include .-> UC006
     UC005 -. extend .-> UC004

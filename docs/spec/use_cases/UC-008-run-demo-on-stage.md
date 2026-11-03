@@ -5,14 +5,14 @@
 **Use Case ID:** UC-008  
 **Use Case Name:** Run the demo on stage  
 **Primary Actor:** Operator  
-**Secondary Actors:** flagd, demo stack, Aspire dashboard  
+**Secondary Actors:** flagd, demo stack, Aspire dashboard, Flagsmith (A4 only)  
 **Goal:** The operator runs Demos 1 to 3 from a laptop without network access, moving between states with one command per script beat and resetting between rehearsals, so that the live demo cannot be broken by venue Wi-Fi or a typo in a JSON file.  
 **Status:** Draft  
-**Requirements:** FR-018, FR-019, FR-010, NFR-004, NFR-012, NFR-015, NFR-017, C-006, C-007, C-008, C-009  
+**Requirements:** FR-018, FR-019, FR-010, NFR-004, NFR-012, NFR-015, NFR-017, C-006, C-007, C-008, C-009, FR-027  
 **Work Items:** OTelFeature/poc#24, OTelFeature/poc#26, OTelFeature/poc#25, OTelFeature/poc#32, OTelFeature/poc#33, OTelFeature/poc#35, OTelFeature/poc#64, OTelFeature/poc#74, OTelFeature/poc#91, OTelFeature/poc#110  
-**Test Cases:** TC-006  
+**Test Cases:** TC-006, TC-008  
 **Script Beat:** all demos; cold open uses OTel Demo footage (D1)  
-**Open Questions:** none (OQ-10 resolved)  
+**Open Questions:** OQ-16 (OQ-10 resolved)  
 
 ## Preconditions
 
@@ -58,6 +58,39 @@
 1. The operator builds the images from source while online (`docker compose --profile staging build`), with the same pinned extension releases (C-006).
 2. Use case continues at step 1.
 
+### A4: Flags authored in Flagsmith
+
+**Trigger:** The operator runs the demo with the flags in Flagsmith instead of the flag file (FR-027) and stays online (step 1); not the stage default (BR-012).
+
+**Flow:**
+
+1. The operator starts the stack in Flagsmith mode. The Flagsmith proxy loads the demo environment from Flagsmith and subscribes to its real-time updates; flagd syncs its flag set from the proxy instead of reading the flag file (BR-011). Both services still evaluate in process from flagd (C-002).
+2. The operator resets to the baseline with the Flagsmith preset command.
+3. For each script beat, the operator runs the Flagsmith preset command for that beat's preset. It changes the environment's flag values and segment overrides with the Flagsmith CLI and reports once flagd serves the preset (BR-010). The flag set flagd serves is the preset file's (BR-009).
+4. Use case continues at step 5.
+
+### A5: Flagsmith sends something the proxy cannot translate
+
+**Trigger:** In Flagsmith mode the environment uses a segment operator, a flag value or an override the translation does not support (BR-009), when the operator applies a preset (step 4, in A4 step 3).
+
+**Flow:**
+
+1. The proxy logs the reason and keeps serving the last flag set it translated; flagd and the services see no change. If it has translated none yet (A4 step 1), its flagd endpoint answers with an error, flagd serves no flags, and the services run on their defaults (NFR-001).
+2. The preset command does not see its preset served and fails after its timeout.
+3. The operator fixes the environment or switches to the flag file, and applies the beat's preset again.
+4. Use case continues at step 4.
+
+### A6: Flagsmith cannot be reached
+
+**Trigger:** In Flagsmith mode the proxy cannot fetch the environment document or loses the real-time stream, when the operator applies a preset (step 4, in A4 step 3).
+
+**Flow:**
+
+1. The proxy keeps serving the last flag set it translated and retries; without the stream it picks up changes only at its fallback poll, once a minute (BR-011).
+2. The preset command does not see its preset served and fails after its timeout.
+3. The operator switches to the flag file and applies the beat's preset with the file command.
+4. Use case continues at step 4.
+
 ## Postconditions
 
 ### Success Postconditions
@@ -101,3 +134,19 @@ flagd reloads a flag file only when its mtime strictly increases, so every prese
 ### BR-008: The stage pulls, it does not build
 
 The stage runs the images published from `main` (NFR-017), so the operator's laptop needs Docker only and no build can fail on the day. `POC_IMAGE_TAG` selects them: `main` by default, or the `sha-<short>` tag of the commit that was rehearsed, so the stage runs exactly the rehearsed images. The stage starts with `--pull never --no-build`, so a missing image fails before the talk instead of being built quietly. Building from source is the fallback (A3), never the default (Simon, 2026-10-16, OTelFeature/poc#91).
+
+### BR-009: Flagsmith mode serves the preset files
+
+In Flagsmith mode (A4) the flag set the proxy derives from the Flagsmith environment is the preset file of the preset last applied: the same flags, variants, default variants, targeting and `metadata.preset`. The preset files stay the single source of the demo states; each Flagsmith preset only says which segment overrides are on, and CI checks for every preset that the Flagsmith state the command produces translates back to that preset's file. The translation covers the comparisons the presets use and their direct counterparts, nothing more: Flagsmith segments whose rules are `ALL`, `ANY` or `NONE` with the conditions `EQUAL`, `NOT_EQUAL`, `GREATER_THAN`, `GREATER_THAN_INCLUSIVE`, `LESS_THAN` and `LESS_THAN_INCLUSIVE`, and flag values that are a variant of the flag. For a flag of the presets, any other operator, value or override is rejected, and the environment as a whole with it; Flagsmith features that are no flag of the presets are not translated and do not cause a rejection. On a rejected environment the proxy logs why and keeps serving the last flag set it translated (A5), as flagd keeps its last flag set when a file does not parse. See the [entity model](../entity_model.md#flagsmith-mode) (Simon, 2026-11-03).
+
+### BR-010: A Flagsmith flip counts only once flagd serves it
+
+The Flagsmith preset command writes the `demoPreset` flag last, with the preset's name. The proxy puts that value into the flag set's `metadata.preset` and leaves `demoPreset` out of the flags, so the command confirms the flip over flagd's OFREP endpoint exactly as BR-007 does, and fails after its timeout.
+
+### BR-011: Pushed from Flagsmith, polled only locally
+
+The proxy is Flagsmith's Edge Proxy with a flagd endpoint added. It fetches the environment document again when Flagsmith's real-time stream reports a change (Flagsmith Enterprise), and polls Flagsmith only as a fallback, once a minute. flagd polls the proxy over the local network every second. The bound is measured from the real-time event that reports the preset command's last write (`demoPreset`) to the moment flagd serves the preset over OFREP: at most 2 s (the bound of NFR-004), including the proxy's refetches while the document is older than the event. Without the stream (A6) there is no bound beyond the fallback poll. CI measures this against a stub of Flagsmith; against Flagsmith Cloud it is a rehearsal check (OQ-16).
+
+### BR-012: Flagsmith mode is not the stage default
+
+Flagsmith mode (A4) needs network, unlike the Goal and BR-001, and its proxy image is built locally, unlike BR-008. Both stand until OQ-16 decides whether Flagsmith mode goes on stage; until then the file mode is the stage run and the fallback (Simon, 2026-11-03).

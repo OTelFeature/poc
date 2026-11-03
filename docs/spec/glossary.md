@@ -42,5 +42,7 @@ here.
 | Static-flag fast path | When every flag the policy reads resolves with reason `STATIC`, a span decision is one volatile read with no flag evaluation. | |
 | Fault injection | Making a share of `/weather` requests fail on demand with the `weatherUpstreamFailure` flag, to cause an incident (in the e2e suite also `geocode`'s, with `geocodeUpstreamFailure`). | |
 | Offline stage mode | The demo stack running with no network, external APIs replaced by stubs. | |
+| Flagsmith mode | The demo stack with the flags authored in Flagsmith: the Flagsmith proxy translates the Flagsmith environment into a flagd flag set, and flagd syncs from the proxy instead of the flag file (FR-027). | |
+| Flagsmith proxy | Flagsmith's Edge Proxy with a flagd endpoint added (`src/flagsmith-proxy`); the only component that reads Flagsmith in Flagsmith mode. | |
 | Script beat | One step of the talk script that a demo performs (Demo 1, Demo 2, Demo 3). | |
 | End-to-end suite | The automated tests that run the script beats against the real stack in GitHub Actions (NFR-015). | |
