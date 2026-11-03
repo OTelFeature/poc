@@ -8,7 +8,7 @@
 **Secondary Actors:** OTel Collector, geocode, weather  
 **Goal:** The operator gets per-service numbers for CPU, memory, spans per second and export bytes per second, before and after the Demo 2 preset (`02-quiet-noise`, `telemetryLevel=IO`), for both Java enforcement modes, so that the slide brackets are filled with measured values. The two modes gave the data for the sampler-versus-processor decision (D3, decided); since Demo 2 is `telemetryLevel=IO`, which the processor enforces in both modes (UC-002 A8), the Demo 2 runs of the two modes now serve as a regression check, and the modes differ only in the targeted no-op run.  
 **Status:** Draft  
-**Requirements:** FR-003, FR-016, FR-008, NFR-005, NFR-006, NFR-011, C-006  
+**Requirements:** FR-016, FR-008, NFR-005, NFR-006, NFR-011, C-006  
 **Work Items:** OTelFeature/poc#27, OTelFeature/otelfeature-java-extension#21, OTelFeature/poc#87, OTelFeature/poc#110  
 **Test Cases:** TC-003  
 **Script Beat:** Demo 2 ("CPU [X%] lower, memory [Y MB] lower, export bytes [Z%] lower"); input to decision D3  
