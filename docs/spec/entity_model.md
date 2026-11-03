@@ -301,7 +301,10 @@ shape the Flagsmith UI builds:
 
 **Segment overrides** in priority order (first match wins), and the presets
 that switch them on. A preset command creates the overrides its preset needs
-and deletes the others.
+and deletes every other override of a demo flag, including ones added by
+hand in the Flagsmith UI. It counts as applied only once the proxy's flag set
+equals the preset file and flagd serves it; if the environment document it
+diffed against was stale, it writes every value again (UC-008 BR-010).
 
 | Flag | Priority | Segment | Serves | On in |
 |---|---|---|---|---|
@@ -317,20 +320,21 @@ overrides that serve the same variant are joined with `or`. A segment's
 rules become JsonLogic: `ALL` → `and`, `ANY` → `or`, `NONE` → `!` of `or`,
 an `and` or `or` of one element is that element, and nested ones of the
 same kind are flattened. Conditions: `EQUAL` → `==` and `NOT_EQUAL` → `!=`
-with the value as a string; `GREATER_THAN`, `GREATER_THAN_INCLUSIVE`,
+with the value as a string (Flagsmith casts the value to the attribute's type, JsonLogic does not, so an `EQUAL` on a boolean or number attribute does not match; the presets compare strings only); `GREATER_THAN`, `GREATER_THAN_INCLUSIVE`,
 `LESS_THAN`, `LESS_THAN_INCLUSIVE` → `>`, `>=`, `<`, `<=` with the value as a
 number. The property is the JsonLogic `var`, so dotted semconv keys resolve
 as in the flag files (FR-005). An environment with any other operator, a
-value that is not a variant of its flag, or a disabled override of a
-non-boolean flag is rejected as a whole; the proxy logs why and keeps the
+value that is not a variant of its flag, a percentage split
+(multivariate feature state), or a disabled override of a non-boolean flag
+is rejected as a whole; the proxy logs why and keeps the
 last flag set it translated (UC-008 A5).
 
 **Configuration** (`compose.flagsmith.yaml`):
 
 | Variable | Default | Meaning |
 |---|---|---|
-| `FLAGSMITH_SERVER_KEY` | none, required | Server-side environment key (`ser.…`). The proxy fetches the environment document with it, and flagd presents it to the proxy as a bearer token |
-| `FLAGSMITH_CLIENT_KEY` | none, required | Client-side key of the same environment: names its real-time stream and is the CLI's `FLAGSMITH_ENVIRONMENT` |
+| `FLAGSMITH_SERVER_KEY` | none, required | Server-side environment key (`ser.…`). Only the proxy and the preset command use it, to fetch the environment document; it never appears in flagd's configuration |
+| `FLAGSMITH_CLIENT_KEY` | none, required | Client-side key of the same environment: names its real-time stream, is the CLI's `FLAGSMITH_ENVIRONMENT`, and is the bearer token flagd presents to the proxy (it is in flagd's command line, so it must be a key that may be seen) |
 | `FLAGSMITH_API_KEY` | none, for the preset command | Flagsmith Admin API key the CLI writes with |
 | `FLAGSMITH_PROJECT` | none, for the preset command | Flagsmith project, by id or name |
 | `FLAGSMITH_EDGE_API_URL` | `https://edge.api.flagsmith.com/api/v1` | Where the proxy and the preset command fetch the environment document (the Edge Proxy's `API_URL`). Not `FLAGSMITH_API_URL`: the CLI reads that as its Admin API URL |
