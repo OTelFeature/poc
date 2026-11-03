@@ -4,12 +4,13 @@
 #
 #   export FLAGSMITH_SERVER_KEY=ser.… FLAGSMITH_CLIENT_KEY=… \
 #          FLAGSMITH_API_KEY=… FLAGSMITH_PROJECT=…
-#   docker compose -f compose.yaml -f compose.flagsmith.yaml build flagsmith-proxy
+#   docker compose -f compose.yaml -f compose.flagsmith.yaml pull flagsmith-proxy
 #   docker compose -f compose.yaml -f compose.flagsmith.yaml run --rm flagsmith-flag seed
 #   docker compose -f compose.yaml -f compose.flagsmith.yaml up -d
 #   docker compose -f compose.yaml -f compose.flagsmith.yaml run --rm flagsmith-flag 03a-weather-boost
 #
-# The Flagsmith proxy (src/flagsmith-proxy) holds the environment document,
+# The Flagsmith proxy (src/flagsmith-proxy; image published from main like
+# the others, images.yml, NFR-017; `build` instead for a local change) holds the environment document,
 # refreshed on each real-time event, and serves it to flagd as a flag set;
 # flagd polls it every second over the compose network and still pushes to
 # both services over gRPC sync (C-002). See src/flagsmith-proxy/README.md.
@@ -21,7 +22,7 @@ x-flagsmith-keys: &flagsmith-keys
 
 services:
   flagsmith-proxy:
-    image: otelfeature-poc-flagsmith-proxy:local
+    image: ghcr.io/otelfeature/poc-flagsmith-proxy:${POC_IMAGE_TAG:-main}
     build:
       context: ./src
       dockerfile: flagsmith-proxy/Dockerfile
@@ -54,7 +55,7 @@ services:
   # Writes the preset with the Flagsmith CLI and waits until flagd serves it
   # (UC-008 BR-010). Also `seed`, `plan <preset>` and `check [<preset>]`.
   flagsmith-flag:
-    image: otelfeature-poc-flagsmith-proxy:local
+    image: ghcr.io/otelfeature/poc-flagsmith-proxy:${POC_IMAGE_TAG:-main}
     profiles: [tools]
     entrypoint: ["python", "-m", "otelfeature_flagsmith.preset"]
     environment:

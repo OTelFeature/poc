@@ -19,7 +19,7 @@ Flagsmith CLI ──writes──> Flagsmith ──real-time event──> flagsmi
 
 | File | What it does |
 |---|---|
-| [Dockerfile](Dockerfile) | [Flagsmith's Edge Proxy](https://github.com/Flagsmith/edge-proxy) 2.23.0 plus this package and the Flagsmith CLI v2.0.0, both pinned by digest |
+| [Dockerfile](Dockerfile) | [Flagsmith's Edge Proxy](https://github.com/Flagsmith/edge-proxy) 2.23.0 plus this package and the Flagsmith CLI v2.0.0, both pinned by digest. Published from `main` as `ghcr.io/otelfeature/poc-flagsmith-proxy` (`main`, `sha-<short>`; amd64 and arm64) by `.github/workflows/images.yml`. It bakes in the presets, so a preset change publishes a new image |
 | [otelfeature_flagsmith/app.py](otelfeature_flagsmith/app.py) | The Edge Proxy app with two additions: `GET /api/v1/flagd/flags.json` (the environment as a flagd flag set) and a subscription to Flagsmith's real-time stream |
 | [otelfeature_flagsmith/translate.py](otelfeature_flagsmith/translate.py) | Environment document → flagd flag set, for the demo flags only (rules in the [entity model](../../docs/spec/entity_model.md#flagsmith-mode)) |
 | [demo.json](demo.json) | The Flagsmith side of the presets: the segments, each flag's overrides in priority order, and which overrides each preset switches on |
@@ -58,7 +58,7 @@ API key for the CLI:
 ```sh
 export FLAGSMITH_SERVER_KEY=ser.… FLAGSMITH_CLIENT_KEY=… FLAGSMITH_API_KEY=… FLAGSMITH_PROJECT=…
 FS="docker compose -f compose.yaml -f compose.flagsmith.yaml"
-$FS build flagsmith-proxy               # not published yet (OQ-16)
+$FS pull flagsmith-proxy                # ghcr.io/otelfeature/poc-flagsmith-proxy, or `build` for a local change
 $FS run --rm flagsmith-flag seed        # once per project
 $FS up -d
 $FS run --rm flagsmith-flag 00-baseline
