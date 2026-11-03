@@ -9,9 +9,10 @@
 #   docker compose -f compose.yaml -f compose.flagsmith.yaml up -d
 #   docker compose -f compose.yaml -f compose.flagsmith.yaml run --rm flagsmith-flag 03a-weather-boost
 #
-# The Flagsmith proxy (src/flagsmith-proxy; image published from main like
-# the others, images.yml, NFR-017; `build` instead for a local change) holds the environment document,
-# refreshed on each real-time event, and serves it to flagd as a flag set;
+# The Flagsmith proxy (src/flagsmith-proxy; published from main like the
+# other images, images.yml, NFR-017; `build` instead for a local change)
+# holds the environment document, refreshed on each real-time event, and
+# serves it to flagd as a flag set;
 # flagd polls it every second over the compose network and still pushes to
 # both services over gRPC sync (C-002). See src/flagsmith-proxy/README.md.
 
