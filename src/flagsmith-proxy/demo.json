@@ -1,0 +1,67 @@
+{
+  "marker": "demoPreset",
+  "segments": {
+    "geocode-health": {
+      "type": "ALL",
+      "rules": [
+        {"type": "ANY", "conditions": [{"property": "service.name", "operator": "EQUAL", "value": "geocode"}]},
+        {"type": "ANY", "conditions": [{"property": "span.kind", "operator": "EQUAL", "value": "server"}]},
+        {"type": "ANY", "conditions": [{"property": "url.path", "operator": "EQUAL", "value": "/health"}]}
+      ]
+    },
+    "weather-jdbc": {
+      "type": "ALL",
+      "rules": [
+        {"type": "ANY", "conditions": [{"property": "service.name", "operator": "EQUAL", "value": "weather"}]},
+        {"type": "ANY", "conditions": [{"property": "otel.scope.name", "operator": "EQUAL", "value": "io.opentelemetry.jdbc"}]}
+      ]
+    },
+    "high-error-rate": {
+      "type": "ALL",
+      "rules": [
+        {"type": "ANY", "conditions": [{"property": "otelfeature.http.server.error_rate", "operator": "GREATER_THAN", "value": "0.05"}]}
+      ]
+    },
+    "production-weather": {
+      "type": "ALL",
+      "rules": [
+        {"type": "ANY", "conditions": [{"property": "deployment.environment.name", "operator": "EQUAL", "value": "production"}]},
+        {"type": "ANY", "conditions": [{"property": "service.name", "operator": "EQUAL", "value": "weather"}]}
+      ]
+    },
+    "production": {
+      "type": "ALL",
+      "rules": [
+        {"type": "ANY", "conditions": [{"property": "deployment.environment.name", "operator": "EQUAL", "value": "production"}]}
+      ]
+    }
+  },
+  "overrides": {
+    "recordSpan": [
+      {"segment": "geocode-health", "serves": "off"},
+      {"segment": "weather-jdbc", "serves": "off"}
+    ],
+    "traceSampleRatio": [
+      {"segment": "high-error-rate", "serves": "all"},
+      {"segment": "production-weather", "serves": "half"},
+      {"segment": "production", "serves": "tenth"}
+    ]
+  },
+  "presets": {
+    "00-baseline": {},
+    "01-otel-off": {},
+    "02-quiet-noise": {},
+    "03-semconv-rules": {
+      "recordSpan": ["geocode-health", "weather-jdbc"],
+      "traceSampleRatio": ["production"]
+    },
+    "03a-weather-boost": {
+      "recordSpan": ["geocode-health", "weather-jdbc"],
+      "traceSampleRatio": ["production-weather", "production"]
+    },
+    "03b-incident": {
+      "recordSpan": ["geocode-health", "weather-jdbc"],
+      "traceSampleRatio": ["high-error-rate", "production-weather", "production"]
+    }
+  }
+}

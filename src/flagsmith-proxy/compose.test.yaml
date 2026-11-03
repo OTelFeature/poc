@@ -1,0 +1,64 @@
+# `make flagsmith-test` (TC-008 items 3 to 5): the Flagsmith proxy and flagd
+# against a stub of Flagsmith Cloud, and pytest in the toolchain image.
+# Its own compose project, so it can run next to a demo stack.
+
+x-keys: &keys
+  FLAGSMITH_SERVER_KEY: ser.stub-server-key
+  FLAGSMITH_CLIENT_KEY: stub-client-key
+
+services:
+  stub-cloud:
+    image: otelfeature-poc-flagsmith-proxy:local
+    build:
+      context: ..
+      dockerfile: flagsmith-proxy/Dockerfile
+    command: ["uvicorn", "otelfeature_flagsmith.stub_cloud:app", "--host", "0.0.0.0", "--port", "8080"]
+    environment:
+      <<: *keys
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8080/stub/state', timeout=2)"]
+      interval: 1s
+      retries: 30
+
+  flagsmith-proxy:
+    image: otelfeature-poc-flagsmith-proxy:local
+    environment:
+      ENVIRONMENT_KEY_PAIRS: '[{"server_side_key":"ser.stub-server-key","client_side_key":"stub-client-key"}]'
+      API_URL: http://stub-cloud:8080/api/v1
+      # Short, so the fallback poll can be tested (TC-008 item 4).
+      API_POLL_FREQUENCY_SECONDS: "3"
+      FLAGSMITH_REALTIME_URL: http://stub-cloud:8080/
+    depends_on:
+      stub-cloud:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/proxy/health/readiness', timeout=2)"]
+      interval: 1s
+      retries: 30
+
+  flagd:
+    # Same image as compose.yaml.
+    image: ghcr.io/open-feature/flagd:v0.18.0
+    command: [
+      "start",
+      "--sources",
+      '[{"uri":"http://flagsmith-proxy:8000/api/v1/flagd/flags.json","provider":"http","authHeader":"Bearer ser.stub-server-key","interval":1}]'
+    ]
+    depends_on:
+      flagsmith-proxy:
+        condition: service_healthy
+
+  runner:
+    image: ${CI_IMAGE:-otelfeature-e2e-runner}
+    profiles: [runner]
+    working_dir: /workspace/src/flagsmith-proxy
+    volumes:
+      - ../..:/workspace:ro
+    environment:
+      <<: *keys
+      STUB_URL: http://stub-cloud:8080
+      PROXY_URL: http://flagsmith-proxy:8000
+      FLAGD_OFREP_URL: http://flagd:8016
+      PYTHONDONTWRITEBYTECODE: "1"
+    command: ["test_integration.py"]
+    depends_on: [flagd]

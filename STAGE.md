@@ -131,3 +131,15 @@ starts are available, so rules use `url.path`, never `http.route`.
 - A flip that does nothing usually means a stale image (see
   [flagd's README](src/flagd/README.md#flag-changes-with-no-effect)) or
   extension versions that predate the flag (see the note at the top).
+
+## Flagsmith mode (not the stage default)
+
+The same beats can run with the flags in Flagsmith instead of `flagd.json`
+(UC-008 A4, OQ-16). It needs network and is not the stage run: the file mode
+above stays the default and the fallback. Each beat's command becomes
+`docker compose -f compose.yaml -f compose.flagsmith.yaml run --rm
+flagsmith-flag <preset>`, with the same preset names and the same "flagd
+serves <preset>" confirmation. Setup is in
+[src/flagsmith-proxy](src/flagsmith-proxy/README.md). If Flagsmith can't be
+reached, go back to file mode: `docker compose up -d flagd` (without the
+override) and `docker compose run --rm flag <preset>` (UC-008 A6).
