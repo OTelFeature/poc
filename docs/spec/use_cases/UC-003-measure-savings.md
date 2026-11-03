@@ -6,10 +6,10 @@
 **Use Case Name:** Measure the savings of a drop rule  
 **Primary Actor:** Operator  
 **Secondary Actors:** OTel Collector, geocode, weather  
-**Goal:** The operator gets per-service numbers for CPU, memory, spans per second and export bytes per second, before and after the Demo 2 rules, for both Java enforcement modes, so that the slide brackets are filled with measured values and the sampler-versus-processor decision is made on data.  
+**Goal:** The operator gets per-service numbers for CPU, memory, spans per second and export bytes per second, before and after the Demo 2 preset (`02-quiet-noise`, `telemetryLevel=IO`), for both Java enforcement modes, so that the slide brackets are filled with measured values. The two modes gave the data for the sampler-versus-processor decision (D3, decided); since Demo 2 is `telemetryLevel=IO`, which the processor enforces in both modes (UC-002 A8), the Demo 2 runs of the two modes now serve as a regression check, and the modes differ only in the targeted no-op run.  
 **Status:** Draft  
 **Requirements:** FR-016, FR-008, NFR-005, NFR-006, NFR-011, C-006  
-**Work Items:** OTelFeature/poc#27, OTelFeature/otelfeature-java-extension#21  
+**Work Items:** OTelFeature/poc#27, OTelFeature/otelfeature-java-extension#21, OTelFeature/poc#87, OTelFeature/poc#110  
 **Test Cases:** TC-003  
 **Script Beat:** Demo 2 ("CPU [X%] lower, memory [Y MB] lower, export bytes [Z%] lower"); input to decision D3  
 **Open Questions:** OQ-3 (deferred to a later load test; OQ-1 answered: BR-004; OQ-5 resolved)  
@@ -105,3 +105,7 @@ The decision cost is measured at the service like the savings: a run with a `rec
 - **Spans per second:** spans of the service instance (`service.instance.id`) that reached the collector in the window.
 - **Export bytes per second:** the size of those spans as the OTLP protobuf the service sends (`ResourceSpans`, before compression).
 - Each run starts from freshly created `geocode`, `weather` and load generator, and warms up with the same traffic, so caches and JIT are settled the same way in every run. The services run with the stage's settings (export batching, error-rate window, stub latency). The traffic is the stage's normal load (BR-005) unless the operator raises it (`BENCH_RATE`).
+
+### BR-008: Demo 2 numbers follow the Demo 2 preset
+
+The numbers recorded in OTelFeature/poc#27 and OTelFeature/poc#87 (export bytes −54 % in `geocode`, −26 % in `weather`) measured the old `02-quiet-noise`, which dropped health checks and database spans with `recordSpan` rules. They are **stale** since Demo 2 cuts by span kind only (`telemetryLevel=IO`, Simon, 2026-11-03, OTelFeature/poc#110, UC-002 BR-009) and must not go on a slide. The harness still runs `02-quiet-noise`, so it now measures the span-kind cut; the new numbers are recorded in OTelFeature/poc#110.

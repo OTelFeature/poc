@@ -29,6 +29,8 @@ here.
 | Enforcement mode | The Java choice between sampler and processor enforcement, set by `OTELFEATURE_ENFORCEMENT` (default `processor`). | |
 | Root span | For drop rules: a span with no valid parent, or an incoming request span (`SERVER`/`CONSUMER`) with a remote parent; dropping it drops the whole request in that service. Not the same as a trace root (OQ-11). | |
 | Trace root | The span that starts a trace: it has no parent at all, local or remote. Only trace roots evaluate the trace sample ratio (FR-009, UC-004 BR-002). | |
+| Span kind | The OTel role of a span: `INTERNAL` (work inside one process) or one of the I/O kinds `SERVER`, `CLIENT`, `PRODUCER`, `CONSUMER`. `telemetryLevel=IO` keeps only the I/O kinds. | |
+| I/O boundary | The spans where a request enters or leaves a process: every span that is not `INTERNAL`. A trace cut to the I/O boundary still shows every hop and every database call. | |
 | Leaf span | A span with no children of its own, such as a DB client span. | |
 | Drop | A span decision that leaves out the span and its whole subtree; downstream services receive `sampled=0`. | |
 | Suppress | A span decision that leaves out only this span; its children attach to the real parent and the trace stays sampled. | |

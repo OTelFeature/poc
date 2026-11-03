@@ -1,9 +1,9 @@
-# Test Case: Drop health-check and database spans by rule
+# Test Case: Drop INTERNAL spans by span kind, then health-check and database spans by rule
 
 ## Overview
 
 - **ID:** TC-002
-- **Goal:** The operator applies the Demo 2 rules and verifies that `geocode` health-check traces and `weather` database spans are no longer created, all other spans remain correctly parented, and removing the rules restores everything.
+- **Goal:** The operator applies the Demo 2 span-kind cut (`telemetryLevel=IO`) and verifies that no `INTERNAL` span is created while the trees stay connected; then applies the Demo 3 `recordSpan` rules and verifies that `geocode` health-check traces and `weather` database spans are no longer created, all other spans remain correctly parented, and the baseline restores everything.
 - **Priority:** Critical
 - **Status:** Passed
 
@@ -21,11 +21,13 @@
 
 | Step | Name | Description | Test Data | Use Case |
 |---|---|---|---|---|
-| 1 | Apply rules | Apply the quiet-noise preset | `recordSpan` targeting. Rule A: `service.name=geocode`, `span.kind=server`, `url.path=/health` → `false`; rule B: `service.name=weather`, `otel.scope.name`=JDBC instrumentation scope → `false` | [UC-002](../use_cases/UC-002-drop-noisy-spans.md) |
-| 2 | Verify geocode | No new `geocode` `/health` traces; `/geocode` traces unchanged | - | - |
-| 3 | Verify weather | New `/weather` traces contain server and HTTP client spans and no database spans; no orphaned parents | - | - |
-| 4 | Remove rules | Apply the baseline preset | baseline `flagd.json` | [UC-002](../use_cases/UC-002-drop-noisy-spans.md) |
-| 5 | Verify restore | Health-check traces and database spans reappear within 2 s | - | - |
+| 1 | Cut by span kind | Apply the quiet-noise preset (Demo 2) | `telemetryLevel` → `io`; `recordSpan` `on`, no targeting | [UC-002](../use_cases/UC-002-drop-noisy-spans.md) |
+| 2 | Verify span kind | No `INTERNAL` span from either service; `/health`, `/geocode` and `/weather` traces keep their server, HTTP client and database spans, with no orphaned parents | - | - |
+| 3 | Apply rules | Apply the `recordSpan` rules of the semconv-rules preset (Demo 3), without its sample ratio | `recordSpan` targeting. Rule A: `service.name=geocode`, `span.kind=server`, `url.path=/health` → `false`; rule B: `service.name=weather`, `otel.scope.name`=JDBC instrumentation scope → `false` | [UC-002](../use_cases/UC-002-drop-noisy-spans.md) |
+| 4 | Verify geocode | No new `geocode` `/health` traces; `/geocode` traces unchanged | - | - |
+| 5 | Verify weather | New `/weather` traces contain server and HTTP client spans and no database spans; no orphaned parents | - | - |
+| 6 | Remove rules | Apply the baseline preset | baseline `flagd.json` | [UC-002](../use_cases/UC-002-drop-noisy-spans.md) |
+| 7 | Verify restore | `INTERNAL` spans, health-check traces and database spans reappear within 2 s | - | - |
 
 ## Validation
 
@@ -43,10 +45,11 @@
 12. **Precedence (OTelFeature/otelfeature-instrument#14, OTelFeature/otelfeature-java-extension#27):** `recordSpan=true` does not re-enable spans while `otelEnabled=false`, `telemetryLevel=OFF` or a hard floor applies; `recordSpan` is not evaluated then.
 13. **Fail open and static path (OTelFeature/otelfeature-instrument#14, OTelFeature/otelfeature-java-extension#27):** a ruleset without `recordSpan`, a provider error or a non-boolean value records the span; a static or missing `recordSpan` adds no per-span evaluation.
 14. **Known Java edge documented (OTelFeature/otelfeature-java-extension#27):** the README states that with a non-parent-based sampler children of a dropped root are sampled as orphans.
-15. **Health checks gone, exactly (OTelFeature/poc#35):** with the quiet-noise preset, the collector exports no `geocode` `/health` span; `/geocode` traces are unchanged. [e2e: `test_tc002_drop_noisy_spans`]
+15. **Health checks gone, exactly (OTelFeature/poc#35):** with the `recordSpan` rules of the semconv-rules preset, the collector exports no `geocode` `/health` span; `/geocode` traces are unchanged. [e2e: `test_tc002_drop_noisy_spans`]
 16. **Database spans gone, tree intact (OTelFeature/poc#35):** new `weather` traces contain the server and HTTP client spans and no database spans, and every parent id resolves within the trace (no orphans). The baseline preset brings back both the health-check and the database spans. [e2e: `test_tc002_drop_noisy_spans`]
 17. **Proxied health check (OTelFeature/poc#35):** a `/health` request that arrives with a sampled `traceparent` leaves no spans in `geocode`, because a remote-parent entry span counts as a root. [e2e: `test_tc002_drop_noisy_spans`]
 18. **Flip latency (OTelFeature/poc#35, NFR-004):** after applying and removing the preset, a probe request shows the new behaviour within the poll timeout. [e2e: `test_tc002_drop_noisy_spans`]
+19. **Span-kind cut (OTelFeature/poc#110, FR-003):** with the quiet-noise preset, neither service exports an `INTERNAL` span (`geocode`: the ASGI `http receive`/`http send` spans and `geocode.resolve`; `weather`: the controller spans); every server, HTTP client and database span is still exported, and every parent id resolves within its trace (the children of `geocode.resolve` attach to the server span). The baseline brings the `INTERNAL` spans back. [e2e: `test_tc002_span_kind_level`]
 
 ## Postconditions
 
@@ -54,8 +57,8 @@
 
 ## Automation
 
-- **Tests:** `test_tc002_drop_noisy_spans` and `test_tc002_sampler_paths` in `tests/e2e/` (OTelFeature/poc#35, phase 3). Needs the `recordSpan` code in both extensions, the presets (OTelFeature/poc#26) and health-check traffic (OQ-5).
-- **How:** applies the `02-quiet-noise` preset, then the baseline; the test sends its own `/health`, `/geocode` and `/weather` requests (load generator off) and reads every exported span from the collector's `file` exporter.
+- **Tests:** `test_tc002_span_kind_level` (OTelFeature/poc#110), `test_tc002_drop_noisy_spans` and `test_tc002_sampler_paths` in `tests/e2e/` (OTelFeature/poc#35, phase 3). Needs the `recordSpan` code in both extensions, the presets (OTelFeature/poc#26) and health-check traffic (OQ-5).
+- **How:** `test_tc002_span_kind_level` applies the `02-quiet-noise` preset, then the baseline. `test_tc002_drop_noisy_spans` applies the `recordSpan` flag of `03-semconv-rules` on top of the baseline (the stage preset's 0.1 production ratio would make the absence checks depend on sampling; TC-006 runs the preset as it is), then the baseline. Each test sends its own `/health`, `/geocode` and `/weather` requests (load generator off) and reads every exported span from the collector's `file` exporter.
 - **Matrix:** runs in both Java enforcement modes (`processor`, `sampler`).
 - **Extension code:** the pinned released versions (C-006): otelfeature-instrument v0.4.0, otelfeature-java-extension v0.5.0. A git ref can be passed explicitly to check unreleased extension code (C-013).
 - **Not automated:** items 1 to 3, 5 to 8, 10 and 12 to 14 are extension unit tests, benchmarks or docs checks; item 11 is partly automated (`test_tc002_sampler_paths`).

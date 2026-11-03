@@ -59,7 +59,7 @@ Use cases:
 | ID | Use case | Script beat |
 |---|---|---|
 | [UC-001](use_cases/UC-001-switch-tracing-off-and-on.md) | Switch tracing off and on at runtime | Demo 1 |
-| [UC-002](use_cases/UC-002-drop-noisy-spans.md) | Drop noisy spans before they are created | Demo 2 |
+| [UC-002](use_cases/UC-002-drop-noisy-spans.md) | Drop noisy spans before they are created | Demo 2 (span kind), Demo 3 (semconv rules) |
 | [UC-003](use_cases/UC-003-measure-savings.md) | Measure the savings of a drop rule | Demo 2 numbers, D3 |
 | [UC-004](use_cases/UC-004-target-trace-sampling.md) | Target trace sampling by environment and service | Demo 3 |
 | [UC-005](use_cases/UC-005-raise-sampling-on-errors.md) | Raise sampling while a service is failing | Demo 3 control loop |
@@ -226,9 +226,12 @@ stage never builds from git refs; unreleased code gets a pre-release
 - **Presets are cumulative** (Simon, 2026-10-16, OTelFeature/poc#26, PR
   OTelFeature/poc#41). Each preset in `src/flagd/presets/` keeps the rules of
   the one before it, so `03-semconv-rules`, `03a-weather-boost` and
-  `03b-incident` keep `02-quiet-noise`'s drop rules. Demo 3 is split in two:
-  `03-semconv-rules` sets production `traceSampleRatio` to 0.1 (UC-004 step 6)
-  and `03a-weather-boost` adds a `weather` 0.5 override (step 7). Order:
+  `03b-incident` keep `02-quiet-noise`'s `telemetryLevel=IO`. Demo 2 cuts by
+  span kind only; the `recordSpan` drop rules arrive with `03-semconv-rules`
+  (Simon, 2026-11-03, OTelFeature/poc#110, UC-002 BR-009). Demo 3 is split in
+  two: `03-semconv-rules` adds the drop rules and sets production
+  `traceSampleRatio` to 0.1 (UC-004 step 6), and `03a-weather-boost` adds a
+  `weather` 0.5 override (step 7). Order:
   `00-baseline` → `01-otel-off` → `02-quiet-noise` → `03-semconv-rules` →
   `03a-weather-boost` → `03b-incident`. Details in the
   [entity model](entity_model.md#flag_preset) and UC-008 BR-006.
@@ -297,7 +300,7 @@ make -s spec-lint SPEC_LINT_ARGS=--report > spec-report.html
 - Accepted findings are in [`.spec-lint-baseline.json`](.spec-lint-baseline.json).
   Fix a finding rather than adding it to the baseline; a baseline entry that
   no longer matches is reported as `BASELINE_STALE` and should be removed with
-  `--update-baseline`. Baselined: FR-003 and FR-025 (no use case by design) and the weak word "fast" (NFR-003's term, TC-005, OQ-13).
+  `--update-baseline`. Baselined: FR-025 (no use case by design; FR-003 has UC-002 since OTelFeature/poc#110) and the weak word "fast" (NFR-003's term, TC-005, OQ-13).
 - Use case Overview lines end in two spaces (a Markdown line break, as in
   AIUP's template). Editors must not trim them; `.editorconfig` says so.
 - The lint's diagram and actor checks read `use_cases.puml`; our diagram is
@@ -327,7 +330,7 @@ row so references stay valid.
 | OQ-5 | With OTelFeature/poc#23 deferred (P2), nothing calls `/health`. Where does health-check traffic for Demo 2 come from (compose healthchecks, a k6 scenario folded into OTelFeature/poc#26, or a different noise source for the demo)? | **Resolved (2026-10-16):** a k6 `healthchecks` scenario sends a steady `GET /health` to both services, one root `SERVER` span per check (OTelFeature/poc#38, split out of OTelFeature/poc#23 by Simon; PR OTelFeature/poc#40 merged, #38 closed). See FR-017, TC-002 | Speakers, before OTelFeature/poc#26 | UC-002, UC-003, TC-002 |
 | OQ-6 | How is a dropped root's subtree dropped outside the Java sampler? | **Resolved (Simon, 2026-10-16):** an incoming request span (`SERVER`/`CONSUMER`) with a remote parent counts as a root. Python returns a non-recording span with a valid, non-sampled context for a dropped root and suppresses only the span itself for a non-root. Java sampler mode returns `DROP` for roots and non-propagating leaves and leaves spans that propagate mid-trace to the processor; processor mode suppresses at `onStart`. Known Java edge with a non-parent-based sampler documented, not fixed. See UC-002 BR-003, C-004, [enforcement points](entity_model.md#enforcement-points) | OTelFeature/otelfeature-instrument#14, OTelFeature/otelfeature-java-extension#27 | UC-002 BR-003, FR-006 |
 | OQ-7 | How does Python know a rule reads only resource and scope keys, so it may decide per tracer? | **Resolved (Simon, 2026-10-16):** Python reads the rule and decides once per tracer only when every key it reads is present on the tracer (resource and scope keys); `fractional` (reads `targetingKey`) and `missing_some` are handled; an OpenFeature global or transaction context, or API-level hooks, force per-span. See FR-007, UC-002 A2 and BR-007 | OTelFeature/poc#12 | UC-002 A2 |
-| OQ-8 | Which flag carries the Demo 2 drop rules? | **Resolved (Simon, 2026-10-16):** the per-span boolean flag `recordSpan` (default `true`, key override `OTELFEATURE_RECORD_SPAN_FLAG_NAME`). See FR-023, UC-002 BR-006, [flags](entity_model.md#flags) | Speakers, with OTelFeature/otelfeature-instrument#14, OTelFeature/otelfeature-java-extension#27 | UC-002 BR-006, entity model |
+| OQ-8 | Which flag carries the Demo 2 drop rules (Demo 3 since OTelFeature/poc#110)? | **Resolved (Simon, 2026-10-16):** the per-span boolean flag `recordSpan` (default `true`, key override `OTELFEATURE_RECORD_SPAN_FLAG_NAME`). See FR-023, UC-002 BR-006, [flags](entity_model.md#flags) | Speakers, with OTelFeature/otelfeature-instrument#14, OTelFeature/otelfeature-java-extension#27 | UC-002 BR-006, entity model |
 | OQ-9 | Demo 3 script line: "when someone asks why did we stop collecting this, the answer is in the trace" no longer holds for telemetry decisions, because the extensions record none of their own decisions on spans (FR-014). Recommended rewording: "the flag decisions show up in your traces", demonstrated with the application's own `weatherUpstreamFailure` evaluation (OTelFeature/poc#30). | **Open** (recommendation only, not decided) | Speakers | UC-007, TC-005, script |
 | OQ-10 | Which preset does `03b-incident` build on? The presets are cumulative (UC-008 BR-006), but if `03b-incident` includes `03a-weather-boost`'s override, `weather` already samples at 1.0 and the control loop (UC-005) shows no change. PR OTelFeature/poc#42 currently builds it on `03-semconv-rules` (as PR OTelFeature/poc#41 had it, before the split). | **Resolved (Simon, 2026-10-16):** the demo is a progression with no resets, so `03b-incident` builds on `03a-weather-boost`. `03a` sets `weather` to **0.5** (not 1.0), so the error-rate rule in `03b` visibly raises it from 0.5 to 1.0 when the fault is injected. | Speakers, before OTelFeature/poc#42 merges | UC-005, UC-006, UC-008 BR-006, TC-005, TC-006 |
 | OQ-11 | "Root span" has two meanings. For drop rules it includes an incoming `SERVER`/`CONSUMER` span with a remote parent (FR-006, UC-002 BR-003, `SPAN_DECISION.isRoot`); for the sample ratio only a span with no parent evaluates `traceSampleRatio` (TC-004 item 6, UC-004 BR-002). FR-009, the entity model (`TELEMETRY_POLICY.sampleRatio`, policy field resolution) and UC-004 steps 2 to 4 say "root spans" for the ratio. Qualify one of them (for example "trace root")? The [glossary](glossary.md) keeps them apart for now. | **Resolved (Simon, 2026-10-16):** rename the ratio sense. A **trace root** (no parent at all) is the only span that evaluates `traceSampleRatio`; **root span** keeps the drop-rule sense. Applied in FR-009, the entity model, UC-004, TC-004, ratio-parity.md and the [glossary](glossary.md) | Speakers | FR-009, entity model, UC-004, glossary |

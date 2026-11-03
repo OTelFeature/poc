@@ -19,6 +19,7 @@
 - Each service sets its own `service.name`, `service.namespace`, `service.version` and `deployment.environment.name`; the collector only fills these when missing.
 - A production and a staging instance of each service run and receive traffic.
 - `traceSampleRatio` is defined with default 1.0.
+- On stage, `03-semconv-rules` also carries UC-002's `recordSpan` drop rules and keeps `telemetryLevel=IO` from Demo 2 (UC-008 BR-006). They change which spans a sampled trace contains, not which roots are sampled; `geocode`'s `/health` roots are dropped by rule before any ratio applies.
 - The load generator calls `POST /geocode` and `POST /weather` directly, so each service is the entry point of those traces.
 - For the cross-service part of steps 5 and 8 and of A2: the load generator also calls the cross-service path, where `geocode` calls `weather` (FR-026, OTelFeature/poc#59).
 
