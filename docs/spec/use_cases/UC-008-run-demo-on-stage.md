@@ -105,4 +105,4 @@ The stage runs the images published from `main` (NFR-017), so the operator's lap
 
 ### BR-009: An external backend never holds up the stage
 
-Dash0, where a laptop enables it (C-016), receives the same traces, metrics and logs as Aspire. Offline, its exporter queues and drops what it cannot send, and the pipelines and Aspire keep working, so BR-001 holds on that laptop too; the dashboard shown on stage is the one the laptop has (Simon, 2026-11-03).
+Dash0, where a laptop enables it (C-016), receives the same traces, metrics and logs as Aspire. Offline, its exporter tries each batch once, with a short timeout and no retries, and drops it. Its queue never fills, so no export error reaches the services, nothing is sent to Aspire twice, and BR-001 holds on that laptop too; Dash0 misses what was sent while offline; the dashboard shown on stage is the one the laptop has (Simon, 2026-11-03).
