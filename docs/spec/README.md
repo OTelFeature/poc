@@ -187,7 +187,7 @@ Decided by Simon, 2026-10-16. Requirements: NFR-015, NFR-016, C-013, C-014.
 The talk script's demo beats run as an automated suite in GitHub Actions.
 
 - **Stack:** Docker Compose with a test override `compose.e2e.yaml`, started
-  with `docker compose up -d --wait`. The override removes Datadog and
+  with `docker compose up -d --wait`. The override removes Dash0 (C-016) and
   Aspire, turns the load generator off and points the services at the API
   stubs.
 - **Span sink:** the collector's `file` exporter (JSON). It was chosen over

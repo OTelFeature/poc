@@ -406,6 +406,10 @@ Demo stack (`compose.yaml`, NFR-017, OTelFeature/poc#91):
 | `FLAG_CONFIRM_TIMEOUT` | `10` | Seconds the `flag` compose service waits for flagd to serve the preset it wrote before it fails |
 | `OTEL_INSTRUMENTATION_COMMON_EXPERIMENTAL_CONTROLLER_TELEMETRY_ENABLED` | `true` (set for `weather` in `compose.yaml`; the Java agent's own default is `false`, and the setting is experimental) | Makes the Java agent create Spring MVC controller spans (`INTERNAL`), so `weather` has `INTERNAL` spans for `telemetryLevel=IO` to suppress in Demo 2 (C-015, UC-002 BR-010, A9; Simon, 2026-11-03) |
 | `FLAGD_OFREP_URL` | `http://flagd:8016` | flagd's OFREP endpoint that the `flag` service and the e2e flag helper confirm a write against |
+| `COMPOSE_FILE` | unset (`compose.yaml`) | Docker Compose's own setting. In a laptop's git-ignored `.env`, `compose.yaml:compose.dash0.yaml` turns on Dash0 for every `docker compose` command on that laptop (C-016) |
+| `DASH0_ENDPOINT` | none, required with `compose.dash0.yaml` | Dash0's OTLP/gRPC ingress, `ingress.<region>.aws.dash0.com:4317` |
+| `DASH0_AUTH_TOKEN` | none, required with `compose.dash0.yaml` | Dash0 auth token, sent as `Authorization: Bearer …`; only in the `.env` |
+| `DASH0_DATASET` | `default` | Dash0 dataset the telemetry goes to |
 
 ### Prebuilt images
 
