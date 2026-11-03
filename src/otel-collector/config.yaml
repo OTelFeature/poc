@@ -40,7 +40,8 @@ exporters:
       batch:
 
 # Dash0, opt-in per laptop (C-016): dash0.yaml, merged on top of this file
-# by compose.dash0.yaml. Keep its exporter lists in step with these.
+# by compose.dash0.yaml, adds traces/dash0, metrics/dash0 and logs/dash0 with
+# the same receivers and processors as these. Keep those in step.
 service:
   pipelines:
     traces:

@@ -254,9 +254,9 @@ resolved is a cache hit for the other.
 The default stack needs no network once its images exist. `geocode` and
 `weather` call [stub-apis](src/stub-apis) instead of Nominatim and Open-Meteo,
 and nothing else in the stack needs to reach outside the compose network.
-On a laptop that sends to Dash0 (below), its exporter logs export errors
-while offline (they also show up in Aspire as collector logs) and drops what
-it can't send; Aspire is unaffected. Ignore them.
+On a laptop that sends to Dash0 (below), the collector logs dropped Dash0
+batches while offline (they also show up in Aspire as collector logs). The
+services see no errors and Aspire gets everything once. Ignore them.
 
 1. While online: `make prepare-offline` (without make:
    `docker compose --profile staging --profile tools pull`). This pulls every
@@ -382,7 +382,8 @@ src/
 > own risk of getting rate-limited (HTTP 429).
 
 > [!NOTE]
-> Forwarding telemetry to Dash0 is opt-in per laptop and off by default: copy
-> [.env.dash0.example](.env.dash0.example) to `.env` and fill in the token.
+> Forwarding telemetry to Dash0 is opt-in per laptop and off by default: add
+> the lines of [.env.dash0.example](.env.dash0.example) to `.env` and fill in
+> the token.
 > Every `docker compose` and `make` command then includes it (C-016) — see
 > [otel-collector's README](src/otel-collector/README.md#dash0-export).

@@ -25,7 +25,9 @@ Configured by [config.yaml](config.yaml), mounted into the container via
 - **logs**: `otlp` receiver → `resource` processor → `debug` +
   `otlp_grpc/aspire` exporters.
 
-With Dash0 enabled, every pipeline also exports to `otlp_grpc/dash0`.
+With Dash0 enabled, `traces/dash0`, `metrics/dash0` and `logs/dash0` send
+the same signals, with the same receivers and processors, to
+`otlp_grpc/dash0`.
 
 ## Resource processor
 
@@ -39,23 +41,33 @@ their SDKs; the collector must not overwrite it.
 
 Opt-in per laptop (C-016). [dash0.yaml](dash0.yaml) adds the
 `otlp_grpc/dash0` exporter (OTLP/gRPC to `DASH0_ENDPOINT`, with
-`Authorization: Bearer ${DASH0_AUTH_TOKEN}` and `Dash0-Dataset`) and repeats
-each pipeline's exporter list with it added. The collector merges maps but
-replaces lists, so keep those lists in step with config.yaml.
+`Authorization: Bearer <token>` and `Dash0-Dataset`) and three pipelines of
+its own. It doesn't extend config.yaml's pipelines: the collector merges maps
+but replaces lists, so that would mean copying their exporter lists. Keep
+the receivers and processors of the `/dash0` pipelines in step with
+config.yaml. The token is the compose secret `dash0_token`, read with
+`${file:/run/secrets/dash0_token}`, so `docker compose config` and
+`docker inspect` don't show it.
 [compose.dash0.yaml](../../compose.dash0.yaml) passes it as a second
-`--config`. To enable it on one laptop, copy
-[.env.dash0.example](../../.env.dash0.example) to the git-ignored `.env` at the
-repo root and fill in the token: `COMPOSE_FILE` there makes every
+`--config`. To enable it on one laptop, add the lines of
+[.env.dash0.example](../../.env.dash0.example) to the git-ignored `.env` at
+the repo root and fill in the token: `COMPOSE_FILE` there makes every
 `docker compose` command, `make` target and stage command use the overlay,
 so the stage commands don't change. Without `.env` nothing goes to Dash0.
 
-Offline, the exporter retries, queues in memory and drops when the queue is
-full; it never blocks the pipelines (UC-008 BR-009).
+Offline, each batch gets one attempt (2 s timeout, no retries, 20 consumers) and is
+dropped. The queue never fills, so no error goes back to the receiver; a
+full queue would make the SDKs re-send, and Aspire would show those batches
+twice (UC-008 BR-009, TC-006 item 8).
 
 Check a change with the pinned image (any values for the variables):
 
 ```sh
-docker run --rm -v "$PWD/src/otel-collector:/c:ro"   -e OTEL_COLLECTOR_HOST=0.0.0.0 -e OTEL_COLLECTOR_PORT_GRPC=4317 -e OTEL_COLLECTOR_PORT_HTTP=4318   -e DASH0_ENDPOINT=x:4317 -e DASH0_AUTH_TOKEN=x   otel/opentelemetry-collector-contrib:0.164.0 validate --config=/c/config.yaml --config=/c/dash0.yaml
+docker run --rm -v "$PWD/src/otel-collector:/c:ro" \
+  -v /dev/null:/run/secrets/dash0_token:ro \
+  -e OTEL_COLLECTOR_HOST=0.0.0.0 -e OTEL_COLLECTOR_PORT_GRPC=4317 -e OTEL_COLLECTOR_PORT_HTTP=4318 \
+  -e DASH0_ENDPOINT=x:4317 \
+  otel/opentelemetry-collector-contrib:0.164.0 validate --config=/c/config.yaml --config=/c/dash0.yaml
 ```
 
 ## Self-telemetry
@@ -101,7 +113,7 @@ Reads its own OTLP receiver endpoints from environment variables set in
 | `OTEL_COLLECTOR_PORT_GRPC` | `4317`            | OTLP/gRPC receiver port                         |
 | `OTEL_COLLECTOR_PORT_HTTP` | `4318`            | OTLP/HTTP receiver port                         |
 | `DASH0_ENDPOINT`           | -                 | Dash0 OTLP/gRPC ingress, `ingress.<region>.aws.dash0.com:4317` (Dash0 only) |
-| `DASH0_AUTH_TOKEN`         | -                 | Dash0 auth token (Dash0 only)                   |
+| `DASH0_AUTH_TOKEN`         | -                 | Dash0 auth token (Dash0 only); reaches the collector as the compose secret `dash0_token` |
 | `DASH0_DATASET`            | `default`         | Dash0 dataset (Dash0 only)                      |
 
 ## Debugging

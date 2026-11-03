@@ -1,24 +1,40 @@
 # Dash0 export, opt-in per laptop (C-016, UC-008 BR-009). Merged on top of
-# config.yaml by compose.dash0.yaml (a second --config). The collector merges
-# maps but replaces lists, so each pipeline below repeats config.yaml's
-# exporters and adds Dash0: keep them in step.
+# config.yaml by compose.dash0.yaml (a second --config). It adds pipelines
+# of its own instead of extending config.yaml's: the collector replaces lists
+# when it merges, so extending would mean copying their exporter lists.
 #
-# Offline the exporter retries, queues in memory and drops when the queue is
-# full; it never holds up the pipelines, so Aspire keeps everything.
+# Offline, each batch gets one attempt (timeout, no retries) and is dropped.
+# The queue never fills, so no error goes back to the receiver: a full queue
+# would make the SDKs re-send, and Aspire would show those batches twice.
 exporters:
   otlp_grpc/dash0:
     endpoint: ${env:DASH0_ENDPOINT}
     headers:
-      Authorization: Bearer ${env:DASH0_AUTH_TOKEN}
+      # A compose secret (compose.dash0.yaml), not an environment variable.
+      Authorization: Bearer ${file:/run/secrets/dash0_token}
       Dash0-Dataset: ${env:DASH0_DATASET:-default}
+    # Wi-Fi without internet hangs each attempt until the timeout: 20
+    # consumers at 2 s drain 10 batches/s, more than the batcher emits
+    # (one flush per 200 ms), so the queue stays empty.
+    timeout: 2s
+    retry_on_failure:
+      enabled: false
     sending_queue:
+      num_consumers: 20
+      queue_size: 5000
       batch:
 
 service:
   pipelines:
-    traces:
-      exporters: [debug, otlp_grpc/aspire, span_metrics, otlp_grpc/dash0]
-    metrics:
-      exporters: [debug, otlp_grpc/aspire, otlp_grpc/dash0]
-    logs:
-      exporters: [debug, otlp_grpc/aspire, otlp_grpc/dash0]
+    traces/dash0:
+      receivers: [otlp]
+      processors: [resource]
+      exporters: [otlp_grpc/dash0]
+    metrics/dash0:
+      receivers: [otlp, span_metrics, docker_stats]
+      processors: [transform, resource]
+      exporters: [otlp_grpc/dash0]
+    logs/dash0:
+      receivers: [otlp]
+      processors: [resource]
+      exporters: [otlp_grpc/dash0]

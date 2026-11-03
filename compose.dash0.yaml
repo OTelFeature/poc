@@ -1,13 +1,16 @@
 # Dash0 as the observability backend, opt-in per laptop (C-016). On the
-# laptop that uses it, put this in the repo's git-ignored .env (see
+# laptop that uses it, add this to the repo's git-ignored .env (see
 # .env.dash0.example), and every docker compose command, make target and
 # stage command picks it up unchanged (UC-008 BR-002):
 #
 #   COMPOSE_FILE=compose.yaml:compose.dash0.yaml
+#   COMPOSE_PATH_SEPARATOR=:
 #   DASH0_ENDPOINT=ingress.<region>.aws.dash0.com:4317
 #   DASH0_AUTH_TOKEN=auth_…
 #
-# Aspire stays on as well. The e2e suite never loads this file.
+# The token goes in as a compose secret, so `docker compose config` and
+# `docker inspect otel-collector` show its name, not its value. Aspire stays
+# on as well. The e2e suite and `make bench` pass -f, so they never load it.
 services:
   otel-collector:
     command:
@@ -17,5 +20,10 @@ services:
       - ./src/otel-collector/dash0.yaml:/etc/otel-collector-dash0.yaml
     environment:
       - DASH0_ENDPOINT=${DASH0_ENDPOINT:?set DASH0_ENDPOINT to the Dash0 OTLP/gRPC ingress, e.g. ingress.eu-west-1.aws.dash0.com:4317}
-      - DASH0_AUTH_TOKEN=${DASH0_AUTH_TOKEN:?set DASH0_AUTH_TOKEN to a Dash0 auth token}
       - DASH0_DATASET=${DASH0_DATASET:-default}
+    secrets:
+      - dash0_token
+
+secrets:
+  dash0_token:
+    environment: DASH0_AUTH_TOKEN
