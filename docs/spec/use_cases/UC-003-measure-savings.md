@@ -109,3 +109,12 @@ The decision cost is measured at the service like the savings: a run with a `rec
 ### BR-008: Demo 2 numbers follow the Demo 2 preset
 
 The numbers recorded in OTelFeature/poc#27 and OTelFeature/poc#87 (export bytes −54 % in `geocode`, −26 % in `weather`) measured the old `02-quiet-noise`, which dropped health checks and database spans with `recordSpan` rules. They are **stale** since Demo 2 cuts by span kind only (`telemetryLevel=IO`, Simon, 2026-11-03, OTelFeature/poc#110, UC-002 BR-009) and must not go on a slide. The harness still runs `02-quiet-noise`, so it now measures the span-kind cut; the new numbers are recorded in OTelFeature/poc#110.
+
+Measured 2026-11-03 on the branch of OTelFeature/poc#110 (`make bench`, stage load, `BENCH_RATE=1`, 240 s per run, processor mode; sampler mode within 1%), `02-quiet-noise` against `00-baseline`:
+
+| Service | spans/s | export KB/s | `INTERNAL` share of its spans | CPU |
+|---|---|---|---|---|
+| `geocode` | 13.85 → 4.66 (−66 %) | 3.41 → 2.13 (−37 %) | about two thirds: two ASGI `http receive`/`http send` spans per request, plus `geocode.resolve` | within the run-to-run noise (14 %) |
+| `weather` | 9.27 → 5.72 (−38 %) | 3.85 → 2.88 (−25 %) | about two fifths: one controller span per request | within the run-to-run noise |
+
+Bytes fall less than spans because the `INTERNAL` spans are the small ones. A single run; the reproducibility check (BR-003, step 7) is still open.
