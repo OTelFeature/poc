@@ -68,8 +68,12 @@ $FS run --rm flagsmith-flag plan 03b-incident   # the CLI calls, without running
 ```
 
 The preset command reads the environment document first and writes only
-what differs, `demoPreset` last. Then it waits on flagd's OFREP endpoint
-until the flag set names the preset, like the `flag` service.
+what differs, `demoPreset` last; overrides of a demo flag that demo.json
+doesn't list (added in the UI) are deleted. Then it waits until the proxy's
+flag set equals the preset file (writing every value again if the document
+it diffed against was stale) and flagd's OFREP endpoint names the preset,
+like the `flag` service. flagd authenticates to the proxy with the
+client-side key, so the server-side key stays out of flagd's command line.
 
 Configuration is in the [entity model](../../docs/spec/entity_model.md#flagsmith-mode).
 `FLAGSMITH_REALTIME_URL=` (empty) switches the stream off, which leaves only
@@ -80,8 +84,8 @@ the fallback poll (`FLAGSMITH_POLL_SECONDS`, default 60).
 Only the comparisons the presets use and their direct counterparts are
 translated: `EQUAL`, `NOT_EQUAL`, `GREATER_THAN(_INCLUSIVE)`,
 `LESS_THAN(_INCLUSIVE)` in `ALL`, `ANY` and `NONE` rules, and values that are
-a variant of their flag. Anything else, such as a regex condition,
-`traceSampleRatio` = 0.3, or a switched-off override of a non-boolean flag,
+a variant of their flag. Anything else, such as a regex condition, a
+percentage split, `traceSampleRatio` = 0.3, or a switched-off override of a non-boolean flag,
 is rejected for the whole environment. The proxy logs
 `flagd_translation_rejected` and keeps serving the last good flag set
 (UC-008 A5). Features that are no demo flag are ignored.

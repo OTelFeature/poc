@@ -42,7 +42,7 @@ services:
     command: [
       "start",
       "--sources",
-      '[{"uri":"http://flagsmith-proxy:8000/api/v1/flagd/flags.json","provider":"http","authHeader":"Bearer ser.stub-server-key","interval":1}]'
+      '[{"uri":"http://flagsmith-proxy:8000/api/v1/flagd/flags.json","provider":"http","authHeader":"Bearer stub-client-key","interval":1}]'
     ]
     depends_on:
       flagsmith-proxy:

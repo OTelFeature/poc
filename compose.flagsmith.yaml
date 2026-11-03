@@ -9,12 +9,13 @@
 #   docker compose -f compose.yaml -f compose.flagsmith.yaml up -d
 #   docker compose -f compose.yaml -f compose.flagsmith.yaml run --rm flagsmith-flag 03a-weather-boost
 #
-# The Flagsmith proxy (src/flagsmith-proxy; published from main like the
-# other images, images.yml, NFR-017; `build` instead for a local change)
-# holds the environment document, refreshed on each real-time event, and
-# serves it to flagd as a flag set;
-# flagd polls it every second over the compose network and still pushes to
-# both services over gRPC sync (C-002). See src/flagsmith-proxy/README.md.
+# The Flagsmith proxy (src/flagsmith-proxy) holds the environment document,
+# refreshed on each real-time event, and serves it to flagd as a flag set;
+# flagd polls it every second with the client-side key and still pushes to
+# both services over gRPC sync (C-002). Its image is published from main
+# like the others (images.yml, NFR-017) and bakes in src/flagd/presets, so
+# `build` it for a local change, presets included. See
+# src/flagsmith-proxy/README.md.
 
 x-flagsmith-keys: &flagsmith-keys
   FLAGSMITH_SERVER_KEY: ${FLAGSMITH_SERVER_KEY:?set FLAGSMITH_SERVER_KEY to the environment's server-side key}
@@ -44,7 +45,7 @@ services:
     command: [
       "start",
       "--sources",
-      '[{"uri":"http://flagsmith-proxy:8000/api/v1/flagd/flags.json","provider":"http","authHeader":"Bearer ${FLAGSMITH_SERVER_KEY}","interval":1}]'
+      '[{"uri":"http://flagsmith-proxy:8000/api/v1/flagd/flags.json","provider":"http","authHeader":"Bearer ${FLAGSMITH_CLIENT_KEY}","interval":1}]'
     ]
     volumes: !reset []
     depends_on:
@@ -61,6 +62,7 @@ services:
     entrypoint: ["python", "-m", "otelfeature_flagsmith.preset"]
     environment:
       <<: *flagsmith-keys
+      FLAGSMITH_PROXY_URL: http://flagsmith-proxy:8000
       FLAGSMITH_API_KEY: ${FLAGSMITH_API_KEY:-}
       FLAGSMITH_PROJECT: ${FLAGSMITH_PROJECT:-}
       FLAGSMITH_ENVIRONMENT: ${FLAGSMITH_CLIENT_KEY}

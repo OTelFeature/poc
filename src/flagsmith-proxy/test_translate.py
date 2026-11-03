@@ -158,6 +158,24 @@ def test_rejections():
     rejected(doc_with(value="0.3"), "not a variant")
     rejected(doc_with(value="fast"), "not a float")
     rejected(doc_with(enabled=False), "switched off")
+    split = doc_with()
+    for fs in split["feature_states"]:
+        if fs["feature"]["name"] == "telemetryLevel":
+            fs["multivariate_feature_state_values"] = [
+                {"id": 1, "multivariate_feature_option": {"id": 1, "value": "IO"}, "percentage_allocation": 50}]
+    rejected(split, "percentage split")
+
+
+def test_overrides_added_by_hand_are_deleted():
+    env = seeded()
+    apply(env, "03-semconv-rules")
+    # Overrides demo.json does not list: on a flag without overrides, and on a listed flag.
+    for argv in (["flag", "update", "otelEnabled", "--segment", "production", "--disable"],
+                 ["flag", "update", "traceSampleRatio", "--segment", "weather-jdbc", "--value", "0.5",
+                  "--type", "string", "--enable"]):
+        env.run(argv)
+    apply(env, "03a-weather-boost")
+    check(env, "03a-weather-boost")
 
 
 def test_feature_states():

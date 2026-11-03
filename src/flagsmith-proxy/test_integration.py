@@ -19,7 +19,7 @@ from otelfeature_flagsmith import PRESETS, STAGE_ORDER
 STUB = os.environ["STUB_URL"]
 PROXY = os.environ["PROXY_URL"]
 OFREP = os.environ["FLAGD_OFREP_URL"]
-SERVER_KEY = os.environ["FLAGSMITH_SERVER_KEY"]
+CLIENT_KEY = os.environ["FLAGSMITH_CLIENT_KEY"]
 # UC-008 BR-011: from the event of the last write to flagd serving the preset.
 BOUND = 2.0
 
@@ -59,7 +59,7 @@ def evaluate(key: str, **attributes):
 
 
 def proxy_flag_set() -> dict:
-    return httpx.get(f"{PROXY}/api/v1/flagd/flags.json", headers={"Authorization": f"Bearer {SERVER_KEY}"},
+    return httpx.get(f"{PROXY}/api/v1/flagd/flags.json", headers={"Authorization": f"Bearer {CLIENT_KEY}"},
                      timeout=2).json()
 
 
@@ -124,8 +124,10 @@ def test_rejected_environment():
     wait_served("03a-weather-boost", 10)
     bad = ["flag", "update", "traceSampleRatio", "--segment", "production", "--value", "0.3",
            "--type", "string", "--enable"]
+    before = fetches()
     httpx.post(f"{STUB}/stub/cli", json=bad, timeout=5).raise_for_status()
     time.sleep(BOUND + 1)
+    assert fetches() > before, "the proxy did not fetch the rejected document"
     assert served_preset() == "03a-weather-boost"
     assert evaluate("traceSampleRatio", **PROD_GEOCODE) == 0.1
     assert proxy_flag_set() == json.loads((PRESETS / "03a-weather-boost.json").read_text())

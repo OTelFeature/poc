@@ -100,6 +100,8 @@ def _is_boolean(flag: dict) -> bool:
 
 def _variant(key: str, flag: dict, fs: dict, what: str) -> str:
     """The variant of `flag` that a Flagsmith feature state serves."""
+    if fs.get("multivariate_feature_state_values"):
+        raise TranslationError(f"{key}: {what} is a percentage split, which has no flagd counterpart here")
     if _is_boolean(flag):
         value: Any = bool(fs.get("enabled"))
     else:

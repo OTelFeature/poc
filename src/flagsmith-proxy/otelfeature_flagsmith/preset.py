@@ -9,9 +9,15 @@
 flagsmith-flag …`.) A preset file in src/flagd/presets is the state; demo.json
 says which segment overrides each preset switches on (UC-008 BR-009). The
 command reads the environment document first and writes only what differs:
-overrides created or deleted, values set, `flag reorder` when the order of a
-flag's overrides changed, and `demoPreset` last (BR-010). Without a document
-it writes everything and ignores deleting an override that isn't there.
+overrides created or deleted (also ones demo.json doesn't know, added by
+hand), values set, `flag reorder` when the order of a flag's overrides
+changed, and `demoPreset` last (BR-010). Without a document it writes
+everything and ignores deleting an override that isn't there.
+
+The flip counts once the proxy's flag set equals the preset file and flagd
+serves it. The document it diffed against can lag behind Flagsmith's last
+write; if the proxy doesn't match within half the timeout, it writes
+everything again.
 """
 
 from __future__ import annotations
@@ -83,6 +89,10 @@ def apply_plan(name: str, document: dict | None = None) -> list[list[str]]:
                 argv.append(["flag", "delete", key, "--segment", seg])
         if len(wanted) > 1 and (order != wanted or not known):
             argv.append(["flag", "reorder", key, *wanted])
+    listed = {(key, e["segment"]) for key, entries in demo["overrides"].items() for e in entries}
+    for key, seg in sorted(current_overrides):
+        if (key, seg) not in listed:
+            argv.insert(0, ["flag", "delete", key, "--segment", seg])
     for key, flag in catalog["flags"].items():
         variant = preset["flags"][key]["defaultVariant"]
         if current_defaults.get(key) != variant:
@@ -163,10 +173,26 @@ def run_cli(argv: list[str]) -> None:
         raise CLIError((done.stderr or done.stdout).strip())
 
 
-def wait_for_preset(name: str) -> bool:
+def wait_for_proxy(expected: dict, seconds: float) -> bool:
+    """Poll the proxy until its flag set is `expected` (the preset file)."""
+    url = os.environ.get("FLAGSMITH_PROXY_URL", "http://flagsmith-proxy:8000").rstrip("/") + "/api/v1/flagd/flags.json"
+    headers = {"Authorization": f"Bearer {os.environ.get('FLAGSMITH_CLIENT_KEY', '')}"}
+    end = time.monotonic() + seconds
+    while time.monotonic() < end:
+        try:
+            with urllib.request.urlopen(urllib.request.Request(url, headers=headers), timeout=2) as response:
+                if json.load(response) == expected:
+                    return True
+        except (OSError, ValueError):
+            pass
+        time.sleep(0.2)
+    return False
+
+
+def wait_for_preset(name: str, seconds: float) -> bool:
     """Poll flagd's OFREP endpoint until the flag set names `name` (like src/flagd/flag.sh)."""
     url = os.environ.get("FLAGD_OFREP_URL", "http://flagd:8016").rstrip("/") + "/ofrep/v1/evaluate/flags"
-    end = time.monotonic() + float(os.environ.get("FLAG_CONFIRM_TIMEOUT", "10"))
+    end = time.monotonic() + seconds
     while time.monotonic() < end:
         request = urllib.request.Request(url, data=b'{"context":{}}', headers={"Content-Type": "application/json"})
         try:
@@ -197,7 +223,11 @@ def main(args: list[str]) -> int:
         if document is None:
             print("check needs FLAGSMITH_SERVER_KEY and a reachable FLAGSMITH_EDGE_API_URL", file=sys.stderr)
             return 2
-        flag_set = translate(document, load_catalog(CATALOG))
+        try:
+            flag_set = translate(document, load_catalog(CATALOG))
+        except TranslationError as error:
+            print(f"the proxy would reject this environment: {error}")
+            return 1
         name = args[1] if len(args) > 1 else flag_set.get("metadata", {}).get("preset", "")
         expected = load(name)[2]
         if flag_set == expected:
@@ -206,13 +236,19 @@ def main(args: list[str]) -> int:
         print(f"Flagsmith does not hold {name}; it translates to:\n{json.dumps(flag_set, indent=2)}")
         return 1
     name = command
-    load(name)
+    expected = load(name)[2]
+    timeout = float(os.environ.get("FLAG_CONFIRM_TIMEOUT", "10"))
+    start = time.monotonic()
     execute(apply_plan(name, fetch_document()), run_cli)
     print(f"Flagsmith is now {name}, waiting for flagd to serve it", file=sys.stderr)
-    if wait_for_preset(name):
+    if not wait_for_proxy(expected, timeout / 2):
+        print("the proxy does not serve the preset yet (stale document?); writing every value", file=sys.stderr)
+        execute(apply_plan(name), run_cli)
+    left = lambda: max(timeout - (time.monotonic() - start), 1.0)
+    if wait_for_proxy(expected, left()) and wait_for_preset(name, left()):
         print(f"flagd serves {name}")
         return 0
-    print(f"flagd does not serve {name} after {os.environ.get('FLAG_CONFIRM_TIMEOUT', '10')}s; "
+    print(f"flagd does not serve {name} after {timeout:g}s; "
           "see docker compose logs flagsmith-proxy", file=sys.stderr)
     return 1
 
