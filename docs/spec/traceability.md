@@ -214,8 +214,9 @@ What PR OTelFeature/poc#92 built is on `main` and works: the merge
 `linux/arm64`. Before the merge, Simon pulled the branch's images in WSL with
 Docker only (`docker compose pull`, `docker compose up -d --pull never
 --no-build`, the presets through the `flag` service, traces in Aspire;
-2026-10-16). TC-007 can pass only after OTelFeature/poc#31, once the
-packages are public as well.
+2026-10-16). The owner made the repository and the packages public on
+2026-11-04, and anonymous pulls work. TC-007 now waits only on the gitleaks
+audit of OTelFeature/poc#31 and a manual run.
 
 Closed `poc` issues: #8, #9, #10, #12 (both halves landed), #13 (Java on the
 flagd in-process resolver), #22 (spike done), #24, #25, #26, #28, #29, #30,
@@ -237,7 +238,7 @@ Set by the Tested/Passed rule ([requirements.md](requirements.md), Simon,
 | UC-006 | Implemented | Tested | TC-005 and TC-006 green |
 | UC-007 | Draft | Tested | TC-005 green, with the hook check (#78) |
 | UC-008 | Draft | Draft | TC-006 green, but the fallback videos and the footage (precondition, A1, C-007, C-008; OTelFeature/poc#32, OTelFeature/poc#33) don't exist yet, and the rehearsal runs (NFR-012, OTelFeature/poc#74) are open |
-| UC-009 | Draft | Draft | OTelFeature/poc#31 open; TC-007 is not automated |
+| UC-009 | Draft | Draft | Public since 2026-11-04; gitleaks audit (OTelFeature/poc#31) open; TC-007 not run, not automated |
 
 | Test case | Before | After |
 |---|---|---|

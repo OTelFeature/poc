@@ -13,7 +13,7 @@
 
 ## Preconditions
 
-- Repository and its GHCR packages public (owner action, OTelFeature/poc#31); before that, `docker login ghcr.io` with read access.
+- Repository and its GHCR packages public (owner action, OTelFeature/poc#31, done 2026-11-04); no `docker login`.
 - Clean machine with Docker and Compose v2 only: no `make`, no Python, no Java, and no `ghcr.io/otelfeature/poc-*` image present.
 - `main` has published its images (NFR-017, `.github/workflows/images.yml`).
 
