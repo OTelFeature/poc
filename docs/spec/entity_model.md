@@ -309,11 +309,16 @@ shape the Flagsmith UI builds:
 
 | Segment | Feature | Conditions (all must hold) |
 |---|---|---|
-| `geocode-health` | `recordSpan` | `service.name` = `geocode`, `span.kind` = `server`, `url.path` = `/health` |
-| `weather-jdbc` | `recordSpan` | `service.name` = `weather`, `otel.scope.name` = `io.opentelemetry.jdbc` |
+| `skip-geocode-health` | `recordSpan` | `service.name` = `geocode`, `span.kind` = `server`, `url.path` = `/health` |
+| `skip-weather-jdbc` | `recordSpan` | `service.name` = `weather`, `otel.scope.name` = `io.opentelemetry.jdbc` |
 | `high-error-rate` | `traceSampleRatio` | `otelfeature.http.server.error_rate` > `0.05` |
 | `production-weather` | `traceSampleRatio` | `deployment.environment.name` = `production`, `service.name` = `weather` |
 | `production` | `traceSampleRatio` | `deployment.environment.name` = `production` |
+
+The two `recordSpan` segments are named after what their override does
+there, `skip-`, since they belong to that flag only (Simon, 2026-11-04); a
+project seeded with the earlier names `geocode-health` and `weather-jdbc`
+renames them in the Flagsmith UI, which keeps their overrides.
 
 A project-wide segment of the same name (from an earlier seed) is not
 converted: the seed command stops and names it, and the operator deletes it
@@ -334,8 +339,8 @@ it diffed against was stale, it writes every value again (UC-008 BR-010).
 
 | Flag | Priority | Segment | Serves | Applies in |
 |---|---|---|---|---|
-| `recordSpan` | 0 | `geocode-health` | `off` | `03-semconv-rules`, `03a-weather-boost`, `03b-incident` (`recordSpan` on) |
-| `recordSpan` | 1 | `weather-jdbc` | `off` | `03-semconv-rules`, `03a-weather-boost`, `03b-incident` (`recordSpan` on) |
+| `recordSpan` | 0 | `skip-geocode-health` | `off` | `03-semconv-rules`, `03a-weather-boost`, `03b-incident` (`recordSpan` on) |
+| `recordSpan` | 1 | `skip-weather-jdbc` | `off` | `03-semconv-rules`, `03a-weather-boost`, `03b-incident` (`recordSpan` on) |
 | `traceSampleRatio` | 0 | `high-error-rate` | `all` (1.0) | `03b-incident` |
 | `traceSampleRatio` | 1 | `production-weather` | `half` (0.5) | `03a-weather-boost`, `03b-incident` |
 | `traceSampleRatio` | 2 | `production` | `tenth` (0.1) | `03-semconv-rules`, `03a-weather-boost`, `03b-incident` |
@@ -347,7 +352,7 @@ it diffed against was stale, it writes every value again (UC-008 BR-010).
 | `00-baseline` | everything as seeded |
 | `01-otel-off` | `otelEnabled` off |
 | `02-quiet-noise` | `otelEnabled` on, `telemetryLevel` = `IO` |
-| `03-semconv-rules` | `recordSpan` on with its `geocode-health` and `weather-jdbc` overrides on, `traceSampleRatio` on with its `production` override on |
+| `03-semconv-rules` | `recordSpan` on with its `skip-geocode-health` and `skip-weather-jdbc` overrides on, `traceSampleRatio` on with its `production` override on |
 | `03a-weather-boost` | the `production-weather` override on |
 | `03b-incident` | the `high-error-rate` override on, `weatherUpstreamFailure` on |
 | back to `03a-weather-boost` | the `high-error-rate` override off, `weatherUpstreamFailure` off |
