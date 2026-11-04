@@ -23,14 +23,6 @@ nothing is built on your machine.
 ```sh
 git clone https://github.com/OTelFeature/poc.git && cd poc
 
-# While the GHCR packages are private (OTelFeature/poc#31), log in to GHCR once
-# with a GitHub token that has read:packages, for example via the gh CLI:
-#   gh auth refresh -h github.com -s read:packages
-#   gh auth token | docker login ghcr.io -u <github-user> --password-stdin
-# (Docker keeps one login per registry; already logged in to ghcr.io as
-# another account? Set DOCKER_CONFIG to a separate folder first.)
-docker login ghcr.io
-
 docker compose pull       # prebuilt geocode, weather, stub-apis + third-party images
 docker compose up -d      # starts the stack; builds nothing
 ```
