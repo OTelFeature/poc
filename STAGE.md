@@ -34,7 +34,7 @@ confirmation.
 
 | Step | Command | Expect |
 |---|---|---|
-| Log in to GHCR (until the repo is public, OTelFeature/poc#31) | `docker login ghcr.io` with a token that has `read:packages` (or `gh auth token \| docker login ghcr.io -u <github-user> --password-stdin`) | `Login Succeeded` |
+| Log in to GHCR (until the GHCR packages are public, OTelFeature/poc#31) | `docker login ghcr.io` with a token that has `read:packages` (or `gh auth token \| docker login ghcr.io -u <github-user> --password-stdin`) | `Login Succeeded` |
 | Pull everything, nothing built | `docker compose --profile staging --profile tools pull` (or `make prepare-offline`) | No errors |
 | Check the images are the published ones | `docker image inspect ghcr.io/otelfeature/poc-weather:${POC_IMAGE_TAG:-main} --format '{{index .Config.Labels "org.opencontainers.image.revision"}}'` (same for `poc-geocode`, `poc-stub-apis`) | A commit id; empty means a local build |
 | Start empty, with staging | `docker compose --profile staging down -v` then `docker compose --profile staging up -d --pull never --no-build` | 4 app containers + 2 k6 |

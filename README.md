@@ -1,9 +1,17 @@
 # poc-otelfeature
 
-A proof-of-concept sandbox for exploring OpenTelemetry instrumentation:
-a Python geocoding API, a Java weather API, an OpenTelemetry Collector,
-and an [Aspire Dashboard](https://learn.microsoft.com/en-us/dotnet/aspire/fundamentals/dashboard/overview)
-to visualize the resulting traces, metrics, and logs.
+The demo from the talk: OpenFeature flags, served by flagd, decide live
+which spans two services create, with no restart. It runs a Python geocoding
+API, a Java weather API, an OpenTelemetry Collector, and an
+[Aspire Dashboard](https://learn.microsoft.com/en-us/dotnet/aspire/fundamentals/dashboard/overview)
+to show the resulting traces.
+
+> From the KubeCon + CloudNativeCon North America 2026 talk
+> **OpenFeature as a Control Plane for OpenTelemetry** by Simon Schrottner
+> ([Flagsmith](https://www.flagsmith.com/?utm_source=github&utm_medium=readme&utm_campaign=otelfeature&utm_content=poc)) and Juliano Costa
+> ([Dash0](https://www.dash0.com/?utm_source=github&utm_medium=readme&utm_campaign=otelfeature&utm_content=poc)). The talk page has how to
+> reach us, and the slides and recording once they're out:
+> **[otelfeature.github.io/presentation](https://otelfeature.github.io/presentation/)**
 
 ## Try it locally
 
@@ -15,7 +23,7 @@ nothing is built on your machine.
 ```sh
 git clone https://github.com/OTelFeature/poc.git && cd poc
 
-# While this repository is private (OTelFeature/poc#31), log in to GHCR once
+# While the GHCR packages are private (OTelFeature/poc#31), log in to GHCR once
 # with a GitHub token that has read:packages, for example via the gh CLI:
 #   gh auth refresh -h github.com -s read:packages
 #   gh auth token | docker login ghcr.io -u <github-user> --password-stdin
@@ -384,3 +392,13 @@ src/
 > Forwarding telemetry to Datadog (`otel-collector`'s `otlp_http/datadog`
 > exporter) is optional and off by default — see
 > [otel-collector's README](src/otel-collector/README.md#datadog-export).
+
+## Talk to us
+
+This is a prototype with open questions, and we'd like to hear how it
+fits your setup:
+
+- [Open an issue](https://github.com/OTelFeature/poc/issues/new)
+- CNCF Slack ([invite](https://slack.cncf.io)): `#openfeature` and `#opentelemetry`
+- The speakers' websites: [Simon Schrottner](https://schrottner.at) and
+  [Juliano Costa](https://jcosta.dev)
