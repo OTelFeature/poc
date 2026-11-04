@@ -272,49 +272,80 @@ Flagsmith CLI ──writes──> Flagsmith ──real-time event──> Flagsmi
 
 **Features.** One Flagsmith feature per flag, same key. Every flag's
 variants, metadata and `state` come from `00-baseline.json`; Flagsmith
-supplies only which variant is served.
+supplies only which variant is served, and for a gated flag whether its
+rules apply (UC-008 BR-013, Simon, 2026-11-04).
 
-| Flag | Flagsmith feature | Value in Flagsmith |
-|---|---|---|
-| `otelEnabled`, `recordSpan` | boolean feature | the feature's enabled state (on = `on`, off = `off`); an override's enabled state likewise |
-| `telemetryLevel` | string value | `FULL`, `IO` or `OFF` |
-| `traceSampleRatio`, `weatherUpstreamFailure` | value, written as a decimal string (`0.1`) | a number that is one of the flag's variant values |
-| `demoPreset` | string value | name of the preset last applied; becomes the flag set's `metadata.preset` and is not served as a flag (UC-008 BR-010) |
+| Flag | Gated | Switch (the feature's enabled state) | Value in Flagsmith | Seeded as |
+|---|---|---|---|---|
+| `otelEnabled` | no | the variant: on = `on`, off = `off` | none | on |
+| `telemetryLevel` | no | on; off serves `state: DISABLED` | `FULL`, `IO` or `OFF` | on, `FULL` |
+| `recordSpan` | yes | the gate: off = as in `00-baseline.json` (`on`, no targeting); on = `on` with its overrides | none | off |
+| `traceSampleRatio` | yes | the gate: off = as in `00-baseline.json` (`all`, no targeting); on = its value with its switched-on overrides | a decimal string (`1.0`), one of the variant values | off, `1.0` |
+| `weatherUpstreamFailure` | yes | the gate: off = as in `00-baseline.json` (`none`); on = its value | a decimal string (`0.5`), one of the variant values | off, `0.5` (so switching it on is the incident) |
 
-A non-boolean feature that is switched off is served with `state:
-DISABLED`, so the services fall back to their defaults (NFR-001). Features
-that are no flag of the presets are not translated and never cause a
-rejection. A flag missing in Flagsmith is served as
-in `00-baseline.json`.
+A non-boolean feature that is not gated and is switched off is served with
+`state: DISABLED`, so the services fall back to their defaults (NFR-001).
+Features that are no flag of the presets (such as `demoPreset`, which
+earlier versions wrote) are not translated and never cause a rejection. A
+flag missing in Flagsmith is served as in `00-baseline.json`.
 
-**Segments** (project-wide, created once by the seed command). Each is a
+**Preset name.** The flag set's `metadata.preset` is the name of the preset
+file whose flags it equals (they all differ), checked in stage order, and
+`custom` when it equals none (UC-008 BR-009).
+
+**Segments** (created once by the seed command). Each is feature-specific:
+it belongs to the one flag whose overrides use it (`segment create
+--feature`), so the Flagsmith UI shows it only on that flag, and no other
+feature can override it (UC-008 BR-013, Simon, 2026-11-04). Each is a
 Flagsmith rule tree of one `ALL` rule with one condition per sub-rule, the
 shape the Flagsmith UI builds:
 
-| Segment | Conditions (all must hold) |
-|---|---|
-| `geocode-health` | `service.name` = `geocode`, `span.kind` = `server`, `url.path` = `/health` |
-| `weather-jdbc` | `service.name` = `weather`, `otel.scope.name` = `io.opentelemetry.jdbc` |
-| `high-error-rate` | `otelfeature.http.server.error_rate` > `0.05` |
-| `production-weather` | `deployment.environment.name` = `production`, `service.name` = `weather` |
-| `production` | `deployment.environment.name` = `production` |
+| Segment | Feature | Conditions (all must hold) |
+|---|---|---|
+| `geocode-health` | `recordSpan` | `service.name` = `geocode`, `span.kind` = `server`, `url.path` = `/health` |
+| `weather-jdbc` | `recordSpan` | `service.name` = `weather`, `otel.scope.name` = `io.opentelemetry.jdbc` |
+| `high-error-rate` | `traceSampleRatio` | `otelfeature.http.server.error_rate` > `0.05` |
+| `production-weather` | `traceSampleRatio` | `deployment.environment.name` = `production`, `service.name` = `weather` |
+| `production` | `traceSampleRatio` | `deployment.environment.name` = `production` |
 
-**Segment overrides** in priority order (first match wins), and the presets
-that switch them on. A preset command creates the overrides its preset needs
-and deletes every other override of a demo flag, including ones added by
-hand in the Flagsmith UI. It counts as applied only once the proxy's flag set
-equals the preset file and flagd serves it; if the environment document it
-diffed against was stale, it writes every value again (UC-008 BR-010).
+A project-wide segment of the same name (from an earlier seed) is not
+converted: the seed command stops and names it, and the operator deletes it
+in the Flagsmith UI before seeding again.
 
-| Flag | Priority | Segment | Serves | On in |
+**Segment overrides** in priority order (first match wins). The seed command
+creates all of them, and they stay (UC-008 BR-013). A `recordSpan` override
+serves `off` through its own switched-off state, so it applies whenever
+`recordSpan` is switched on; a `traceSampleRatio` override applies only
+while it is switched on, and is seeded switched off. A preset command sets
+each switch and value; it creates or deletes an override only to repair
+the environment: it recreates a missing one, restores the order, and
+deletes overrides of a demo flag that are not in this table (added by hand
+in the Flagsmith UI). It counts as applied only once the proxy's flag
+set equals the preset file and flagd serves it; if the environment document
+it diffed against was stale, it writes every value again (UC-008 BR-010).
+
+| Flag | Priority | Segment | Serves | Applies in |
 |---|---|---|---|---|
-| `recordSpan` | 0 | `geocode-health` | `off` | `03-semconv-rules`, `03a-weather-boost`, `03b-incident` |
-| `recordSpan` | 1 | `weather-jdbc` | `off` | `03-semconv-rules`, `03a-weather-boost`, `03b-incident` |
+| `recordSpan` | 0 | `geocode-health` | `off` | `03-semconv-rules`, `03a-weather-boost`, `03b-incident` (`recordSpan` on) |
+| `recordSpan` | 1 | `weather-jdbc` | `off` | `03-semconv-rules`, `03a-weather-boost`, `03b-incident` (`recordSpan` on) |
 | `traceSampleRatio` | 0 | `high-error-rate` | `all` (1.0) | `03b-incident` |
 | `traceSampleRatio` | 1 | `production-weather` | `half` (0.5) | `03a-weather-boost`, `03b-incident` |
 | `traceSampleRatio` | 2 | `production` | `tenth` (0.1) | `03-semconv-rules`, `03a-weather-boost`, `03b-incident` |
 
-**Translation** (UC-008 BR-009). A flag's overrides become one flagd
+**Beats as switches** (UC-008 A4 step 3), from the state before:
+
+| Preset | Switch in the Flagsmith UI |
+|---|---|
+| `00-baseline` | everything as seeded |
+| `01-otel-off` | `otelEnabled` off |
+| `02-quiet-noise` | `otelEnabled` on, `telemetryLevel` = `IO` |
+| `03-semconv-rules` | `recordSpan` on, `traceSampleRatio` on, its `production` override on |
+| `03a-weather-boost` | the `production-weather` override on |
+| `03b-incident` | the `high-error-rate` override on, `weatherUpstreamFailure` on |
+| back to `03a-weather-boost` | the `high-error-rate` override off, `weatherUpstreamFailure` off |
+
+**Translation** (UC-008 BR-009). A gated flag that is switched off is the
+baseline flag; otherwise a flag's applying overrides become one flagd
 `if` chain in priority order, ending in the default variant; consecutive
 overrides that serve the same variant are joined with `or`. A segment's
 rules become JsonLogic: `ALL` → `and`, `ANY` → `or`, `NONE` → `!` of `or`,
@@ -324,9 +355,9 @@ with the value as a string (Flagsmith casts the value to the attribute's type, J
 `LESS_THAN`, `LESS_THAN_INCLUSIVE` → `>`, `>=`, `<`, `<=` with the value as a
 number. The property is the JsonLogic `var`, so dotted semconv keys resolve
 as in the flag files (FR-005). An environment with any other operator, a
-value that is not a variant of its flag, a percentage split
-(multivariate feature state), or a disabled override of a non-boolean flag
-is rejected as a whole; the proxy logs why and keeps the
+value that is not a variant of its flag, or a percentage split
+(multivariate feature state) is rejected as a whole; a switched-off
+override of a non-boolean flag is no rejection, it just does not apply; the proxy logs why and keeps the
 last flag set it translated (UC-008 A5).
 
 **Configuration** (`compose.flagsmith.yaml`):

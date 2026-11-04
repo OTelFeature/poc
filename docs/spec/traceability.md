@@ -27,7 +27,7 @@ Issue refs: `OTelFeature/poc#N` (poc), `OTelFeature/otelfeature-instrument#N`
 | CTA: repo and demo on the slide | FR-020, FR-021, NFR-017 | UC-009 | TC-007 | OTelFeature/poc#31, OTelFeature/poc#14, OTelFeature/poc#91 |
 | Stage risk: live demo fails | C-008 | UC-008 | TC-006 | OTelFeature/poc#32 |
 | Stage risk: a beat broke since the last rehearsal | NFR-004, NFR-012, NFR-015, NFR-016, C-013, C-014 | UC-008 (BR-005) | TC-001, TC-002, TC-004, TC-005, TC-006 (Automation sections) | OTelFeature/poc#35, OTelFeature/otelfeature-instrument#20, OTelFeature/otelfeature-java-extension#32, OTelFeature/poc#67, OTelFeature/poc#70 |
-| Optional: the flags authored in Flagsmith, flipped with the Flagsmith CLI (OQ-16) | FR-027, NFR-004, C-002 | UC-008 (A4, A5, A6, BR-009 to BR-012) | TC-008 | none yet (proof of concept, `feat/flagsmith-edge-proxy`) |
+| Optional: the flags authored in Flagsmith, flipped in the Flagsmith UI or with its CLI (OQ-16) | FR-027, NFR-004, C-002 | UC-008 (A4, A5, A6, BR-009 to BR-013) | TC-008 | none yet (proof of concept, `feat/flagsmith-edge-proxy`) |
 | Q&A: what else can become a flag | FR-021 | UC-009 | TC-007 | OTelFeature/poc#14, OTelFeature/poc#15 |
 
 ## Issue → spec

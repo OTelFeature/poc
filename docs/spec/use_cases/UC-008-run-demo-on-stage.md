@@ -66,28 +66,28 @@
 
 1. The operator starts the stack in Flagsmith mode. The Flagsmith proxy loads the demo environment from Flagsmith and subscribes to its real-time updates; flagd syncs its flag set from the proxy instead of reading the flag file (BR-011). Both services still evaluate in process from flagd (C-002).
 2. The operator resets to the baseline with the Flagsmith preset command.
-3. For each script beat, the operator runs the Flagsmith preset command for that beat's preset. It changes the environment's flag values and segment overrides with the Flagsmith CLI and reports once flagd serves the preset (BR-010). The flag set flagd serves is the preset file's (BR-009).
+3. For each script beat, the operator switches that beat's flags and segment overrides on or off in the Flagsmith UI (BR-013), or runs the Flagsmith preset command for the beat's preset, which makes the same changes with the Flagsmith CLI and reports once flagd serves the preset (BR-010). The flag set flagd serves is the preset file's, named after it (BR-009).
 4. Use case continues at step 5.
 
 ### A5: Flagsmith sends something the proxy cannot translate
 
-**Trigger:** In Flagsmith mode the environment uses a segment operator, a flag value or an override the translation does not support (BR-009), when the operator applies a preset (step 4, in A4 step 3).
+**Trigger:** In Flagsmith mode the environment uses a segment operator, a flag value or an override the translation does not support (BR-009), when the operator applies a preset or switches a beat (step 4, in A4 step 3).
 
 **Flow:**
 
 1. The proxy logs the reason and keeps serving the last flag set it translated; flagd and the services see no change. If it has translated none yet (A4 step 1), its flagd endpoint answers with an error, flagd serves no flags, and the services run on their defaults (NFR-001).
-2. The preset command does not see its preset served and fails after its timeout.
+2. The preset command does not see its preset served and fails after its timeout; after a switch in the Flagsmith UI, flagd's `metadata.preset` still names the previous preset.
 3. The operator fixes the environment or switches to the flag file, and applies the beat's preset again.
 4. Use case continues at step 4.
 
 ### A6: Flagsmith cannot be reached
 
-**Trigger:** In Flagsmith mode the proxy cannot fetch the environment document or loses the real-time stream, when the operator applies a preset (step 4, in A4 step 3).
+**Trigger:** In Flagsmith mode the proxy cannot fetch the environment document or loses the real-time stream, when the operator applies a preset or switches a beat (step 4, in A4 step 3).
 
 **Flow:**
 
 1. The proxy keeps serving the last flag set it translated and retries; without the stream it picks up changes only at its fallback poll, once a minute (BR-011).
-2. The preset command does not see its preset served and fails after its timeout.
+2. The preset command does not see its preset served and fails after its timeout; after a switch in the Flagsmith UI, flagd's `metadata.preset` still names the previous preset.
 3. The operator switches to the flag file and applies the beat's preset with the file command.
 4. Use case continues at step 4.
 
@@ -137,16 +137,20 @@ The stage runs the images published from `main` (NFR-017), so the operator's lap
 
 ### BR-009: Flagsmith mode serves the preset files
 
-In Flagsmith mode (A4) the flag set the proxy derives from the Flagsmith environment is the preset file of the preset last applied: the same flags, variants, default variants, targeting and `metadata.preset`. The preset files stay the single source of the demo states; each Flagsmith preset only says which segment overrides are on, and CI checks for every preset that the Flagsmith state the command produces translates back to that preset's file. The translation covers the comparisons the presets use and their direct counterparts, nothing more: Flagsmith segments whose rules are `ALL`, `ANY` or `NONE` with the conditions `EQUAL`, `NOT_EQUAL`, `GREATER_THAN`, `GREATER_THAN_INCLUSIVE`, `LESS_THAN` and `LESS_THAN_INCLUSIVE`, and flag values that are a variant of the flag, with no percentage split. For a flag of the presets, any other operator, value or override is rejected, and the environment as a whole with it; Flagsmith features that are no flag of the presets are not translated and do not cause a rejection. On a rejected environment the proxy logs why and keeps serving the last flag set it translated (A5), as flagd keeps its last flag set when a file does not parse. See the [entity model](../entity_model.md#flagsmith-mode) (Simon, 2026-11-03).
+In Flagsmith mode (A4) the flag set the proxy derives from the Flagsmith environment is the preset file of the preset the environment is switched to: the same flags, variants, default variants and targeting. Its `metadata.preset` is that preset's name, derived by comparing the flags with every preset file, and `custom` when they match none (as after a switch the script does not use). The preset files stay the single source of the demo states; each Flagsmith preset only says which flags and segment overrides are switched on (BR-013), and CI checks for every preset that the Flagsmith state the command produces translates back to that preset's file. The translation covers the comparisons the presets use and their direct counterparts, nothing more: Flagsmith segments whose rules are `ALL`, `ANY` or `NONE` with the conditions `EQUAL`, `NOT_EQUAL`, `GREATER_THAN`, `GREATER_THAN_INCLUSIVE`, `LESS_THAN` and `LESS_THAN_INCLUSIVE`, and flag values that are a variant of the flag, with no percentage split. For a flag of the presets, any other operator, value or override is rejected, and the environment as a whole with it; Flagsmith features that are no flag of the presets are not translated and do not cause a rejection. On a rejected environment the proxy logs why and keeps serving the last flag set it translated (A5), as flagd keeps its last flag set when a file does not parse. See the [entity model](../entity_model.md#flagsmith-mode) (Simon, 2026-11-03).
 
 ### BR-010: A Flagsmith flip counts only once flagd serves it
 
-The Flagsmith preset command writes the `demoPreset` flag last, with the preset's name. The proxy puts that value into the flag set's `metadata.preset` and leaves `demoPreset` out of the flags, so the command confirms the flip over flagd's OFREP endpoint exactly as BR-007 does, and fails after its timeout. Before that it checks that the proxy's flag set equals the preset file, because the environment document the command diffed against can lag behind Flagsmith's last write; on a mismatch it writes every value again.
+The Flagsmith preset command checks that the proxy's flag set equals the preset file, because the environment document the command diffed against can lag behind Flagsmith's last write; on a mismatch it writes every value again. Then it confirms the flip over flagd's OFREP endpoint exactly as BR-007 does, by the `metadata.preset` the proxy derives (BR-009), and fails after its timeout. A switch in the Flagsmith UI has no command to confirm it; flagd's `metadata.preset` names the preset once the switches match one.
 
 ### BR-011: Pushed from Flagsmith, polled only locally
 
-The proxy is Flagsmith's Edge Proxy with a flagd endpoint added. It fetches the environment document again when Flagsmith's real-time stream reports a change (Flagsmith Enterprise), and polls Flagsmith only as a fallback, once a minute. flagd polls the proxy over the local network every second. The bound is measured from the real-time event that reports the preset command's last write (`demoPreset`) to the moment flagd serves the preset over OFREP: at most 2 s (the bound of NFR-004), including the proxy's refetches while the document is older than the event. Without the stream (A6) there is no bound beyond the fallback poll. CI measures this against a stub of Flagsmith; against Flagsmith Cloud it is a rehearsal check (OQ-16).
+The proxy is Flagsmith's Edge Proxy with a flagd endpoint added. It fetches the environment document again when Flagsmith's real-time stream reports a change (Flagsmith Enterprise), and polls Flagsmith only as a fallback, once a minute. flagd polls the proxy over the local network every second. The bound is measured from the real-time event that reports the preset command's last write to the moment flagd serves the preset over OFREP: at most 2 s (the bound of NFR-004), including the proxy's refetches while the document is older than the event. Without the stream (A6) there is no bound beyond the fallback poll. CI measures this against a stub of Flagsmith; against Flagsmith Cloud it is a rehearsal check (OQ-16).
 
 ### BR-012: Flagsmith mode is not the stage default
 
 Flagsmith mode (A4) needs network, unlike the Goal and BR-001. Its proxy image is published like the others (BR-008, NFR-017), so the operator pulls it while online. This stands until OQ-16 decides whether Flagsmith mode goes on stage; until then the file mode is the stage run and the fallback (Simon, 2026-11-03).
+
+### BR-013: Every rule is in Flagsmith; switches decide what flagd gets
+
+A flag without targeting resolves with reason `STATIC`, so the extensions decide a span with one read and no flag evaluation; a flag with targeting is evaluated per span. So in Flagsmith mode a flag carries targeting only while a beat uses its rules. The seed command creates every segment override of the presets, and they stay in Flagsmith. Each segment is feature-specific to the one flag whose overrides use it, so the Flagsmith UI shows it only on that flag. `recordSpan`, `traceSampleRatio` and `weatherUpstreamFailure` are gated: while a gated flag is switched off, the proxy serves it as in `00-baseline.json`, without targeting; switched on, it serves the flag's value and the targeting of its overrides. An override of a non-boolean flag counts only while it is switched on, so each `traceSampleRatio` rule of Demo 3 is its own switch; a boolean flag's override serves its own on or off, so `recordSpan`'s drop rules come with the flag. Each beat is therefore a few switches in the Flagsmith UI, and the preset command makes the same switches; in a seeded environment it creates or deletes an override only to repair one changed by hand. See the [entity model](../entity_model.md#flagsmith-mode) (Simon, 2026-11-04).
