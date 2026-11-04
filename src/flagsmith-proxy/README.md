@@ -47,7 +47,7 @@ creates everything, once (UC-008 BR-013):
   value they serve once switched on (`weatherUpstreamFailure` = 0.5, the
   incident).
 - five segments, each feature-specific to the flag that uses it:
-  `geocode-health`, `weather-jdbc` (on `recordSpan`), `high-error-rate`,
+  `skip-geocode-health`, `skip-weather-jdbc` (on `recordSpan`), `high-error-rate`,
   `production-weather`, `production` (on `traceSampleRatio`).
 - every segment override, in priority order, switched off. Each applies
   only once switched on: a `recordSpan` override then serves `off` (the
@@ -61,7 +61,10 @@ adds the `production-weather` override; `03b-incident` the
 `metadata.preset` names the preset the switches match, or `custom`.
 
 A project seeded before this has its segments project-wide; `seed` stops
-and names them. Delete them in the UI (Segments) and seed again.
+and names them. Delete them in the UI (Segments) and seed again. A project
+seeded with the earlier names `geocode-health` and `weather-jdbc`: rename
+them to `skip-geocode-health` and `skip-weather-jdbc` in the UI, which
+keeps their overrides.
 
 ## Running it
 

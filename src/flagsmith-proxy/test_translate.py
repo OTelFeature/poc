@@ -178,7 +178,7 @@ def test_overrides_changed_by_hand_are_repaired():
     for argv in (["flag", "update", "otelEnabled", "--segment", "by-hand", "--disable"],
                  ["flag", "update", "traceSampleRatio", "--segment", "by-hand", "--value", "0.5",
                   "--type", "string", "--enable"],
-                 ["flag", "delete", "recordSpan", "--segment", "geocode-health"]):
+                 ["flag", "delete", "recordSpan", "--segment", "skip-geocode-health"]):
         env.run(argv)
     apply(env, "03a-weather-boost")
     check(env, "03a-weather-boost")
@@ -187,7 +187,7 @@ def test_overrides_changed_by_hand_are_repaired():
 def test_segments_are_feature_specific():
     creates = [a for a in seed_plan() if a[:2] == ["segment", "create"]]
     assert {a[2]: a[a.index("--feature") + 1] for a in creates} == {
-        "geocode-health": "recordSpan", "weather-jdbc": "recordSpan", "high-error-rate": "traceSampleRatio",
+        "skip-geocode-health": "recordSpan", "skip-weather-jdbc": "recordSpan", "high-error-rate": "traceSampleRatio",
         "production-weather": "traceSampleRatio", "production": "traceSampleRatio"}, creates
 
 
@@ -226,8 +226,8 @@ def test_beats_as_switches():
         ("00-baseline", []),
         ("01-otel-off", [["otelEnabled", off]]),
         ("02-quiet-noise", [["otelEnabled", on], ["telemetryLevel", "--value", "IO", on]]),
-        ("03-semconv-rules", [["recordSpan", on], ["recordSpan", "--segment", "geocode-health", on],
-                              ["recordSpan", "--segment", "weather-jdbc", on], ["traceSampleRatio", on],
+        ("03-semconv-rules", [["recordSpan", on], ["recordSpan", "--segment", "skip-geocode-health", on],
+                              ["recordSpan", "--segment", "skip-weather-jdbc", on], ["traceSampleRatio", on],
                               ["traceSampleRatio", "--segment", "production", on]]),
         ("03a-weather-boost", [["traceSampleRatio", "--segment", "production-weather", on]]),
         ("03b-incident", [["traceSampleRatio", "--segment", "high-error-rate", on],
@@ -270,7 +270,7 @@ def test_boolean_overrides_serve_the_other_variant():
 def test_each_recordspan_rule_is_its_own_switch():
     env = seeded()
     apply(env, "03-semconv-rules")
-    env.run(["flag", "update", "recordSpan", "--segment", "geocode-health", "--disable"])
+    env.run(["flag", "update", "recordSpan", "--segment", "skip-geocode-health", "--disable"])
     record = translate(env.document(), CAT)["flags"]["recordSpan"]
     assert record["targeting"] == {"if": [{"and": [{"==": [{"var": "service.name"}, "weather"]},
                                                    {"==": [{"var": "otel.scope.name"}, "io.opentelemetry.jdbc"]}]},
