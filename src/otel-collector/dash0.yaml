@@ -6,35 +6,35 @@
 # Offline, each batch gets one attempt (timeout, no retries) and is dropped.
 # The queue never fills, so no error goes back to the receiver: a full queue
 # would make the SDKs re-send, and Aspire would show those batches twice.
-exporters:
+extensions:
+  bearertokenauth/dash0:
+    scheme: Bearer
+    token: ${env:DASH0_AUTHORIZATION_TOKEN}
+
+exporters: 
   otlp_grpc/dash0:
+    auth:
+      authenticator: bearertokenauth/dash0
     endpoint: ${env:DASH0_ENDPOINT}
     headers:
-      # A compose secret (compose.dash0.yaml), not an environment variable.
-      Authorization: Bearer ${file:/run/secrets/dash0_token}
-      Dash0-Dataset: ${env:DASH0_DATASET:-default}
-    # Wi-Fi without internet hangs each attempt until the timeout: 20
-    # consumers at 2 s drain 10 batches/s, more than the batcher emits
-    # (one flush per 200 ms), so the queue stays empty.
-    timeout: 2s
-    retry_on_failure:
-      enabled: false
+      Dash0-Dataset:  ${env:DASH0_DATASET:-default}
     sending_queue:
-      num_consumers: 20
-      queue_size: 5000
       batch:
+        min_size: 10
+        max_size: 100
+        flush_timeout: 10s
 
 service:
   pipelines:
     traces/dash0:
       receivers: [otlp]
-      processors: [resource]
+      processors: [memory_limiter, resource]
       exporters: [otlp_grpc/dash0]
     metrics/dash0:
       receivers: [otlp, span_metrics, docker_stats]
-      processors: [transform, resource]
+      processors: [memory_limiter, transform, resource]
       exporters: [otlp_grpc/dash0]
     logs/dash0:
       receivers: [otlp]
-      processors: [resource]
+      processors: [memory_limiter, resource]
       exporters: [otlp_grpc/dash0]

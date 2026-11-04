@@ -6,7 +6,7 @@
 #   COMPOSE_FILE=compose.yaml:compose.dash0.yaml
 #   COMPOSE_PATH_SEPARATOR=:
 #   DASH0_ENDPOINT=ingress.<region>.aws.dash0.com:4317
-#   DASH0_AUTH_TOKEN=auth_…
+#   DASH0_AUTHORIZATION_TOKEN=auth_…
 #
 # The token goes in as a compose secret, so `docker compose config` and
 # `docker inspect otel-collector` show its name, not its value. Aspire stays
@@ -21,9 +21,4 @@ services:
     environment:
       - DASH0_ENDPOINT=${DASH0_ENDPOINT:?set DASH0_ENDPOINT to the Dash0 OTLP/gRPC ingress, e.g. ingress.eu-west-1.aws.dash0.com:4317}
       - DASH0_DATASET=${DASH0_DATASET:-default}
-    secrets:
-      - dash0_token
-
-secrets:
-  dash0_token:
-    environment: DASH0_AUTH_TOKEN
+      - DASH0_AUTHORIZATION_TOKEN=${DASH0_AUTHORIZATION_TOKEN:?set DASH0_AUTHORIZATION_TOKEN to the Dash0 OTLP/gRPC authorization token, e.g. auth_…}

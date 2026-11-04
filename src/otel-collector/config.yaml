@@ -1,8 +1,3 @@
-extensions:
-  bearertokenauth/dash0:
-    scheme: Bearer
-    token: ${env:DASH0_AUTHORIZATION_TOKEN}
-
 receivers:
   otlp:
     protocols:
@@ -46,17 +41,6 @@ exporters:
       insecure: true
     sending_queue:
       batch:
-  otlp/dash0:
-    auth:
-      authenticator: bearertokenauth/dash0
-    endpoint: ${env:DASH0_ENDPOINT}
-    headers:
-      Dash0-Dataset: default
-    sending_queue:
-      batch:
-        min_size: 10
-        max_size: 100
-        flush_timeout: 10s
 
 # Dash0, opt-in per laptop (C-016): dash0.yaml, merged on top of this file
 # by compose.dash0.yaml, adds traces/dash0, metrics/dash0 and logs/dash0 with
@@ -67,15 +51,15 @@ service:
     traces:
       receivers: [otlp]
       processors: [memory_limiter, resource]
-      exporters: [debug, otlp_grpc/aspire, span_metrics, otlp/dash0]
+      exporters: [debug, otlp_grpc/aspire, span_metrics]
     metrics:
       receivers: [otlp, span_metrics, docker_stats]
       processors: [memory_limiter, transform, resource]
-      exporters: [debug, otlp_grpc/aspire, otlp/dash0]
+      exporters: [debug, otlp_grpc/aspire]
     logs:
       receivers: [otlp]
       processors: [memory_limiter, resource]
-      exporters: [debug, otlp_grpc/aspire, otlp/dash0]
+      exporters: [debug, otlp_grpc/aspire]
 
   telemetry:
     metrics:
