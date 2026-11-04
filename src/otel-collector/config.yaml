@@ -46,7 +46,6 @@ exporters:
 # by compose.dash0.yaml, adds traces/dash0, metrics/dash0 and logs/dash0 with
 # the same receivers and processors as these. Keep those in step.
 service:
-  extensions: [bearertokenauth/dash0]
   pipelines:
     traces:
       receivers: [otlp]

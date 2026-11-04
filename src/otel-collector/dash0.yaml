@@ -25,6 +25,7 @@ exporters:
         flush_timeout: 10s
 
 service:
+  extensions: [bearertokenauth/dash0]
   pipelines:
     traces/dash0:
       receivers: [otlp]
