@@ -226,6 +226,9 @@ extension READMEs have the details per language:
 ```
 compose.yaml              # service definitions and wiring
 compose.e2e.yaml          # override for the end-to-end suite (make e2e); builds the checkout
+compose.bench.yaml        # override for the span-cost measurements (make bench)
+compose.dash0.yaml        # opt-in Dash0 overlay, enabled per laptop via .env (C-016)
+.env.dash0.example        # the .env lines that enable it
 ci/Dockerfile             # toolchain image (make test, make shell, make e2e)
 STAGE.md                  # stage runbook: one command per script beat
 Makefile                  # build/start/stop shortcuts around docker compose
@@ -238,7 +241,7 @@ src/
   coordinates-db/         # Postgres init script (coordinates + weather cache)
   load-generator/         # k6 load test script targeting geocode and weather
   stub-apis/              # offline stand-in for Nominatim and Open-Meteo
-  otel-collector/         # collector config.yaml
+  otel-collector/         # collector config.yaml, plus dash0.yaml (opt-in, C-016)
 ```
 
 ## Talk to us

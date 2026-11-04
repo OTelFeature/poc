@@ -26,7 +26,7 @@ Issue refs: `OTelFeature/poc#N` (poc), `OTelFeature/otelfeature-instrument#N`
 | "Why not the collector?" (could read the same flags) | C-010 | - | - | none (D4, script only) |
 | CTA: repo and demo on the slide | FR-020, FR-021, NFR-017 | UC-009 | TC-007 | OTelFeature/poc#31, OTelFeature/poc#14, OTelFeature/poc#91 |
 | Stage risk: live demo fails | C-008 | UC-008 | TC-006 | OTelFeature/poc#32 |
-| Stage risk: a laptop's backend (Aspire everywhere, Dash0 on the co-speaker's laptop) | C-016 | UC-008 (BR-009) | TC-006 | none yet (`feat/dash0-backend`) |
+| Stage risk: a laptop's backend (Aspire everywhere, Dash0 on the co-speaker's laptop) | C-016 | UC-008 (BR-009) | TC-006 | none (maintainer decision, Simon, 2026-11-03); OTelFeature/poc#114 |
 | Stage risk: a beat broke since the last rehearsal | NFR-004, NFR-012, NFR-015, NFR-016, C-013, C-014 | UC-008 (BR-005) | TC-001, TC-002, TC-004, TC-005, TC-006 (Automation sections) | OTelFeature/poc#35, OTelFeature/otelfeature-instrument#20, OTelFeature/otelfeature-java-extension#32, OTelFeature/poc#67, OTelFeature/poc#70 |
 | Q&A: what else can become a flag | FR-021 | UC-009 | TC-007 | OTelFeature/poc#14, OTelFeature/poc#15 |
 
@@ -182,6 +182,7 @@ Every PR below is on `main`. The first stack (#36 ← #37 ← #40 ← #41 ← #4
 | OTelFeature/poc#88 | OTelFeature/poc#75 | FR-012 | UC-006 (BR-002, A1 to A3) | TC-005 (item 7) |
 | OTelFeature/poc#89 | OTelFeature/poc#14 | FR-021 | UC-009 (BR-003) | TC-007 (item 2) |
 | OTelFeature/poc#92 | OTelFeature/poc#91 (closed) | NFR-017, FR-019, FR-020, C-006 | UC-008 (BR-007, BR-008, A3), UC-009 (BR-001, A1) | TC-006, TC-007 |
+| OTelFeature/poc#114 | none (maintainer decisions: Dash0 replaces Datadog, 2026-11-03; README scope, 2026-11-04) | C-016, FR-021 | UC-008 (BR-009), UC-009 (BR-003) | TC-006 (item 8), TC-007 (item 2) |
 
 PR OTelFeature/poc#58 (stage stack from git refs, FR-027) was closed
 unmerged, and OTelFeature/poc#61 as not planned: the stage runs released

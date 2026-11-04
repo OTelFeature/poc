@@ -59,11 +59,12 @@ Edit [flagd.json](flagd.json) and save. flagd's file watcher picks it up and
 pushes it to both services; nothing restarts. The rule format is the
 [flag definition schema](https://flagd.dev/reference/flag-definitions/).
 
-To check what flagd serves right now, ask its OFREP endpoint (port `8016`,
-debugging only; the services don't use it):
+To check what flagd serves right now, ask its OFREP endpoint (port `8016`;
+the `flag` service and the e2e helper confirm writes through it, the
+services don't use it). Compose publishes it on a random host port:
 
 ```sh
-curl -s -X POST http://localhost:8016/ofrep/v1/evaluate/flags/telemetryLevel \
+curl -s -X POST "http://$(docker compose port flagd 8016)/ofrep/v1/evaluate/flags/telemetryLevel" \
   -H "Content-Type: application/json" -d '{"context":{}}'
 ```
 
@@ -73,7 +74,7 @@ curl -s -X POST http://localhost:8016/ofrep/v1/evaluate/flags/telemetryLevel \
 |---|---|---|
 | `8013` | gRPC | Evaluation (`rpc` resolver). Unused |
 | `8015` | gRPC | Sync (`in-process` resolver). Both services use it |
-| `8016` | HTTP | [OFREP](https://github.com/open-feature/protocol) evaluation. Debugging and the `flag` service |
+| `8016` | HTTP | [OFREP](https://github.com/open-feature/protocol) evaluation. Debugging, the `flag` service and the e2e helper |
 
 ## Configuration
 

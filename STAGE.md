@@ -39,12 +39,46 @@ confirmation.
 | Start empty, with staging | `docker compose --profile staging down -v` then `docker compose --profile staging up -d --pull never --no-build` | 4 app containers + 2 k6 |
 | Baseline flags, fresh traffic | `docker compose run --rm flag 00-baseline` then `docker compose --profile staging restart load-generator load-generator-staging` (or `make demo-reset`) | `flagd serves 00-baseline` |
 
-If the pull fails (not logged in, or a local code change to show), build
+If the pull fails (registry unreachable, or a local code change to show), build
 from source while still online: `docker compose --profile staging build`
 (UC-008 A3).
 
-Then go offline. From here nothing needs the network (see below). Start
+Then go offline. From here nothing needs the network (see
+[Offline, live APIs, staging and Dash0](#offline-live-apis-staging-and-dash0)). Start
 with the `staging` profile, because Demo 3 needs the staging twins.
+
+## During the talk
+
+| Beat | Command | Aspire shows |
+|---|---|---|
+| Cold open: wall of spans | none (OTel Demo footage, D1) | n/a |
+| Demo 1: one flag turns tracing off | `docker compose run --rm flag 01-otel-off` | No new traces from `geocode` or `weather`; their metrics, and flagd's own traces, keep flowing |
+| Demo 2: tracing back, by span kind only | `docker compose run --rm flag 02-quiet-noise` | Traces again, but only the I/O boundary (`telemetryLevel` IO): no `INTERNAL` spans. `geocode` loses the ASGI `http receive`/`http send` spans and `geocode.resolve`, `weather` its controller spans (`WeatherController.*`); server, HTTP client and DB spans stay, re-attached to their real parent. A `GET /health` trace shrinks to its single server span |
+| Demo 3: rules on semconv attributes | `docker compose run --rm flag 03-semconv-rules` | No more `GET /health` traces from `geocode`, and `/weather` traces with no `SELECT`/`INSERT` (JDBC) spans (`recordSpan` rules on `service.name`, `span.kind`, `url.path`, `otel.scope.name`); `weather`'s own `/health` traces stay. About 1 in 10 production traces from both services; all staging traces (filter by `deployment.environment.name`). Demo 2's IO cut stays on |
+| Demo 3: boost one service | `docker compose run --rm flag 03a-weather-boost` | Production `weather` at about half its traces; production `geocode` stays at about 1 in 10 |
+| Demo 3: incident | `docker compose run --rm flag 03b-incident` | About half of the `POST /weather` requests fail (HTTP 503, span status ERROR, `error.type=503`), in `weather` and `weather-staging` (the fault flag has no targeting). Within one or two error-rate intervals (10 s), weather's error rate passes 5% and the loop rule samples it fully: production `weather` goes from about half to all traces; `geocode` stays at 1 in 10. See the note below on the margin |
+| Demo 3: incident over | `docker compose run --rm flag 03a-weather-boost` | No new errors; production `weather` is back at about half right away, because the loop rule goes with the fault (OQ-14). Not a reset |
+| End | `docker compose run --rm flag 00-baseline` (or `make demo-reset`, which also restarts k6) | Baseline |
+
+**How much Demo 2 saves** depends on how much `INTERNAL` detail the
+instrumentation produces: `geocode`'s come with FastAPI's defaults, while
+`weather` has Spring controller telemetry switched on (experimental, off by
+default in the Java agent; spec C-015). Measured: spans −66 % / −38 %, export
+bytes −37 % / −25 % (`geocode` / `weather`, OTelFeature/poc#110).
+
+**Incident margin.** The loop reads weather's error rate over *all* its
+requests in a 10 s interval, and only `POST /weather` fails. With the stage
+load (k6: `/weather` 1/s and `/health` 2/s, plus the compose healthcheck
+every 2 s) that is about 5 failures in 35 requests, an error rate of about
+**14%** at the incident share of 0.5 (UC-006 BR-003). An interval not above
+the 5% threshold (at most one failure in ten `/weather` requests) happens
+about 1% of the time, so over a minute-long beat there is roughly a 6%
+chance of one 10 s dip back to half. The span metrics in Aspire are built from *sampled* spans,
+so their error rate moves with the sampling and isn't the loop's input
+(that is the services' unsampled HTTP metric).
+
+If a beat doesn't show its effect, switch to the fallback video for that demo
+(OTelFeature/poc#32) and carry on with the next command.
 
 ## Offline, live APIs, staging and Dash0
 
@@ -79,44 +113,12 @@ other.
 
 **Dash0** is opt-in per laptop (on stage, the co-speaker's): copy the lines
 of [.env.dash0.example](.env.dash0.example) to `.env` and fill in the token;
-every `docker compose` and `make` command then includes it (C-016, see
+every stage command (`docker compose …`, `make start/stop/flag/demo-reset`)
+then includes it; `make e2e` and `make bench` never do (C-016, see
 [otel-collector's README](src/otel-collector/README.md#dash0-export)).
 Offline, the collector logs dropped Dash0 batches (also visible in Aspire as
 collector logs). The services see no errors and Aspire still gets
 everything, so ignore them.
-
-## During the talk
-
-| Beat | Command | Aspire shows |
-|---|---|---|
-| Cold open: wall of spans | none (OTel Demo footage, D1) | n/a |
-| Demo 1: one flag turns tracing off | `docker compose run --rm flag 01-otel-off` | No new traces from `geocode` or `weather`; their metrics, and flagd's own traces, keep flowing |
-| Demo 2: tracing back, by span kind only | `docker compose run --rm flag 02-quiet-noise` | Traces again, but only the I/O boundary (`telemetryLevel` IO): no `INTERNAL` spans. `geocode` loses the ASGI `http receive`/`http send` spans and `geocode.resolve`, `weather` its controller spans (`WeatherController.*`); server, HTTP client and DB spans stay, re-attached to their real parent. A `GET /health` trace shrinks to its single server span |
-| Demo 3: rules on semconv attributes | `docker compose run --rm flag 03-semconv-rules` | No more `GET /health` traces from `geocode`, and `/weather` traces with no `SELECT`/`INSERT` (JDBC) spans (`recordSpan` rules on `service.name`, `span.kind`, `url.path`, `otel.scope.name`); `weather`'s own `/health` traces stay. About 1 in 10 production traces from both services; all staging traces (filter by `deployment.environment.name`). Demo 2's IO cut stays on |
-| Demo 3: boost one service | `docker compose run --rm flag 03a-weather-boost` | Production `weather` at about half its traces; production `geocode` stays at about 1 in 10 |
-| Demo 3: incident | `docker compose run --rm flag 03b-incident` | About half of the `POST /weather` requests fail (HTTP 503, span status ERROR, `error.type=503`), in `weather` and `weather-staging` (the fault flag has no targeting). Within one or two error-rate intervals (10 s), weather's error rate passes 5% and the loop rule samples it fully: production `weather` goes from about half to all traces; `geocode` stays at 1 in 10. See the note below on the margin |
-| Demo 3: incident over | `docker compose run --rm flag 03a-weather-boost` | No new errors; production `weather` is back at about half right away, because the loop rule goes with the fault (OQ-14). Not a reset |
-| End | `docker compose run --rm flag 00-baseline` (or `make demo-reset`, which also restarts k6) | Baseline |
-
-**How much Demo 2 saves** depends on how much `INTERNAL` detail the
-instrumentation produces: `geocode`'s come with FastAPI's defaults, while
-`weather` has Spring controller telemetry switched on (experimental, off by
-default in the Java agent; spec C-015). Measured: spans −66 % / −38 %, export
-bytes −37 % / −25 % (`geocode` / `weather`, OTelFeature/poc#110).
-
-**Incident margin.** The loop reads weather's error rate over *all* its
-requests in a 10 s interval, and only `POST /weather` fails. With the stage
-load (k6: `/weather` 1/s and `/health` 2/s, plus the compose healthcheck
-every 2 s) that is about 5 failures in 35 requests, an error rate of about
-**14%** at the incident share of 0.5 (UC-006 BR-003). An interval not above
-the 5% threshold (at most one failure in ten `/weather` requests) happens
-about 1% of the time, so over a minute-long beat there is roughly a 6%
-chance of one 10 s dip back to half. The span metrics in Aspire are built from *sampled* spans,
-so their error rate moves with the sampling and isn't the loop's input
-(that is the services' unsampled HTTP metric).
-
-If a beat doesn't show its effect, switch to the fallback video for that demo
-(OTelFeature/poc#32) and carry on with the next command.
 
 ## What each preset sets
 

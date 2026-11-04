@@ -41,7 +41,7 @@ Boot (Tomcat), `CLIENT` spans from JDBC and `java.net.http.HttpClient`. The
 is an agent extension that applies the telemetry flags from flagd, the Java
 counterpart of geocode's otelfeature-instrument. How it decides and
 re-parents spans is in its README and in
-[entity_model.md](../../docs/spec/entity_model.md).
+[entity_model.md](../../docs/spec/entity_model.md#enforcement-points).
 
 - The Dockerfile downloads the release JAR, pinned by
   `OTELFEATURE_EXTENSION_VERSION`, and `OTEL_JAVAAGENT_EXTENSIONS` loads it.
@@ -96,7 +96,7 @@ current span without changing its status.
 | `POSTGRES_USER` | `postgres` | Postgres user |
 | `POSTGRES_PWD` | `password` | Postgres password |
 | `POSTGRES_DB` | `coordinates` | Postgres database |
-| `FLAGD_HOST` | `localhost` | flagd host for the extension and the fault-injection client. `localhost` is the app's default; compose sets `flagd` |
+| `FLAGD_HOST` | `flagd` (extension) / `localhost` (app's fault-injection client) | flagd host for both; compose sets `flagd` |
 | `FLAGD_PORT` | `8015` | flagd gRPC sync port |
 | `FLAGD_COMPILE_TARGETING` | `auto` | Compose sets `disabled`: the extension classloader can't see `javax.tools`, so `auto` crashes the agent at startup (`NoClassDefFoundError`) |
 | `OTEL_SERVICE_NAME` | - | Service name |

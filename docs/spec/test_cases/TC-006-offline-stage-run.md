@@ -51,7 +51,7 @@ The e2e suite runs this whole sequence as one ordered test, `test_stage_progress
 ## Automation
 
 - **Tests:** `test_baseline` (OTelFeature/poc#35, phase 1), `test_stage_progression` and `test_tc006_rapid_flips`. The e2e override points both services at the API stubs (OTelFeature/poc#24), so every test in the suite also runs offline from the external APIs.
-- **How:** `docker compose -f compose.yaml -f compose.e2e.yaml up -d --wait`. The override adds the collector `file` exporter, turns the load generator off, removes Aspire (and the opt-in Dash0 exporter, C-016), and enables request-header capture for the `x-e2e-step` marker.
+- **How:** `docker compose -f compose.yaml -f compose.e2e.yaml up -d --wait`. The override adds the collector `file` exporter, turns the load generator off, removes Aspire (the opt-in Dash0 overlay, C-016, is never loaded, because the suite passes `-f`), and enables request-header capture for the `x-e2e-step` marker.
 - **Flag flips:** the flag-flip helper writes the preset to a temp file, gives it an mtime strictly newer than the current file's, renames it into place, and polls flagd over OFREP (port 8016) until a per-write revision flag shows the new value. Only then does the test send traffic and count spans ([flag file reload](../entity_model.md#flag-file-reload)).
 - **Matrix:** runs in both Java enforcement modes (`processor`, `sampler`).
 - **When:** `test_stage_progression` carries the pytest marker `stage_run` and runs on pushes to `main`, nightly and on manual (`workflow_dispatch`) runs; pull requests deselect it. A local `make e2e` runs it.
