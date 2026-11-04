@@ -408,7 +408,7 @@ Demo stack (`compose.yaml`, NFR-017, OTelFeature/poc#91):
 | `FLAGD_OFREP_URL` | `http://flagd:8016` | flagd's OFREP endpoint that the `flag` service and the e2e flag helper confirm a write against |
 | `COMPOSE_FILE` | unset (`compose.yaml`) | Docker Compose's own setting. In a laptop's git-ignored `.env`, `compose.yaml:compose.dash0.yaml` turns on Dash0 for every `docker compose` command on that laptop (C-016). Commands that pass `-f` (the e2e suite, `make bench`) ignore it. `COMPOSE_PATH_SEPARATOR=:` keeps the `:` valid on native Windows |
 | `DASH0_ENDPOINT` | none, required with `compose.dash0.yaml` | Dash0's OTLP/gRPC ingress, `ingress.<region>.aws.dash0.com:4317` |
-| `DASH0_AUTH_TOKEN` | none, required with `compose.dash0.yaml` | Dash0 auth token, sent as `Authorization: Bearer …`; only in the `.env`. It reaches the collector as the compose secret `dash0_token`, so `docker compose config` and `docker inspect` don't show it |
+| `DASH0_AUTHORIZATION_TOKEN` | none, required with `compose.dash0.yaml` | Dash0 auth token, sent as `Authorization: Bearer …`; only in the `.env`. It reaches the collector as the compose secret `dash0_token`, so `docker compose config` and `docker inspect` don't show it |
 | `DASH0_DATASET` | `default` | Dash0 dataset the telemetry goes to |
 
 ### Prebuilt images

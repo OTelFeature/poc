@@ -78,7 +78,7 @@ docker run --rm -v "$PWD/src/otel-collector:/c:ro" \
 | `OTEL_COLLECTOR_PORT_GRPC` | `4317` | OTLP/gRPC receiver port |
 | `OTEL_COLLECTOR_PORT_HTTP` | `4318` | OTLP/HTTP receiver port |
 | `DASH0_ENDPOINT` | - | Dash0 only: OTLP/gRPC ingress, `ingress.<region>.aws.dash0.com:4317` |
-| `DASH0_AUTH_TOKEN` | - | Dash0 only: auth token, passed in as the secret `dash0_token` |
+| `DASH0_AUTHORIZATION_TOKEN` | - | Dash0 only: auth token, passed in as the secret `dash0_token` |
 | `DASH0_DATASET` | `default` | Dash0 only: dataset |
 
 The first three are set in [compose.yaml](../../compose.yaml), the Dash0
@@ -86,7 +86,7 @@ ones in `.env`.
 
 ## Troubleshooting
 
-- **Dash0 answers 401:** `DASH0_AUTH_TOKEN` in `.env` is empty or wrong.
+- **Dash0 answers 401:** `DASH0_AUTHORIZATION_TOKEN` in `.env` is empty or wrong.
   Nothing checks it at startup, so an empty token only shows up as
   rejected batches in the collector log.
 
