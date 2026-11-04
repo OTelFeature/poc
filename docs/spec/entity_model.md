@@ -323,7 +323,7 @@ in the Flagsmith UI before seeding again.
 creates all of them, switched off, and they stay (UC-008 BR-013). An
 override applies only while it is switched on; switched off, flagd does not
 get its rule. A boolean flag's override (`recordSpan`) then serves the
-flag's other variant than its default (`off`), a non-boolean flag's
+flag's other variant than the default it serves (`off` for `recordSpan`), a non-boolean flag's
 (`traceSampleRatio`) its value. A preset command sets
 each switch and value; it creates or deletes an override only to repair
 the environment: it recreates a missing one, restores the order, and
