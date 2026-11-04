@@ -1,15 +1,14 @@
 # coordinates-db
 
-A Postgres instance used by [geocode](../geocode) and [weather](../weather)
-as a cache: previously resolved `city, country → latitude, longitude` lookups
-are stored here so repeat requests skip external APIs entirely. The `weather`
-service also caches weather results in a separate `weather` table.
+Postgres cache for [geocode](../geocode) and [weather](../weather). It stores
+resolved `city, country → latitude, longitude` lookups in `coordinates` and
+weather results in `weather`, so repeat requests skip the external APIs.
+Entries never expire.
 
 ## Schema
 
-[init-coordinates-db.sh](init-coordinates-db.sh) runs once, on first
-container start (via Postgres's `docker-entrypoint-initdb.d` convention), and
-creates:
+[init-coordinates-db.sh](init-coordinates-db.sh) runs on the first container
+start (`docker-entrypoint-initdb.d`) and creates:
 
 ```sql
 CREATE TABLE IF NOT EXISTS coordinates (
@@ -34,43 +33,25 @@ CREATE TABLE IF NOT EXISTS weather (
 );
 ```
 
-> [!NOTE]
-> The primary key is on `(latitude, longitude)`, not `(city, country)`. Two
-> concurrent cache misses for the same city/country pair can therefore both
-> attempt to insert the same coordinates; the second insert fails on the
-> duplicate key, but `geocode` only logs it — the request still returns the
-> correct coordinates either way.
-
 ## Configuration
 
-| Environment variable  | Default        | Description                          |
-|-----------------------|----------------|--------------------------------------|
-| `POSTGRES_USER`       | `postgres`     | Superuser created on first init      |
-| `POSTGRES_PASSWORD`   | `password`     | Password for `POSTGRES_USER`         |
-| `POSTGRES_DB`         | `coordinates`  | Database created on first init       |
+| Environment variable | Default | Description |
+|---|---|---|
+| `POSTGRES_USER` | `postgres` | Superuser created on first init |
+| `POSTGRES_PASSWORD` | `password` | Password for `POSTGRES_USER` |
+| `POSTGRES_DB` | `coordinates` | Database created on first init |
 
-> [!NOTE]
-> This container reads `POSTGRES_PASSWORD` (the official Postgres image's
-> variable). `geocode` reads the same value as `POSTGRES_PWD` — see
-> [compose.yaml](../../compose.yaml). If you change the password, update it
-> in both places.
+The services read the password as `POSTGRES_PWD`. If you change it, change
+both in [compose.yaml](../../compose.yaml).
 
-## Persistence
+Data lives in the `coordinates-db-data` volume, mounted at
+`/var/lib/postgresql` (the Postgres 18 layout; the older
+`/var/lib/postgresql/data` mount fails to start). A `pg_isready` healthcheck
+gates the start of `geocode` and `weather`.
 
-Data lives in the `coordinates-db-data` named volume, mounted at
-`/var/lib/postgresql` (Postgres 18+'s data directory convention — mounting at
-the older `/var/lib/postgresql/data` path fails to start on this image). It
-survives `docker compose down` / `up` cycles; use `docker compose down -v` to
-reset the cache.
+## Troubleshooting
 
-## Health
-
-A `pg_isready` healthcheck gates `geocode`'s and `weather`'s startup
-(`depends_on: ... condition: service_healthy` in [compose.yaml](../../compose.yaml)),
-so they don't attempt to connect before Postgres is actually accepting
-connections.
-
-## Inspecting the cache
+Inspect the cache:
 
 ```sh
 docker exec -it $(docker compose ps -q coordinates-db) \
@@ -79,3 +60,11 @@ docker exec -it $(docker compose ps -q coordinates-db) \
 docker exec -it $(docker compose ps -q coordinates-db) \
   psql -U postgres -d coordinates -c "SELECT * FROM weather;"
 ```
+
+Reset it with `docker compose --profile staging down -v`. The init script
+only runs on an empty volume, so a schema change also needs the reset.
+
+A `Failed to persist coordinates` exception (duplicate key) in the `geocode`
+log is harmless. The primary key is `(latitude, longitude)`, so two
+concurrent misses for the same city can both try to insert it. The request
+still returns the coordinates.

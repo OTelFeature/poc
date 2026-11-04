@@ -1,82 +1,53 @@
 # load-generator
 
-A [k6](https://k6.io/) script that continuously sends requests to both
-[geocode](../geocode) and [weather](../weather), so there's steady traffic
-from two services to look at in the Aspire Dashboard.
+A [k6](https://k6.io/) script, [load-test.js](load-test.js), that sends
+steady traffic to [geocode](../geocode) and [weather](../weather). It runs
+in the stock `grafana/k6` image with the script mounted in; there is no
+build step. With the `staging` profile, `load-generator-staging` runs the
+same script against the staging twins.
 
-Runs via the official `grafana/k6` image in [compose.yaml](../../compose.yaml)
-— no build step, just the script in [load-test.js](load-test.js) mounted in.
+## Scenarios
 
-## Behavior
+Four `constant-arrival-rate` scenarios run at the same time, so the rate
+holds regardless of response latency:
 
-The script defines four k6 scenarios that run **concurrently**:
+| Scenario | Endpoint | Rate |
+|---|---|---|
+| `geocode` | `POST /geocode` | `REQUEST_RATE` per `REQUEST_INTERVAL_SECONDS` |
+| `weather` | `POST /weather` | `REQUEST_RATE` per `REQUEST_INTERVAL_SECONDS` |
+| `healthchecks` | `GET /health` on both services | `HEALTHCHECK_RATE` per second, per service |
+| `forecast` | `POST /forecast` on `geocode`, which calls `weather` | 1 per `FORECAST_INTERVAL_SECONDS` |
 
-| Scenario | Target | Endpoint | Rate |
-|----------|--------|----------|------|
-| `geocode` | `geocode` service | `POST /geocode` | 1 request / N seconds |
-| `weather` | `weather` service | `POST /weather` | 1 request / N seconds |
-| `healthchecks` | both services | `GET /health` | `HEALTHCHECK_RATE` requests / second, per service |
-| `forecast` | `geocode`, which calls `weather` | `POST /forecast` | 1 request / `FORECAST_INTERVAL_SECONDS` (15) |
+Each request picks a random pair from `LOCATIONS`. All scenarios share that
+list, so `weather` finds the coordinates `geocode` cached. If you add a
+location, add it to [stub-apis](../stub-apis/stub.py) too.
 
-`healthchecks` stands in for a kubelet probe, so Demo 3 has health-check
-spans to drop (OTelFeature/poc#38, open question OQ-5; in Demo 2 they only
-lose their `INTERNAL` children). k6 sends no trace
-context, so every check is a root `SERVER` span of its own trace. With the
-default of 2/s, health checks outnumber the business traces. `/health`
-makes no outgoing calls, so this rate doesn't count against the external-API
-limits below. `HEALTHCHECK_RATE=0` turns the scenario off (changing it
-means restarting k6). The "root span" property holds only as long as k6
-doesn't use its tracing module, which would add a `traceparent`. k6's own
-exported metrics (`http_reqs`, `http_req_duration`, ...) now include the
-health checks; split them by the `scenario` tag.
-
-Each iteration in each scenario picks a random city/country pair from a small
-fixed list and POSTs it. Both scenarios use the same `LOCATIONS` list, so when
-both services run together `geocode` populates the `coordinates` table and
-`weather` finds those coordinates cached — minimizing external API calls.
-
-k6's `constant-arrival-rate` executor holds a steady request rate regardless of
-response latency.
-
-> [!NOTE]
-> This only matters with `make start-live`. By default both services call
-> [stub-apis](../stub-apis), which has no rate limit.
->
-> Nominatim's public usage policy caps requests at ~1/s, *shared across all
-> users of the source IP*. `geocode` caches resolved coordinates in
-> `coordinates-db`, so only new city/country pairs cost a live Nominatim
-> lookup — but the default rate here is still deliberately low (1 request
-> every 5s) to stay well under that limit for whatever does miss the cache.
-> Raise `REQUEST_INTERVAL_SECONDS` at your own risk of getting rate-limited
-> (HTTP 429).
->
-> Open-Meteo has no comparable rate limit, but the same interval is used for
-> consistency and readability in the dashboard.
-
-With the `staging` compose profile (`make start-staging`), a second
-instance, `load-generator-staging`, runs the same script against
-`geocode-staging` and `weather-staging`.
-
-`forecast` is the cross-service path (FR-026): its traces span both
-services, with `geocode` deciding their sampling. It is deliberately rare:
-at most one request per 10 s error-rate interval (it runs every 15 s, so
-latency jitter can't put two into one interval) keeps a `weather` incident,
-whose failures make `/forecast` fail too, from pushing `geocode`'s own error
-rate over the 5% control-loop threshold (UC-005 A7). `FORECAST_INTERVAL_SECONDS=0` turns it off.
+k6 sends no trace context, so every health check is a root `SERVER` span of
+its own trace. `forecast` stays at one request per 15 s so that a `weather`
+incident can't push `geocode`'s error rate over the control-loop threshold
+(UC-005 A7).
 
 ## Configuration
 
-| Environment variable             | Default               | Description                                       |
-|----------------------------------|-----------------------|---------------------------------------------------|
-| `GEOCODE_BASE_URL`               | `http://geocode:8000` | Base URL of the `geocode` service                 |
-| `WEATHER_BASE_URL`               | `http://weather:8001` | Base URL of the `weather` service                 |
-| `REQUEST_INTERVAL_SECONDS`       | `5`                   | Seconds between requests per scenario (1 / N s)   |
-| `DURATION`                       | `1h`                  | How long the test runs                            |
-| `FORECAST_INTERVAL_SECONDS`      | `15`                  | Seconds between `POST /forecast` requests (whole number, `0` = off; anything else makes k6 exit at startup) |
-| `HEALTHCHECK_RATE`               | `2`                   | `GET /health` per second, per service (whole number, `0` = off; anything else makes k6 exit at startup) |
-| `K6_OTEL_GRPC_EXPORTER_ENDPOINT` | -                     | Collector endpoint for k6's own OTLP/gRPC metrics |
-| `K6_OTEL_GRPC_EXPORTER_INSECURE` | -                     | Disable TLS for the gRPC exporter                 |
-| `K6_OTEL_SERVICE_NAME`           | -                     | `service.name` reported in k6's own telemetry     |
+| Environment variable | Script default | Compose | Description |
+|---|---|---|---|
+| `GEOCODE_BASE_URL` | `http://geocode:8000` | same | `geocode` base URL |
+| `WEATHER_BASE_URL` | `http://weather:8001` | same | `weather` base URL |
+| `REQUEST_INTERVAL_SECONDS` | `5` | `1` | Interval for the `geocode` and `weather` scenarios |
+| `REQUEST_RATE` | `1` | - | Requests per interval for those two (the bench harness raises it) |
+| `HEALTHCHECK_RATE` | `2` | `2` | Health checks per second, per service. Whole number, `0` = off |
+| `FORECAST_INTERVAL_SECONDS` | `15` | `15` | Seconds between `/forecast` requests. Whole number, `0` = off |
+| `DURATION` | `1h` | `15m` | Run time. `make demo-reset` restarts k6 |
+| `K6_OTEL_GRPC_EXPORTER_ENDPOINT` | - | `otel-collector:4317` | Collector endpoint for k6's own metrics |
+| `K6_OTEL_GRPC_EXPORTER_INSECURE` | - | `true` | No TLS for that export |
+| `K6_OTEL_SERVICE_NAME` | - | `load-generator` | `service.name` of k6's metrics |
+
+A `HEALTHCHECK_RATE` or `FORECAST_INTERVAL_SECONDS` that isn't a whole
+number makes k6 exit at startup. Changing any variable needs a k6 restart.
+
+With `make start-live`, only cache misses reach the real APIs. Nominatim's
+usage policy allows about 1 request per second per source IP, and more gets
+HTTP 429. The default stub has no limit.
 
 ## Running standalone
 
@@ -86,10 +57,8 @@ docker compose run --rm -e DURATION=30s load-generator
 
 ## Telemetry
 
-This isn't instrumentation of *application* code — it's k6 exporting its own
-built-in test metrics (`http_req_duration`, `http_req_failed`, `iterations`,
-etc.) over OTLP/gRPC to `otel-collector`, tagged with `service.name:
-load-generator`. Only the gRPC exporter is confirmed working in this setup;
-see [compose.yaml](../../compose.yaml) for the exact env vars — the HTTP
-exporter env vars are documented upstream but were not honored by this k6
-image in testing.
+k6 exports its own test metrics (`http_reqs`, `http_req_duration`,
+`http_req_failed`, ...) over OTLP/gRPC to `otel-collector`. Split them by
+the `scenario` tag; the health checks are in there too. Only the gRPC
+exporter works with this image; the HTTP exporter variables were ignored in
+testing.
