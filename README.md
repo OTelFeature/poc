@@ -5,6 +5,12 @@ a Python geocoding API, a Java weather API, an OpenTelemetry Collector,
 and an [Aspire Dashboard](https://learn.microsoft.com/en-us/dotnet/aspire/fundamentals/dashboard/overview)
 to visualize the resulting traces, metrics, and logs.
 
+> From the KubeCon + CloudNativeCon North America 2026 talk
+> **OpenFeature as a Control Plane for OpenTelemetry** by Simon Schrottner
+> ([Flagsmith](https://www.flagsmith.com/?utm_source=github&utm_medium=readme&utm_campaign=otelfeature&utm_content=poc)) and Juliano Costa
+> ([Dash0](https://www.dash0.com/?utm_source=github&utm_medium=readme&utm_campaign=otelfeature&utm_content=poc)). Slides, recording and how to
+> reach us: **[otelfeature.github.io/presentation](https://otelfeature.github.io/presentation/)**
+
 ## Try it locally
 
 All you need is Docker with Compose v2 (Docker Desktop, or Docker Engine on
@@ -384,3 +390,13 @@ src/
 > Forwarding telemetry to Datadog (`otel-collector`'s `otlp_http/datadog`
 > exporter) is optional and off by default — see
 > [otel-collector's README](src/otel-collector/README.md#datadog-export).
+
+## Talk to us
+
+This is a prototype with open questions, and we'd like to hear how it
+fits your setup:
+
+- [Open an issue](https://github.com/OTelFeature/poc/issues/new)
+- CNCF Slack ([invite](https://slack.cncf.io)): `#openfeature` and `#opentelemetry`
+- [Simon Schrottner](https://schrottner.at) ([Flagsmith](https://www.flagsmith.com/?utm_source=github&utm_medium=readme&utm_campaign=otelfeature&utm_content=poc)) and
+  [Juliano Costa](https://jcosta.dev) ([Dash0](https://www.dash0.com/?utm_source=github&utm_medium=readme&utm_campaign=otelfeature&utm_content=poc))
