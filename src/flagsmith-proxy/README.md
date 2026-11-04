@@ -22,7 +22,7 @@ Flagsmith CLI ──writes──> Flagsmith ──real-time event──> flagsmi
 | [Dockerfile](Dockerfile) | [Flagsmith's Edge Proxy](https://github.com/Flagsmith/edge-proxy) 2.23.0 plus this package and the Flagsmith CLI v2.0.0, both pinned by digest. Published from `main` as `ghcr.io/otelfeature/poc-flagsmith-proxy` (`main`, `sha-<short>`; amd64 and arm64) by `.github/workflows/images.yml`. It bakes in the presets, so a preset change publishes a new image |
 | [otelfeature_flagsmith/app.py](otelfeature_flagsmith/app.py) | The Edge Proxy app with two additions: `GET /api/v1/flagd/flags.json` (the environment as a flagd flag set) and a subscription to Flagsmith's real-time stream |
 | [otelfeature_flagsmith/translate.py](otelfeature_flagsmith/translate.py) | Environment document → flagd flag set, for the demo flags only (rules in the [entity model](../../docs/spec/entity_model.md#flagsmith-mode)) |
-| [demo.json](demo.json) | The Flagsmith side of the presets: the segments, each flag's overrides in priority order, and which overrides each preset switches on |
+| [demo.json](demo.json) | The Flagsmith side of the presets: the gated flags (with the variant each serves once switched on), the segments, each flag's overrides in priority order, and which overrides each preset switches on |
 | [otelfeature_flagsmith/preset.py](otelfeature_flagsmith/preset.py) | The preset command (`flagsmith-flag`): seed, apply, plan, check |
 | [otelfeature_flagsmith/model.py](otelfeature_flagsmith/model.py) | A model of a Flagsmith environment driven by CLI calls, for the tests and the stub |
 | [otelfeature_flagsmith/stub_cloud.py](otelfeature_flagsmith/stub_cloud.py) | A stub of Flagsmith Cloud: environment document and real-time stream |

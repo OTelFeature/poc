@@ -199,6 +199,17 @@ def test_switched_off_override_does_not_apply():
     rejected(doc_with(value="0.3", enabled=False), "not a variant")
 
 
+def test_switched_off_values_are_checked():
+    env = seeded()
+    env.run(["flag", "update", "weatherUpstreamFailure", "--value", "0.3", "--type", "string", "--disable"])
+    rejected(env.document(), "not a variant")
+
+
+def test_presets_differ():
+    flags = [json.dumps(preset(n)["flags"], sort_keys=True) for n in STAGE_ORDER]
+    assert len(set(flags)) == len(flags), "two preset files serve the same flags; metadata.preset can't tell them apart"
+
+
 def test_gated_flag_switched_off_is_the_baseline():
     env = seeded()
     apply(env, "03b-incident")

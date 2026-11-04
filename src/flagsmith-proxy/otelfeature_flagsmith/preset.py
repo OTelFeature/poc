@@ -283,7 +283,13 @@ def main(args: list[str]) -> int:
     expected = load(name)[2]
     timeout = float(os.environ.get("FLAG_CONFIRM_TIMEOUT", "10"))
     start = time.monotonic()
-    execute(apply_plan(name, fetch_document()), run_cli)
+    plan = apply_plan(name, fetch_document())
+    if not plan:
+        # Held already, by the document; read it once more, in case a switch in the
+        # Flagsmith UI just before is not in it yet (BR-010).
+        time.sleep(1)
+        plan = apply_plan(name, fetch_document())
+    execute(plan, run_cli)
     print(f"Flagsmith is now {name}, waiting for flagd to serve it", file=sys.stderr)
     if not wait_for_proxy(expected, timeout / 2):
         print("the proxy does not serve the preset yet (stale document?); writing every value", file=sys.stderr)

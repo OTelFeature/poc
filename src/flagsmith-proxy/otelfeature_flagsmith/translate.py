@@ -73,6 +73,9 @@ def translate(document: dict[str, Any], catalog: dict[str, Any],
         fs = defaults.get(key)
         # A gated flag switched off (or missing) is the catalog's, without targeting.
         switched_off = key in gated and not (fs and fs.get("enabled"))
+        if fs is not None and not _is_boolean(base):
+            # Checked also while switched off, so that switching on is not what finds a bad value.
+            _variant(key, base, fs, "the default")
         if fs is not None and not switched_off:
             if not _is_boolean(base) and not fs.get("enabled"):
                 # Served as disabled: the services fall back to their defaults.

@@ -39,7 +39,7 @@ from edge_proxy.server import app, environment_service, settings
 from edge_proxy.settings import EnvironmentKeyPair
 
 from . import CATALOG
-from .translate import TranslationError, load_catalog, translate
+from .translate import TranslationError, gated_flags, load_catalog, load_presets, translate
 
 logger = structlog.get_logger("otelfeature_flagsmith")
 
@@ -49,7 +49,7 @@ FRESH_ATTEMPTS, FRESH_DELAY = 10, 0.2
 # A stream silent for this long is taken as dead and reconnected (which fetches once).
 STREAM_READ_TIMEOUT = float(os.environ.get("FLAGSMITH_REALTIME_READ_TIMEOUT", "30"))
 
-catalog = load_catalog(CATALOG)
+catalog, presets, gated = load_catalog(CATALOG), load_presets(), gated_flags()
 # Per key: the document last translated (the cache replaces the object only
 # when the content changes), and its flag set.
 _translated: dict[str, tuple[dict, dict]] = {}
@@ -63,7 +63,7 @@ async def flagd_flags(authorization: str = Header(None)) -> ORJSONResponse:
     last = _translated.get(key)
     if last is None or last[0] is not document:
         try:
-            _translated[key] = (document, translate(document, catalog))
+            _translated[key] = (document, translate(document, catalog, presets, gated))
             _rejected.pop(key, None)
         except TranslationError as error:
             if _rejected.get(key) != id(document):
