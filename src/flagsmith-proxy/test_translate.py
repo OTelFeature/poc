@@ -226,7 +226,8 @@ def test_beats_as_switches():
         ("00-baseline", []),
         ("01-otel-off", [["otelEnabled", off]]),
         ("02-quiet-noise", [["otelEnabled", on], ["telemetryLevel", "--value", "IO", on]]),
-        ("03-semconv-rules", [["recordSpan", on], ["traceSampleRatio", on],
+        ("03-semconv-rules", [["recordSpan", on], ["recordSpan", "--segment", "geocode-health", on],
+                              ["recordSpan", "--segment", "weather-jdbc", on], ["traceSampleRatio", on],
                               ["traceSampleRatio", "--segment", "production", on]]),
         ("03a-weather-boost", [["traceSampleRatio", "--segment", "production-weather", on]]),
         ("03b-incident", [["traceSampleRatio", "--segment", "high-error-rate", on],
@@ -256,13 +257,24 @@ def test_seeded_presets_only_switch():
             assert set(env.overrides) == overrides, (start, target)
 
 
-def test_gated_boolean_overrides_come_together():
-    """A boolean override applies with its flag, so a preset lists all of them or none."""
+def test_boolean_overrides_serve_the_other_variant():
+    """demo.json's `serves` for a boolean flag is what the translation makes of a switched-on override."""
     demo = json.loads(DEMO.read_text())
     for key, entries in demo["overrides"].items():
-        if all(isinstance(v, bool) for v in CAT["flags"][key]["variants"].values()):
-            for name, on in demo["presets"].items():
-                assert on.get(key, []) in ([], [e["segment"] for e in entries]), (name, key)
+        flag = CAT["flags"][key]
+        if all(isinstance(v, bool) for v in flag["variants"].values()):
+            other = next(v for v in flag["variants"] if v != flag["defaultVariant"])
+            assert all(e["serves"] == other for e in entries), (key, entries)
+
+
+def test_each_recordspan_rule_is_its_own_switch():
+    env = seeded()
+    apply(env, "03-semconv-rules")
+    env.run(["flag", "update", "recordSpan", "--segment", "geocode-health", "--disable"])
+    record = translate(env.document(), CAT)["flags"]["recordSpan"]
+    assert record["targeting"] == {"if": [{"and": [{"==": [{"var": "service.name"}, "weather"]},
+                                                   {"==": [{"var": "otel.scope.name"}, "io.opentelemetry.jdbc"]}]},
+                                          "off", "on"]}, record["targeting"]
 
 
 def test_feature_states():

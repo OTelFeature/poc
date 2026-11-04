@@ -49,13 +49,13 @@ creates everything, once (UC-008 BR-013):
 - five segments, each feature-specific to the flag that uses it:
   `geocode-health`, `weather-jdbc` (on `recordSpan`), `high-error-rate`,
   `production-weather`, `production` (on `traceSampleRatio`).
-- every segment override, in priority order. `recordSpan`'s serve `off`
-  and apply whenever `recordSpan` is on; `traceSampleRatio`'s are seeded
-  switched off and each applies once switched on.
+- every segment override, in priority order, switched off. Each applies
+  only once switched on: a `recordSpan` override then serves `off` (the
+  drop rule), a `traceSampleRatio` override its value.
 
 Each beat is then a few switches in the Flagsmith UI (the entity model's
-"Beats as switches" table): `03-semconv-rules` is `recordSpan` on,
-`traceSampleRatio` on and its `production` override on; `03a-weather-boost`
+"Beats as switches" table): `03-semconv-rules` is `recordSpan` on with its
+two overrides, `traceSampleRatio` on with its `production` override; `03a-weather-boost`
 adds the `production-weather` override; `03b-incident` the
 `high-error-rate` override and `weatherUpstreamFailure`. flagd's
 `metadata.preset` names the preset the switches match, or `custom`.

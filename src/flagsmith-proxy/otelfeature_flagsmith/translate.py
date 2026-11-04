@@ -87,10 +87,16 @@ def translate(document: dict[str, Any], catalog: dict[str, Any],
         # switching it on later is not what finds a bad one.
         for _, _, segment, fs in sorted(overrides.get(key, []), key=lambda o: o[:2]):
             name = segment.get("name", segment.get("id"))
-            variant = _variant(key, base, fs, f"the override for segment {name!r}")
+            what = f"the override for segment {name!r}"
+            if _is_boolean(base):
+                _no_split(key, fs, what)
+                # Switched on, it serves the flag's other variant (BR-013), not its own switch.
+                variant = next(v for v in base["variants"] if v != flag["defaultVariant"])
+            else:
+                variant = _variant(key, base, fs, what)
             rule = _segment_rule(segment)
-            if not _is_boolean(base) and not fs.get("enabled"):
-                continue  # a switched-off override of a non-boolean flag does not apply
+            if not fs.get("enabled"):
+                continue  # a switched-off override does not apply
             if chain and chain[-1][1] == variant:
                 chain[-1][0].append(rule)
             else:
@@ -118,8 +124,7 @@ def _is_boolean(flag: dict) -> bool:
 
 def _variant(key: str, flag: dict, fs: dict, what: str) -> str:
     """The variant of `flag` that a Flagsmith feature state serves (a non-boolean one: its value)."""
-    if fs.get("multivariate_feature_state_values"):
-        raise TranslationError(f"{key}: {what} is a percentage split, which has no flagd counterpart here")
+    _no_split(key, fs, what)
     if _is_boolean(flag):
         value: Any = bool(fs.get("enabled"))
     else:
@@ -129,6 +134,11 @@ def _variant(key: str, flag: dict, fs: dict, what: str) -> str:
             return name
     raise TranslationError(f"{key}: {what} has the value {value!r}, which is not a variant "
                            f"({', '.join(map(repr, flag['variants'].values()))})")
+
+
+def _no_split(key: str, fs: dict, what: str) -> None:
+    if fs.get("multivariate_feature_state_values"):
+        raise TranslationError(f"{key}: {what} is a percentage split, which has no flagd counterpart here")
 
 
 def _typed(key: str, flag: dict, raw: Any, what: str) -> Any:

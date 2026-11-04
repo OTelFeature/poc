@@ -97,9 +97,8 @@ def apply_plan(name: str, document: dict | None = None) -> list[list[str]]:
                                           if k == key and (k, seg) in listed)]
         for e in entries:
             seg, held = e["segment"], current_overrides.get((key, e["segment"]))
-            # A boolean override serves its variant through its switch; a
-            # non-boolean one holds its variant and is switched on to apply.
-            wanted = _state(flag, e["serves"], _is_boolean(flag) or seg in on.get(key, []))
+            # An override applies while switched on; a non-boolean one holds its variant.
+            wanted = (seg in on.get(key, []), None if _is_boolean(flag) else e["serves"])
             if held is None or held[1:] != wanted:
                 argv.append(["flag", "update", key, "--segment", seg, *_state_args(flag, *wanted)])
             if held is None:
