@@ -279,7 +279,7 @@ rules apply (UC-008 BR-013, Simon, 2026-11-04).
 |---|---|---|---|---|
 | `otelEnabled` | no | the variant: on = `on`, off = `off` | none | on |
 | `telemetryLevel` | no | on; off serves `state: DISABLED` | `FULL`, `IO` or `OFF` | on, `FULL` |
-| `recordSpan` | yes | the gate: off = as in `00-baseline.json` (`on`, no targeting); on = `on` with its overrides | none | off |
+| `recordSpan` | yes | the gate: off = as in `00-baseline.json` (`on`, no targeting); on = `on` with its switched-on overrides | none | off |
 | `traceSampleRatio` | yes | the gate: off = as in `00-baseline.json` (`all`, no targeting); on = its value with its switched-on overrides | a decimal string (`1.0`), one of the variant values | off, `1.0` |
 | `weatherUpstreamFailure` | yes | the gate: off = as in `00-baseline.json` (`none`); on = its value | a decimal string (`0.5`), one of the variant values | off, `0.5` (so switching it on is the incident) |
 
@@ -294,7 +294,8 @@ file whose flags it equals (they all differ), checked in stage order, and
 `custom` when it equals none (UC-008 BR-009).
 
 This is not how Flagsmith itself evaluates the environment: there, an
-override applies even when it or the environment default is switched off.
+override applies even when it or the environment default is switched off,
+and a boolean override serves its own switch.
 The Flagsmith UI's own evaluation (an identity's flags) can therefore
 disagree with flagd; what flagd serves is the translation's (UC-008
 BR-013).
@@ -319,10 +320,11 @@ converted: the seed command stops and names it, and the operator deletes it
 in the Flagsmith UI before seeding again.
 
 **Segment overrides** in priority order (first match wins). The seed command
-creates all of them, and they stay (UC-008 BR-013). A `recordSpan` override
-serves `off` through its own switched-off state, so it applies whenever
-`recordSpan` is switched on; a `traceSampleRatio` override applies only
-while it is switched on, and is seeded switched off. A preset command sets
+creates all of them, switched off, and they stay (UC-008 BR-013). An
+override applies only while it is switched on; switched off, flagd does not
+get its rule. A boolean flag's override (`recordSpan`) then serves the
+flag's other variant than its default (`off`), a non-boolean flag's
+(`traceSampleRatio`) its value. A preset command sets
 each switch and value; it creates or deletes an override only to repair
 the environment: it recreates a missing one, restores the order, and
 deletes overrides of a demo flag that are not in this table (added by hand
@@ -345,7 +347,7 @@ it diffed against was stale, it writes every value again (UC-008 BR-010).
 | `00-baseline` | everything as seeded |
 | `01-otel-off` | `otelEnabled` off |
 | `02-quiet-noise` | `otelEnabled` on, `telemetryLevel` = `IO` |
-| `03-semconv-rules` | `recordSpan` on, `traceSampleRatio` on, its `production` override on |
+| `03-semconv-rules` | `recordSpan` on with its `geocode-health` and `weather-jdbc` overrides on, `traceSampleRatio` on with its `production` override on |
 | `03a-weather-boost` | the `production-weather` override on |
 | `03b-incident` | the `high-error-rate` override on, `weatherUpstreamFailure` on |
 | back to `03a-weather-boost` | the `high-error-rate` override off, `weatherUpstreamFailure` off |
@@ -362,9 +364,9 @@ with the value as a string (Flagsmith casts the value to the attribute's type, J
 number. The property is the JsonLogic `var`, so dotted semconv keys resolve
 as in the flag files (FR-005). An environment with any other operator, a
 value that is not a variant of its flag, or a percentage split
-(multivariate feature state) is rejected as a whole; a switched-off
-override of a non-boolean flag is no rejection, it just does not apply; the proxy logs why and keeps the
-last flag set it translated (UC-008 A5).
+(multivariate feature state) is rejected as a whole: the proxy logs why
+and keeps the last flag set it translated (UC-008 A5). A switched-off
+override is no rejection; it just does not apply.
 
 **Configuration** (`compose.flagsmith.yaml`):
 
