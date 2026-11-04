@@ -136,7 +136,8 @@ starts are available, so rules use `url.path`, never `http.route`.
 
 The same beats can run with the flags in Flagsmith instead of `flagd.json`
 (UC-008 A4, OQ-16). It needs network and is not the stage run: the file mode
-above stays the default and the fallback. Each beat's command becomes
+above stays the default and the fallback. Each beat is a few switches in
+the Flagsmith UI, or the command
 `docker compose -f compose.yaml -f compose.flagsmith.yaml run --rm
 flagsmith-flag <preset>`, with the same preset names and the same "flagd
 serves <preset>" confirmation. Setup is in

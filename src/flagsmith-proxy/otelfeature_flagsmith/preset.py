@@ -1,23 +1,24 @@
 """The Flagsmith preset command: a stage preset applied with the Flagsmith CLI.
 
     flagsmith-flag <preset>          apply a preset, wait until flagd serves it
-    flagsmith-flag seed              create the demo features and segments
+    flagsmith-flag seed              create the demo features, segments and overrides
     flagsmith-flag plan <preset>     print the CLI calls `<preset>` would make
     flagsmith-flag check [<preset>]  compare what Flagsmith holds with a preset file
 
 (`docker compose -f compose.yaml -f compose.flagsmith.yaml run --rm
 flagsmith-flag …`.) A preset file in src/flagd/presets is the state; demo.json
-says which segment overrides each preset switches on (UC-008 BR-009). The
-command reads the environment document first and writes only what differs:
-overrides created or deleted (also ones demo.json doesn't know, added by
-hand), values set, `flag reorder` when the order of a flag's overrides
-changed, and `demoPreset` last (BR-010). Without a document it writes
+says which flags are gated and which segment overrides each preset switches
+on (UC-008 BR-009, BR-013). Every override stays in Flagsmith, so a preset
+is switches and values, the same an operator sets in the Flagsmith UI. The
+command reads the environment document first and writes only what differs;
+it creates or deletes an override only to repair one changed by hand
+(missing, out of order, or not in demo.json). Without a document it writes
 everything and ignores deleting an override that isn't there.
 
 The flip counts once the proxy's flag set equals the preset file and flagd
-serves it. The document it diffed against can lag behind Flagsmith's last
-write; if the proxy doesn't match within half the timeout, it writes
-everything again.
+serves it (BR-010). The document it diffed against can lag behind
+Flagsmith's last write; if the proxy doesn't match within half the timeout,
+it writes everything again.
 """
 
 from __future__ import annotations
@@ -32,7 +33,7 @@ from typing import Any, Callable
 
 from . import CATALOG, DEMO, PRESETS
 from .model import CLIError
-from .translate import MARKER, TranslationError, load_catalog, translate, _variant
+from .translate import CUSTOM, TranslationError, load_catalog, translate, _is_boolean, _variant
 
 EDGE_API_URL = os.environ.get("FLAGSMITH_EDGE_API_URL", "https://edge.api.flagsmith.com/api/v1")
 
@@ -44,8 +45,18 @@ def load(name: str) -> tuple[dict, dict, dict]:
     return demo, load_catalog(CATALOG), json.loads((PRESETS / f"{name}.json").read_text())
 
 
+def segment_features(demo: dict) -> dict[str, str]:
+    """Each segment is feature-specific to the one flag whose overrides use it."""
+    return {e["segment"]: key for key, entries in demo["overrides"].items() for e in entries}
+
+
 def seed_plan(document: dict | None = None) -> list[list[str]]:
-    """Create the features and segments the presets need; existing segments get their rules again."""
+    """Create the features and segments; existing segments get their rules again.
+
+    The gated flags are created switched off, holding the value they serve
+    once switched on. `seed` then applies 00-baseline blind, which creates
+    every override.
+    """
     demo, catalog = json.loads(DEMO.read_text()), load_catalog(CATALOG)
     features = {fs["feature"]["name"] for fs in (document or {}).get("feature_states") or []}
     segments = {s["name"] for s in ((document or {}).get("project") or {}).get("segments") or []}
@@ -54,15 +65,18 @@ def seed_plan(document: dict | None = None) -> list[list[str]]:
         if key in features:
             continue
         create = ["feature", "create", key, "--description", flag.get("metadata", {}).get("description", key)]
-        value = flag["variants"][flag["defaultVariant"]]
-        argv.append(create + (["--enabled"] if value else []) if isinstance(value, bool)
-                    else create + ["--value", _text(value), "--enabled"])
-    if MARKER not in features:
-        argv.append(["feature", "create", MARKER, "--value", "00-baseline", "--enabled",
-                     "--description", "Preset last applied (UC-008 BR-010); not a flag the services read"])
-    for name, rules in demo["segments"].items():
-        argv.append(["segment", "update" if name in segments else "create", name,
-                     "--rules", json.dumps(rules, separators=(",", ":"))])
+        gated = key in demo["gated"]
+        value = flag["variants"][demo["gated"][key] if gated else flag["defaultVariant"]]
+        if isinstance(value, bool):
+            argv.append(create + (["--enabled"] if value and not gated else []))
+        else:
+            argv.append(create + ["--value", _text(value)] + ([] if gated else ["--enabled"]))
+    for name, feature in segment_features(demo).items():
+        rules = json.dumps(demo["segments"][name], separators=(",", ":"))
+        if name in segments:
+            argv.append(["segment", "update", name, "--rules", rules])
+        else:
+            argv.append(["segment", "create", name, "--rules", rules, "--feature", feature])
     return argv
 
 
@@ -70,34 +84,38 @@ def apply_plan(name: str, document: dict | None = None) -> list[list[str]]:
     """The CLI calls that turn the environment in `document` into preset `name`."""
     demo, catalog, preset = load(name)
     known = document is not None
-    current_defaults, current_overrides = _current(document, catalog) if known else ({}, {})
+    current_states, current_overrides = _current(document, catalog) if known else ({}, {})
     on = demo["presets"][name]
     argv = []
-    for key, entries in demo["overrides"].items():
-        flag = catalog["flags"][key]
-        wanted = [e["segment"] for e in entries if e["segment"] in on.get(key, [])]
-        kept = sorted((p, seg) for (k, seg), (p, _) in current_overrides.items() if k == key and seg in wanted)
-        order = [seg for _, seg in kept]
-        for e in entries:
-            seg, held = e["segment"], current_overrides.get((key, e["segment"]))
-            if seg in wanted:
-                if held is None or held[1] != e["serves"]:
-                    argv.append(["flag", "update", key, "--segment", seg, *_value_args(flag, e["serves"])])
-                if held is None:
-                    order.append(seg)  # a new override joins at the end
-            elif held is not None or not known:
-                argv.append(["flag", "delete", key, "--segment", seg])
-        if len(wanted) > 1 and (order != wanted or not known):
-            argv.append(["flag", "reorder", key, *wanted])
     listed = {(key, e["segment"]) for key, entries in demo["overrides"].items() for e in entries}
     for key, seg in sorted(current_overrides):
         if (key, seg) not in listed:
-            argv.insert(0, ["flag", "delete", key, "--segment", seg])
+            argv.append(["flag", "delete", key, "--segment", seg])
+    for key, entries in demo["overrides"].items():
+        flag = catalog["flags"][key]
+        order = [seg for _, seg in sorted((o[0], seg) for (k, seg), o in current_overrides.items()
+                                          if k == key and (k, seg) in listed)]
+        for e in entries:
+            seg, held = e["segment"], current_overrides.get((key, e["segment"]))
+            # A boolean override serves its variant through its switch; a
+            # non-boolean one holds its variant and is switched on to apply.
+            wanted = _state(flag, e["serves"], _is_boolean(flag) or seg in on.get(key, []))
+            if held is None or held[1:] != wanted:
+                argv.append(["flag", "update", key, "--segment", seg, *_state_args(flag, *wanted)])
+            if held is None:
+                order.append(seg)  # a new override joins at the end
+        segments = [e["segment"] for e in entries]
+        if len(segments) > 1 and (order != segments or not known):
+            argv.append(["flag", "reorder", key, *segments])
     for key, flag in catalog["flags"].items():
-        variant = preset["flags"][key]["defaultVariant"]
-        if current_defaults.get(key) != variant:
-            argv.append(["flag", "update", key, *_value_args(flag, variant)])
-    argv.append(["flag", "update", MARKER, "--value", name, "--type", "string", "--enable"])
+        served = preset["flags"][key]
+        if key in demo["gated"]:
+            switched_on = served != flag
+            wanted = _state(flag, served["defaultVariant"] if switched_on else demo["gated"][key], switched_on)
+        else:
+            wanted = _state(flag, served["defaultVariant"], True)
+        if current_states.get(key) != wanted:
+            argv.append(["flag", "update", key, *_state_args(flag, *wanted)])
     return argv
 
 
@@ -111,13 +129,27 @@ def execute(plan: list[list[str]], run: Callable[[list[str]], None]) -> None:
             raise
 
 
-def _current(document: dict, catalog: dict) -> tuple[dict[str, str], dict[tuple[str, str], tuple[float, Any]]]:
-    """Which variant each flag serves now, by default and per segment override."""
-    defaults = {}
+def _state(flag: dict, variant: str, switched_on: bool) -> tuple[bool, str | None]:
+    """A feature state as (enabled, variant of its value); a boolean one has no value."""
+    if _is_boolean(flag):
+        return (flag["variants"][variant] and switched_on, None)
+    return (switched_on, variant)
+
+
+def _state_args(flag: dict, enabled: bool, variant: str | None) -> list[str]:
+    switch = ["--enable" if enabled else "--disable"]
+    if variant is None:
+        return switch
+    return ["--value", _text(flag["variants"][variant]), "--type", "string", *switch]
+
+
+def _current(document: dict, catalog: dict) -> tuple[dict[str, tuple], dict[tuple[str, str], tuple]]:
+    """Each flag's feature state now, by default and per segment override (with its priority)."""
+    states = {}
     for fs in document.get("feature_states") or []:
         key = fs["feature"]["name"]
         if key in catalog["flags"]:
-            defaults[key] = _served(key, catalog["flags"][key], fs)
+            states[key] = _held(key, catalog["flags"][key], fs)
     overrides = {}
     for segment in (document.get("project") or {}).get("segments") or []:
         for fs in segment.get("feature_states") or []:
@@ -125,25 +157,18 @@ def _current(document: dict, catalog: dict) -> tuple[dict[str, str], dict[tuple[
             if key in catalog["flags"]:
                 priority = (fs.get("feature_segment") or {}).get("priority")
                 overrides[(key, segment["name"])] = (float("inf") if priority is None else priority,
-                                                     _served(key, catalog["flags"][key], fs))
-    return defaults, overrides
+                                                     *_held(key, catalog["flags"][key], fs))
+    return states, overrides
 
 
-def _served(key: str, flag: dict, fs: dict) -> str | None:
-    is_boolean = all(isinstance(v, bool) for v in flag["variants"].values())
-    if not is_boolean and not fs.get("enabled"):
-        return None
+def _held(key: str, flag: dict, fs: dict) -> tuple[bool, str | None]:
+    if _is_boolean(flag):
+        return (bool(fs.get("enabled")), None)
     try:
-        return _variant(key, flag, fs, "")
+        variant = _variant(key, flag, fs, "")
     except TranslationError:
-        return None
-
-
-def _value_args(flag: dict, variant: str) -> list[str]:
-    value = flag["variants"][variant]
-    if isinstance(value, bool):
-        return ["--enable" if value else "--disable"]
-    return ["--value", _text(value), "--type", "string", "--enable"]
+        variant = None  # not a variant: written again
+    return (bool(fs.get("enabled")), variant)
 
 
 def _text(value: Any) -> str:
@@ -168,9 +193,14 @@ def fetch_document() -> dict | None:
 
 def run_cli(argv: list[str]) -> None:
     print("flagsmith " + " ".join(argv), file=sys.stderr)
+    cli_output(argv)
+
+
+def cli_output(argv: list[str]) -> str:
     done = subprocess.run(["flagsmith", *argv, "--yes"], capture_output=True, text=True)
     if done.returncode != 0:
         raise CLIError((done.stderr or done.stdout).strip())
+    return done.stdout
 
 
 def wait_for_proxy(expected: dict, seconds: float) -> bool:
@@ -212,7 +242,18 @@ def main(args: list[str]) -> int:
         return 0 if args else 2
     command = args[0]
     if command == "seed":
+        # `segment list` shows only project-wide segments; a demo one there is
+        # from an earlier seed and cannot be made feature-specific.
+        listed = json.loads(cli_output(["segment", "list", "--json"]) or "[]")
+        demo = json.loads(DEMO.read_text())
+        stale = sorted({s.get("name") for s in listed} & set(demo["segments"]))
+        if stale:
+            print(f"project-wide segments {', '.join(stale)} are from an earlier seed; delete them in "
+                  "the Flagsmith UI (Segments) and run seed again, which creates them feature-specific",
+                  file=sys.stderr)
+            return 1
         execute(seed_plan(fetch_document()), run_cli)
+        execute(apply_plan("00-baseline"), run_cli)  # blind: creates every override
         return 0
     if command == "plan" and len(args) == 2:
         for argv in apply_plan(args[1], fetch_document()):
@@ -228,7 +269,10 @@ def main(args: list[str]) -> int:
         except TranslationError as error:
             print(f"the proxy would reject this environment: {error}")
             return 1
-        name = args[1] if len(args) > 1 else flag_set.get("metadata", {}).get("preset", "")
+        name = args[1] if len(args) > 1 else flag_set["metadata"]["preset"]
+        if name == CUSTOM:
+            print(f"Flagsmith holds no preset; it translates to:\n{json.dumps(flag_set, indent=2)}")
+            return 1
         expected = load(name)[2]
         if flag_set == expected:
             print(f"Flagsmith holds {name}")

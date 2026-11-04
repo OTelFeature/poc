@@ -108,10 +108,12 @@ def test_pushed_progression():
     for name in STAGE_ORDER + ["03a-weather-boost"]:
         before = fetches()
         result = apply(name)
-        lag = wait_served(name, 10) - result["updated_at"]
-        report.append(f"{name}: {result['calls']} CLI calls, served {lag:.2f}s after the last event, "
-                      f"{fetches() - before} document fetches")
-        assert lag <= BOUND, report[-1]
+        served = wait_served(name, 10)
+        if result["calls"]:  # a preset already held writes nothing, so there is no event to time
+            lag = served - result["updated_at"]
+            report.append(f"{name}: {result['calls']} CLI calls, served {lag:.2f}s after the last event, "
+                          f"{fetches() - before} document fetches")
+            assert lag <= BOUND, report[-1]
         assert proxy_flag_set() == json.loads((PRESETS / f"{name}.json").read_text()), name
         for key, attributes, want in EXPECTED[name]:
             assert evaluate(key, **attributes) == want, (name, key, attributes)

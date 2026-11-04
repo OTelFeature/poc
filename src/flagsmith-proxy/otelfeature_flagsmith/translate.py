@@ -1,10 +1,12 @@
 """A Flagsmith environment document as a flagd flag set, for the demo flags.
 
 The rules are the spec's (docs/spec/entity_model.md#flagsmith-mode, UC-008
-BR-009): the flags, their variants and metadata come from the catalog
-(`00-baseline.json`); Flagsmith only decides which variant each flag serves,
-by default and per segment override. Anything outside that subset raises
-TranslationError, and the caller keeps its last good flag set.
+BR-009, BR-013): the flags, their variants and metadata come from the
+catalog (`00-baseline.json`); Flagsmith only decides which variant each flag
+serves, by default and per segment override, and for a gated flag whether
+it is served as in the catalog. `metadata.preset` names the preset file the
+flags equal. Anything outside that subset raises TranslationError, and the
+caller keeps its last good flag set.
 
 Standard library only, so the CI checks run it without the Edge Proxy.
 """
@@ -15,7 +17,9 @@ import copy
 import json
 import math
 from pathlib import Path
-from typing import Any
+from typing import Any, Iterable
+
+from . import DEMO, PRESETS, STAGE_ORDER
 
 # Flagsmith condition operators → JsonLogic. The numeric ones compare numbers.
 COMPARISONS = {
@@ -28,8 +32,8 @@ COMPARISONS = {
 }
 NUMERIC = {">", ">=", "<", "<="}
 
-# The feature whose value names the preset last applied (UC-008 BR-010).
-MARKER = "demoPreset"
+# The name of a flag set that equals no preset file (UC-008 BR-009).
+CUSTOM = "custom"
 
 
 class TranslationError(ValueError):
@@ -40,7 +44,19 @@ def load_catalog(path: Path) -> dict[str, Any]:
     return json.loads(Path(path).read_text())
 
 
-def translate(document: dict[str, Any], catalog: dict[str, Any]) -> dict[str, Any]:
+def load_presets() -> dict[str, dict[str, Any]]:
+    """The preset files in stage order, which `metadata.preset` is named after."""
+    return {name: load_catalog(PRESETS / f"{name}.json") for name in STAGE_ORDER}
+
+
+def gated_flags() -> set[str]:
+    return set(json.loads(DEMO.read_text())["gated"])
+
+
+def translate(document: dict[str, Any], catalog: dict[str, Any],
+              presets: dict[str, dict] | None = None, gated: Iterable[str] | None = None) -> dict[str, Any]:
+    presets = load_presets() if presets is None else presets
+    gated = gated_flags() if gated is None else set(gated)
     defaults = {fs["feature"]["name"]: fs for fs in document.get("feature_states") or []}
     overrides: dict[str, list[tuple[float, int, dict, dict]]] = {}
     segments = (document.get("project") or {}).get("segments") or []
@@ -54,26 +70,29 @@ def translate(document: dict[str, Any], catalog: dict[str, Any]) -> dict[str, An
     for key, base in catalog["flags"].items():
         flag = copy.deepcopy(base)
         flag.pop("targeting", None)
-        if key in defaults:
-            fs = defaults[key]
+        fs = defaults.get(key)
+        # A gated flag switched off (or missing) is the catalog's, without targeting.
+        switched_off = key in gated and not (fs and fs.get("enabled"))
+        if fs is not None and not switched_off:
             if not _is_boolean(base) and not fs.get("enabled"):
                 # Served as disabled: the services fall back to their defaults.
                 flag["state"] = "DISABLED"
             else:
                 flag["defaultVariant"] = _variant(key, base, fs, "the default")
         chain: list[tuple[list[Any], str]] = []
+        # Every override is checked, also those of a switched-off flag, so that
+        # switching it on later is not what finds a bad one.
         for _, _, segment, fs in sorted(overrides.get(key, []), key=lambda o: o[:2]):
             name = segment.get("name", segment.get("id"))
-            if not _is_boolean(base) and not fs.get("enabled"):
-                raise TranslationError(f"{key}: the override for segment {name!r} is switched off; "
-                                       "only boolean flags may have a disabled override")
             variant = _variant(key, base, fs, f"the override for segment {name!r}")
             rule = _segment_rule(segment)
+            if not _is_boolean(base) and not fs.get("enabled"):
+                continue  # a switched-off override of a non-boolean flag does not apply
             if chain and chain[-1][1] == variant:
                 chain[-1][0].append(rule)
             else:
                 chain.append(([rule], variant))
-        if chain:
+        if chain and not switched_off:
             args: list[Any] = []
             for rules, variant in chain:
                 args += [_combine("or", rules), variant]
@@ -81,12 +100,8 @@ def translate(document: dict[str, Any], catalog: dict[str, Any]) -> dict[str, An
             flag["targeting"] = {"if": args}
         flags[key] = flag
 
-    flag_set: dict[str, Any] = {"$schema": catalog["$schema"]}
-    marker = defaults.get(MARKER, {}).get("feature_state_value")
-    if marker not in (None, ""):
-        flag_set["metadata"] = {"preset": str(marker)}
-    flag_set["flags"] = flags
-    return flag_set
+    name = next((n for n, preset in presets.items() if preset["flags"] == flags), CUSTOM)
+    return {"$schema": catalog["$schema"], "metadata": {"preset": name}, "flags": flags}
 
 
 def _priority(fs: dict) -> float:
@@ -99,7 +114,7 @@ def _is_boolean(flag: dict) -> bool:
 
 
 def _variant(key: str, flag: dict, fs: dict, what: str) -> str:
-    """The variant of `flag` that a Flagsmith feature state serves."""
+    """The variant of `flag` that a Flagsmith feature state serves (a non-boolean one: its value)."""
     if fs.get("multivariate_feature_state_values"):
         raise TranslationError(f"{key}: {what} is a percentage split, which has no flagd counterpart here")
     if _is_boolean(flag):

@@ -1,5 +1,5 @@
 {
-  "marker": "demoPreset",
+  "gated": {"recordSpan": "on", "traceSampleRatio": "all", "weatherUpstreamFailure": "incident"},
   "segments": {
     "geocode-health": {
       "type": "ALL",

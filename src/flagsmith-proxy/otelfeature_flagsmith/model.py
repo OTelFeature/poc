@@ -8,7 +8,8 @@ Flagsmith Cloud serves its documents (TC-008 items 3 to 5).
 
 It follows the CLI's documented behaviour (flagsmith-cli v2): a value's type
 is inferred like `--value` does, a new segment override starts from the
-environment default and joins at the end, `flag reorder` assigns 0..n-1.
+environment default and joins at the end, `flag reorder` assigns 0..n-1,
+and only its own feature can override a feature-specific segment.
 What real Flagsmith does beyond that is checked only in rehearsal (OQ-16).
 """
 
@@ -104,7 +105,7 @@ class Environment:
             raise CLIError(f"segment {name} {'already exists' if create else 'not found'}")
         rules = json.loads(opts["--rules"])
         if create:
-            self.segments[name] = {"id": self._next_id(), "rules": rules}
+            self.segments[name] = {"id": self._next_id(), "rules": rules, "feature": opts.get("--feature")}
         else:
             self.segments[name]["rules"] = rules
 
@@ -117,6 +118,9 @@ class Environment:
         else:
             if segment not in self.segments:
                 raise CLIError(f"segment {segment} not found")
+            owner = self.segments[segment]["feature"]
+            if owner not in (None, feature):
+                raise CLIError(f"segment {segment} is specific to feature {owner}")
             key = (feature, segment)
             if key not in self.overrides:
                 default = self.features[feature]
@@ -148,7 +152,7 @@ class Environment:
 
 
 # CLI options that take a value; every other option is a switch.
-_VALUED = {"--value", "--type", "--segment", "--priority", "--rules", "--description"}
+_VALUED = {"--value", "--type", "--segment", "--priority", "--rules", "--description", "--feature"}
 
 
 def _parse(argv: list[str]) -> tuple[list[str], dict[str, Any]]:

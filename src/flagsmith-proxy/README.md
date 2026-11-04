@@ -28,27 +28,40 @@ Flagsmith CLI ──writes──> Flagsmith ──real-time event──> flagsmi
 | [otelfeature_flagsmith/stub_cloud.py](otelfeature_flagsmith/stub_cloud.py) | A stub of Flagsmith Cloud: environment document and real-time stream |
 
 The preset files in [src/flagd/presets](../flagd/presets) stay the source
-of every demo state. Flagsmith only decides which variant each flag serves.
+of every demo state. Flagsmith only decides which variant each flag serves,
+and for the gated flags whether their rules reach flagd at all.
 The variants, their names and their descriptions come from `00-baseline.json`,
 so in Flagsmith mode flagd serves exactly the preset files (UC-008 BR-009).
 
 ## In Flagsmith
 
 One project and one environment with real-time updates switched on
-(Flagsmith Enterprise). `seed` creates:
+(Flagsmith Enterprise; without it, see the fallback poll below). `seed`
+creates everything, once (UC-008 BR-013):
 
-- one feature per flag (`otelEnabled`, `telemetryLevel`, `recordSpan`,
-  `traceSampleRatio`, `weatherUpstreamFailure`), plus `demoPreset`, which
-  names the preset last applied. For the two boolean flags the feature's
-  on/off state is the value.
-- five segments: `geocode-health`, `weather-jdbc`, `high-error-rate`,
-  `production-weather` and `production`, built the way the Flagsmith UI
-  builds them (all of the conditions).
+- one feature per flag: `otelEnabled`, `telemetryLevel`, `recordSpan`,
+  `traceSampleRatio`, `weatherUpstreamFailure`. `recordSpan`,
+  `traceSampleRatio` and `weatherUpstreamFailure` are **gated**: switched
+  off, flagd gets them as in `00-baseline.json`, without targeting, so the
+  services keep their static fast path. They are seeded off, holding the
+  value they serve once switched on (`weatherUpstreamFailure` = 0.5, the
+  incident).
+- five segments, each feature-specific to the flag that uses it:
+  `geocode-health`, `weather-jdbc` (on `recordSpan`), `high-error-rate`,
+  `production-weather`, `production` (on `traceSampleRatio`).
+- every segment override, in priority order. `recordSpan`'s serve `off`
+  and apply whenever `recordSpan` is on; `traceSampleRatio`'s are seeded
+  switched off and each applies once switched on.
 
-A preset then creates and deletes segment overrides and sets the values.
-`03b-incident` in Flagsmith, for example: `traceSampleRatio` overrides
-`high-error-rate` → 1.0, `production-weather` → 0.5, `production` → 0.1,
-in that order; `weatherUpstreamFailure` = 0.5.
+Each beat is then a few switches in the Flagsmith UI (the entity model's
+"Beats as switches" table): `03-semconv-rules` is `recordSpan` on,
+`traceSampleRatio` on and its `production` override on; `03a-weather-boost`
+adds the `production-weather` override; `03b-incident` the
+`high-error-rate` override and `weatherUpstreamFailure`. flagd's
+`metadata.preset` names the preset the switches match, or `custom`.
+
+A project seeded before this has its segments project-wide; `seed` stops
+and names them. Delete them in the UI (Segments) and seed again.
 
 ## Running it
 
@@ -67,9 +80,10 @@ $FS run --rm flagsmith-flag check       # does Flagsmith translate to the preset
 $FS run --rm flagsmith-flag plan 03b-incident   # the CLI calls, without running them
 ```
 
-The preset command reads the environment document first and writes only
-what differs, `demoPreset` last; overrides of a demo flag that demo.json
-doesn't list (added in the UI) are deleted. Then it waits until the proxy's
+The preset command makes the same switches with the CLI. It reads the
+environment document first and writes only what differs; it creates or
+deletes an override only to repair one changed by hand (missing, out of
+order, or not in demo.json). Then it waits until the proxy's
 flag set equals the preset file (writing every value again if the document
 it diffed against was stale) and flagd's OFREP endpoint names the preset,
 like the `flag` service. flagd authenticates to the proxy with the

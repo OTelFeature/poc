@@ -1,4 +1,4 @@
-"""Flagsmith mode without Flagsmith: TC-008 items 1 and 2.
+"""Flagsmith mode without Flagsmith: TC-008 items 1, 2 and 7.
 
 1. Every preset command, applied to a model of the Flagsmith environment
    (otelfeature_flagsmith.model), leaves a state that translates back to that
@@ -6,7 +6,10 @@
    document to diff against. src/flagd/test_presets.py checks the preset
    files themselves, so this also covers what flagd serves in Flagsmith mode.
 2. The translation rules of the entity model (Flagsmith mode), one by one,
-   including what is rejected.
+   including what is rejected and how gated flags are served.
+7. The beats as switches: from the seeded state, the switches the entity
+   model lists (what an operator does in the Flagsmith UI) give each preset,
+   and no preset command creates or deletes an override.
 
 Run: make test (in the ci/Dockerfile image; standard library only)
 """
@@ -15,10 +18,10 @@ import copy
 import json
 import sys
 
-from otelfeature_flagsmith import CATALOG, PRESETS, STAGE_ORDER
+from otelfeature_flagsmith import CATALOG, DEMO, PRESETS, STAGE_ORDER
 from otelfeature_flagsmith.model import Environment
 from otelfeature_flagsmith.preset import apply_plan, execute, seed_plan
-from otelfeature_flagsmith.translate import TranslationError, load_catalog, translate
+from otelfeature_flagsmith.translate import CUSTOM, TranslationError, load_catalog, translate
 
 CAT = load_catalog(CATALOG)
 
@@ -28,8 +31,10 @@ def preset(name):
 
 
 def seeded():
+    """What `seed` does: features and segments, then 00-baseline blind."""
     env = Environment()
     execute(seed_plan(env.document()), env.run)
+    execute(apply_plan("00-baseline"), env.run)
     return env
 
 
@@ -73,15 +78,13 @@ def test_plans_write_only_what_differs():
     env = seeded()
     apply(env, "03a-weather-boost")
     plan = apply(env, "03b-incident")
-    # The fault, the loop rule's override, the reorder, the marker.
-    assert [a[:3] for a in plan] == [
-        ["flag", "update", "traceSampleRatio"],
-        ["flag", "reorder", "traceSampleRatio"],
-        ["flag", "update", "weatherUpstreamFailure"],
-        ["flag", "update", "demoPreset"],
+    # The loop rule's override switched on, the fault switched on: the UI's two switches.
+    assert plan == [
+        ["flag", "update", "traceSampleRatio", "--segment", "high-error-rate", "--value", "1.0",
+         "--type", "string", "--enable"],
+        ["flag", "update", "weatherUpstreamFailure", "--value", "0.5", "--type", "string", "--enable"],
     ], plan
-    assert apply(env, "03b-incident") == [["flag", "update", "demoPreset", "--value", "03b-incident",
-                                           "--type", "string", "--enable"]]
+    assert apply(env, "03b-incident") == []
 
 
 def test_seed_is_repeatable():
@@ -157,7 +160,6 @@ def test_rejections():
     rejected(doc_with([]), "has no rules")
     rejected(doc_with(value="0.3"), "not a variant")
     rejected(doc_with(value="fast"), "not a float")
-    rejected(doc_with(enabled=False), "switched off")
     split = doc_with()
     for fs in split["feature_states"]:
         if fs["feature"]["name"] == "telemetryLevel":
@@ -166,16 +168,90 @@ def test_rejections():
     rejected(split, "percentage split")
 
 
-def test_overrides_added_by_hand_are_deleted():
+def test_overrides_changed_by_hand_are_repaired():
     env = seeded()
     apply(env, "03-semconv-rules")
-    # Overrides demo.json does not list: on a flag without overrides, and on a listed flag.
-    for argv in (["flag", "update", "otelEnabled", "--segment", "production", "--disable"],
-                 ["flag", "update", "traceSampleRatio", "--segment", "weather-jdbc", "--value", "0.5",
-                  "--type", "string", "--enable"]):
+    # Overrides demo.json does not list (on a segment made by hand, project-wide), on a flag
+    # without overrides and on a listed flag; and a listed override deleted.
+    env.run(["segment", "create", "by-hand", "--rules", '{"type":"ALL","rules":[{"type":"ANY",'
+             '"conditions":[{"property":"k","operator":"EQUAL","value":"v"}]}]}'])
+    for argv in (["flag", "update", "otelEnabled", "--segment", "by-hand", "--disable"],
+                 ["flag", "update", "traceSampleRatio", "--segment", "by-hand", "--value", "0.5",
+                  "--type", "string", "--enable"],
+                 ["flag", "delete", "recordSpan", "--segment", "geocode-health"]):
         env.run(argv)
     apply(env, "03a-weather-boost")
     check(env, "03a-weather-boost")
+
+
+def test_segments_are_feature_specific():
+    creates = [a for a in seed_plan() if a[:2] == ["segment", "create"]]
+    assert {a[2]: a[a.index("--feature") + 1] for a in creates} == {
+        "geocode-health": "recordSpan", "weather-jdbc": "recordSpan", "high-error-rate": "traceSampleRatio",
+        "production-weather": "traceSampleRatio", "production": "traceSampleRatio"}, creates
+
+
+def test_switched_off_override_does_not_apply():
+    document = doc_with(enabled=False)
+    flags = translate(document, CAT)["flags"]
+    assert "targeting" not in flags["traceSampleRatio"], flags["traceSampleRatio"]
+    # Still checked while it does not apply.
+    rejected(doc_with(value="0.3", enabled=False), "not a variant")
+
+
+def test_gated_flag_switched_off_is_the_baseline():
+    env = seeded()
+    apply(env, "03b-incident")
+    for key in ("recordSpan", "traceSampleRatio", "weatherUpstreamFailure"):
+        env.run(["flag", "update", key, "--disable"])
+        assert translate(env.document(), CAT)["flags"][key] == CAT["flags"][key], key
+
+
+def test_beats_as_switches():
+    """The entity model's "Beats as switches" table, as UI switches (`flag update` only)."""
+    env = seeded()
+    on, off = "--enable", "--disable"
+    beats = [
+        ("00-baseline", []),
+        ("01-otel-off", [["otelEnabled", off]]),
+        ("02-quiet-noise", [["otelEnabled", on], ["telemetryLevel", "--value", "IO", on]]),
+        ("03-semconv-rules", [["recordSpan", on], ["traceSampleRatio", on],
+                              ["traceSampleRatio", "--segment", "production", on]]),
+        ("03a-weather-boost", [["traceSampleRatio", "--segment", "production-weather", on]]),
+        ("03b-incident", [["traceSampleRatio", "--segment", "high-error-rate", on],
+                          ["weatherUpstreamFailure", on]]),
+        ("03a-weather-boost", [["traceSampleRatio", "--segment", "high-error-rate", off],
+                               ["weatherUpstreamFailure", off]]),
+    ]
+    overrides = set(env.overrides)
+    for name, switches in beats:
+        for switch in switches:
+            env.run(["flag", "update", *switch])
+        check(env, name)
+    assert set(env.overrides) == overrides
+    # A switch the script does not use.
+    env.run(["flag", "update", "traceSampleRatio", "--segment", "production", off])
+    assert translate(env.document(), CAT)["metadata"]["preset"] == CUSTOM
+
+
+def test_seeded_presets_only_switch():
+    for start in STAGE_ORDER:
+        for target in STAGE_ORDER:
+            env = seeded()
+            apply(env, start)
+            overrides = set(env.overrides)
+            plan = apply(env, target)
+            assert all(a[:2] == ["flag", "update"] for a in plan), (start, target, plan)
+            assert set(env.overrides) == overrides, (start, target)
+
+
+def test_gated_boolean_overrides_come_together():
+    """A boolean override applies with its flag, so a preset lists all of them or none."""
+    demo = json.loads(DEMO.read_text())
+    for key, entries in demo["overrides"].items():
+        if all(isinstance(v, bool) for v in CAT["flags"][key]["variants"].values()):
+            for name, on in demo["presets"].items():
+                assert on.get(key, []) in ([], [e["segment"] for e in entries]), (name, key)
 
 
 def test_feature_states():
