@@ -1,7 +1,6 @@
 # stub-apis
 
-An offline stand-in for the two external APIs the demo calls, so the stack
-runs on stage with no network (OTelFeature/poc#24):
+An offline stand-in for the external APIs, so the stack runs without network:
 
 | Real API | Stub path | Called by |
 |---|---|---|
@@ -9,40 +8,36 @@ runs on stage with no network (OTelFeature/poc#24):
 | [Open-Meteo geocoding](https://open-meteo.com/en/docs/geocoding-api) | `GET /v1/search?name=<city>&country=<country>` | `weather` |
 | [Open-Meteo forecast](https://open-meteo.com/en/docs) | `GET /v1/forecast?latitude=..&longitude=..` | `weather` |
 
-It knows the city/country pairs in the
-[load generator's](../load-generator/load-test.js) `LOCATIONS` list. Any other
-location gets the same empty answer the real API gives, so the services
-return `404` as they would live. Forecast values are random. Every API
-response waits 20–120 ms, so the outgoing `CLIENT` spans look like real
-network calls (with `server.address` = `stub-apis`).
+It knows the locations in the
+[load generator's](../load-generator/load-test.js) `LOCATIONS` list. Other
+locations get the real API's empty answer, so the services return `404`.
+Forecast values are random. Each API response waits a random 20 to 120 ms,
+so the `CLIENT` spans look like network calls. `GET /health` answers at once.
 
 [stub.py](stub.py) uses only the Python standard library. The
-[Dockerfile](Dockerfile) copies it into the stock `python:3.15-slim-bookworm`
-image; `main` publishes that as `ghcr.io/otelfeature/poc-stub-apis`
-(NFR-017), so `docker compose pull` fetches it like the other services. After
-editing `stub.py`, run `docker compose up -d --build stub-apis`.
+[Dockerfile](Dockerfile) copies it into the stock Python image, published as
+`ghcr.io/otelfeature/poc-stub-apis`. After editing `stub.py`, run
+`docker compose up -d --build stub-apis`. If you add a location to
+`load-test.js`, add it to `LOCATIONS` in `stub.py` too.
 
-If you add a location to `load-test.js`, add it to `LOCATIONS` in `stub.py`
-too.
+## Stub or real APIs
 
-## Switching between stub and real APIs
+Compose points `NOMINATIM_URL` (geocode) and `OPEN_METEO_GEOCODING_URL`,
+`OPEN_METEO_FORECAST_URL` (weather) at this stub. `make start-live` sets
+them to the real endpoints for that run only. To stay live, put the three
+variables in `.env`.
 
-`geocode` reads `NOMINATIM_URL`, `weather` reads `OPEN_METEO_GEOCODING_URL`
-and `OPEN_METEO_FORECAST_URL`. Compose defaults all three to this stub;
-`make start-live` sets them to the real endpoints for that invocation only;
-a later `make start` or `docker compose up -d <service>` goes back to the
-stub. Put the three variables in `.env` to stay live.
-
-Postgres caches results with no expiry, so the stub (or the real API) is
-only called on a cache miss. `docker compose --profile staging down -v` empties the cache.
+Postgres caches results with no expiry, so the stub or the real API is only
+called on a cache miss. `docker compose --profile staging down -v` empties
+the cache.
 
 ## Configuration
 
-| Environment variable  | Default | Description |
-|-----------------------|---------|-------------|
-| `STUB_PORT`           | `8080`  | Listen port |
-| `STUB_LATENCY_MIN_MS` | `20`    | Lower bound of the random response delay |
-| `STUB_LATENCY_MAX_MS` | `120`   | Upper bound of the random response delay |
+| Environment variable | Default | Description |
+|---|---|---|
+| `STUB_PORT` | `8080` | Listen port |
+| `STUB_LATENCY_MIN_MS` | `20` | Lower bound of the response delay |
+| `STUB_LATENCY_MAX_MS` | `120` | Upper bound of the response delay |
 
 ## Running standalone
 

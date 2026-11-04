@@ -5,10 +5,10 @@
 **Use Case ID:** UC-008  
 **Use Case Name:** Run the demo on stage  
 **Primary Actor:** Operator  
-**Secondary Actors:** flagd, demo stack, Aspire dashboard  
+**Secondary Actors:** flagd, demo stack, Aspire dashboard, Dash0 (opt-in, C-016)  
 **Goal:** The operator runs Demos 1 to 3 from a laptop without network access, moving between states with one command per script beat and resetting between rehearsals, so that the live demo cannot be broken by venue Wi-Fi or a typo in a JSON file.  
 **Status:** Draft  
-**Requirements:** FR-018, FR-019, FR-010, NFR-004, NFR-012, NFR-015, NFR-017, C-006, C-007, C-008, C-009  
+**Requirements:** FR-018, FR-019, FR-010, NFR-004, NFR-012, NFR-015, NFR-017, C-006, C-007, C-008, C-009, C-016  
 **Work Items:** OTelFeature/poc#24, OTelFeature/poc#26, OTelFeature/poc#25, OTelFeature/poc#32, OTelFeature/poc#33, OTelFeature/poc#35, OTelFeature/poc#64, OTelFeature/poc#74, OTelFeature/poc#91, OTelFeature/poc#110  
 **Test Cases:** TC-006  
 **Script Beat:** all demos; cold open uses OTel Demo footage (D1)  
@@ -19,6 +19,7 @@
 - The operator has pulled all images while online: the prebuilt `geocode`, `weather` and `stub-apis` images published from `main`, which carry the pinned extension releases (C-006, NFR-017), and the third-party images, including the `flag` command's busybox (BR-008).
 - Presets exist for each demo state: baseline, tracing off, quiet noise, semconv rules, weather boost, incident (BR-006).
 - A fallback video exists for each demo.
+- Each laptop's backend is set up: the Aspire dashboard on every laptop, Dash0 only on a laptop whose `.env` enables it (C-016).
 
 ## Main Success Scenario
 
@@ -101,3 +102,7 @@ flagd reloads a flag file only when its mtime strictly increases, so every prese
 ### BR-008: The stage pulls, it does not build
 
 The stage runs the images published from `main` (NFR-017), so the operator's laptop needs Docker only and no build can fail on the day. `POC_IMAGE_TAG` selects them: `main` by default, or the `sha-<short>` tag of the commit that was rehearsed, so the stage runs exactly the rehearsed images. The stage starts with `--pull never --no-build`, so a missing image fails before the talk instead of being built quietly. Building from source is the fallback (A3), never the default (Simon, 2026-10-16, OTelFeature/poc#91).
+
+### BR-009: An external backend never holds up the stage
+
+Dash0, where a laptop enables it (C-016), receives the same traces, metrics and logs as Aspire. Offline, its exporter tries each batch once, with a 2 s timeout and no retries, and drops it; 20 parallel attempts drain more batches per second than the collector sends. Its queue never fills, so no export error reaches the services, nothing is sent to Aspire twice, and BR-001 holds on that laptop too; Dash0 misses what was sent while offline; the dashboard shown on stage is the one the laptop has (Simon, 2026-11-03).

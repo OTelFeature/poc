@@ -61,7 +61,7 @@ suite's flake check.
   writes every export request it receives, unprocessed, as one JSON line to
   `/out/spans.jsonl`. [spans.py](spans.py) tails that file. A test sees every
   span that reached the collector, so "no `/health` span since the flip took
-  effect" is an exact assertion. No Aspire, no Datadog.
+  effect" is an exact assertion. No Aspire, no Dash0.
 - **Almost no background traffic.** The load generator is off; the tests
   send the requests. The one exception is Docker's healthchecks: they call
   `/health` on every geocode and weather instance (including the hard-floor
