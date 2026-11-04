@@ -9,7 +9,7 @@
 **Goal:** After the talk, an adopter clones the public demo repository and reproduces Demos 1 to 3 with only Docker installed, so that the talk's claims can be checked and the extensions evaluated.  
 **Status:** Draft  
 **Requirements:** FR-020, FR-021, FR-018, NFR-008, NFR-017  
-**Work Items:** OTelFeature/poc#31, OTelFeature/poc#14, OTelFeature/poc#15, OTelFeature/poc#91  
+**Work Items:** OTelFeature/poc#31, OTelFeature/poc#14, OTelFeature/poc#15, OTelFeature/poc#91, OTelFeature/poc#114  
 **Test Cases:** TC-007  
 **Script Beat:** call to action ("repo and demo are on the slide")  
 

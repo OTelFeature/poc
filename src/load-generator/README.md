@@ -43,7 +43,8 @@ incident can't push `geocode`'s error rate over the control-loop threshold
 | `K6_OTEL_SERVICE_NAME` | - | `load-generator` | `service.name` of k6's metrics |
 
 A `HEALTHCHECK_RATE` or `FORECAST_INTERVAL_SECONDS` that isn't a whole
-number makes k6 exit at startup. Changing any variable needs a k6 restart.
+number makes k6 exit at startup. After changing one in compose.yaml, recreate k6 with
+`docker compose up -d load-generator`; a plain restart keeps the old values.
 
 With `make start-live`, only cache misses reach the real APIs. Nominatim's
 usage policy allows about 1 request per second per source IP, and more gets

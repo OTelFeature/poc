@@ -34,9 +34,9 @@ The collector's own metrics and logs go to Aspire through
 Opt-in per laptop (C-016). To enable it, add the lines of
 [.env.dash0.example](../../.env.dash0.example) to the git-ignored `.env` at
 the repo root and fill in the token. `COMPOSE_FILE` there makes every
-`docker compose` command and `make` target load
+stage command (`docker compose …`, `make start/stop/flag/demo-reset`) load
 [compose.dash0.yaml](../../compose.dash0.yaml), which passes
-[dash0.yaml](dash0.yaml) as a second `--config`. Without `.env` nothing goes
+[dash0.yaml](dash0.yaml) as a second `--config`. `make e2e` and `make bench` pass `-f` and never load it. Without `.env` nothing goes
 to Dash0.
 
 dash0.yaml adds the `otlp_grpc/dash0` exporter and three pipelines,
@@ -85,6 +85,10 @@ The first three are set in [compose.yaml](../../compose.yaml), the Dash0
 ones in `.env`.
 
 ## Troubleshooting
+
+- **Dash0 answers 401:** `DASH0_AUTH_TOKEN` in `.env` is empty or wrong.
+  Nothing checks it at startup, so an empty token only shows up as
+  rejected batches in the collector log.
 
 The `debug` exporter logs every batch it receives:
 
