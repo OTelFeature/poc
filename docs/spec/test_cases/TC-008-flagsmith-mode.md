@@ -36,7 +36,7 @@
 3. **Pushed flip:** through the real Edge Proxy and flagd against a stub of Flagsmith Cloud, each preset of steps 2 to 5 is served by flagd's OFREP with its `metadata.preset` within 2 s of the real-time event, and the proxy's flag set equals the preset file (UC-008 BR-010, BR-011; `test_pushed_progression`, `make flagsmith-test`).
 4. **Fallback poll:** with the real-time stream switched off, a change still reaches flagd after the proxy's next poll (`test_poll_fallback`, `make flagsmith-test`).
 5. **Rejected input keeps the last flag set:** after step 6, flagd still serves the previous preset (UC-008 A5; `test_rejected_environment`, `make flagsmith-test`).
-6. **Against Flagsmith Cloud:** steps 1 to 5 with the real CLI and Cloud; each preset command reports its preset served within its timeout. Then step 7 in the Flagsmith UI; after each beat's switches flagd's `metadata.preset` names that beat's preset. Rehearsal check (OQ-16).
+6. **Against Flagsmith Cloud:** steps 1 to 5 with the real CLI and Cloud; each preset command reports its preset served within its timeout. Then step 7 in the Flagsmith UI; after each beat's switches flagd's `metadata.preset` names that beat's preset. `seed` run a second time succeeds (it finds its feature-specific segments and does not take them for project-wide ones). Rehearsal check (OQ-16).
 7. **Beats as switches:** from the seeded state, the switches of step 7 alone, with no override created or deleted, give each preset in stage order, named by `metadata.preset`; a combination the script does not use is named `custom`. Every preset command, too, only switches and sets values once the environment is seeded (UC-008 BR-013; `test_translate.py`, `make test`).
 
 ## Postconditions

@@ -293,6 +293,12 @@ flag missing in Flagsmith is served as in `00-baseline.json`.
 file whose flags it equals (they all differ), checked in stage order, and
 `custom` when it equals none (UC-008 BR-009).
 
+This is not how Flagsmith itself evaluates the environment: there, an
+override applies even when it or the environment default is switched off.
+The Flagsmith UI's own evaluation (an identity's flags) can therefore
+disagree with flagd; what flagd serves is the translation's (UC-008
+BR-013).
+
 **Segments** (created once by the seed command). Each is feature-specific:
 it belongs to the one flag whose overrides use it (`segment create
 --feature`), so the Flagsmith UI shows it only on that flag, and no other
