@@ -99,8 +99,8 @@ Only the comparisons the presets use and their direct counterparts are
 translated: `EQUAL`, `NOT_EQUAL`, `GREATER_THAN(_INCLUSIVE)`,
 `LESS_THAN(_INCLUSIVE)` in `ALL`, `ANY` and `NONE` rules, and values that are
 a variant of their flag. Anything else, such as a regex condition, a
-percentage split, `traceSampleRatio` = 0.3, or a switched-off override of a non-boolean flag,
-is rejected for the whole environment. The proxy logs
+percentage split or `traceSampleRatio` = 0.3, is rejected for the whole
+environment (a switched-off override is not: it just does not apply). The proxy logs
 `flagd_translation_rejected` and keeps serving the last good flag set
 (UC-008 A5). Features that are no demo flag are ignored.
 

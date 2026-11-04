@@ -91,7 +91,9 @@ def translate(document: dict[str, Any], catalog: dict[str, Any],
             if _is_boolean(base):
                 _no_split(key, fs, what)
                 # Switched on, it serves the flag's other variant (BR-013), not its own switch.
-                variant = next(v for v in base["variants"] if v != flag["defaultVariant"])
+                variant = next((v for v in base["variants"] if v != flag["defaultVariant"]), None)
+                if variant is None:
+                    raise TranslationError(f"{key}: a boolean flag needs two variants for {what}")
             else:
                 variant = _variant(key, base, fs, what)
             rule = _segment_rule(segment)

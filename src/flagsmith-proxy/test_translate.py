@@ -297,7 +297,24 @@ def test_feature_states():
     assert "somethingElse" not in flags
 
 
-def test_boolean_override_off_is_the_off_variant():
+def test_ungated_boolean_override():
+    env = seeded()
+    env.run(["segment", "create", "by-hand", "--rules", '{"type":"ALL","rules":[{"type":"ANY",'
+             '"conditions":[{"property":"k","operator":"EQUAL","value":"v"}]}]}'])
+    env.run(["flag", "update", "otelEnabled", "--disable"])
+    env.run(["flag", "update", "otelEnabled", "--segment", "by-hand", "--enable"])
+    flag_set = translate(env.document(), CAT)
+    # Default off, so the switched-on override serves on; no preset looks like this.
+    assert flag_set["flags"]["otelEnabled"]["targeting"]["if"][1:] == ["on", "off"]
+    assert flag_set["metadata"]["preset"] == CUSTOM
+    document = env.document()
+    for segment in document["project"]["segments"]:
+        for fs in segment["feature_states"]:
+            fs["multivariate_feature_state_values"] = [{"id": 1, "percentage_allocation": 50}]
+    rejected(document, "percentage split")
+
+
+def test_switched_on_boolean_override_serves_off():
     env = seeded()
     apply(env, "03-semconv-rules")
     record = translate(env.document(), CAT)["flags"]["recordSpan"]
