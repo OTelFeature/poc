@@ -15,7 +15,7 @@
 
 ## Preconditions
 
-- The owner, not an agent, has made the repository public (OTelFeature/poc#31); its history is free of secrets.
+- The owner, not an agent, has made the repository public (OTelFeature/poc#31, done 2026-11-04); its history is free of secrets.
 - The README has a "Try it locally" section and links both extensions.
 - The prebuilt images of `main` are published (NFR-017) and the adopter can pull them: the owner has made the packages public with the repository (OTelFeature/poc#31, done 2026-11-04), so no `docker login` is needed.
 
