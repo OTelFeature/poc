@@ -62,7 +62,7 @@ the end-to-end suite and the toolchain images.
 | OTelFeature/poc#38 | k6 health-check scenario, split out of OTelFeature/poc#23 (answers OQ-5) | P0 | FR-006 (traffic for the health-check rule, Demo 3 since OTelFeature/poc#110) | UC-002 | TC-002 |
 | OTelFeature/poc#59 | Cross-service path: `geocode` calls `weather` | P1 | FR-026 | UC-004 | TC-004 |
 | OTelFeature/poc#35 | End-to-end suite in CI, safety net before merging | P1 | NFR-015, C-013 (verifies NFR-004, NFR-012) | UC-008 (BR-005) | TC-001, TC-002, TC-004, TC-005, TC-006 |
-| OTelFeature/poc#64 | Pin released extensions (v0.3.0 / v0.4.0) for stage and e2e | P0 | C-006, C-013 | UC-008 | TC-006 |
+| OTelFeature/poc#64 | Pin released extensions (v0.3.0 / v0.4.0; bumped to v0.4.0 / v0.5.0 by PR OTelFeature/poc#103) for stage and e2e | P0 | C-006, C-013 | UC-008 | TC-006 |
 | OTelFeature/otelfeature-instrument#7 | Eval context from semconv (Python) | P0 | FR-005, NFR-003 | UC-002, UC-004 | TC-002, TC-004 |
 | OTelFeature/otelfeature-instrument#8 | Error rate into context (Python); also `OTEL_METRICS_EXPORTER=none` | P1 | FR-011, FR-024, NFR-013, NFR-014, C-005 | UC-005 | TC-005 |
 | OTelFeature/otelfeature-instrument#9 | No decision attributes; opt-in tracing hook (Python) | P1 | FR-014, NFR-006 | UC-007 | TC-005 |
@@ -95,15 +95,15 @@ issue is one PR, stacked on the previous one in its lane (see the
 - **Python** (`otelfeature-instrument`, merged): poc#8 → poc#9 → instrument#7 → instrument#14 → poc#10 (py) → instrument#8 → instrument#9 → poc#12
 - **Java** (`otelfeature-java-extension`, merged): poc#8 → poc#9 → java#21 → java#20 → java#27 → poc#10 (java) → java#22 (java#23 closed as not planned); post-talk: java#39 (opt-in tracing hook, `main` only)
 - **POC** (`poc`): poc#22 → poc#24 → poc#25 → poc#38 → poc#26 → poc#28 → poc#30 → poc#29 → poc#59 (all done) → poc#27 → poc#31
-- **E2E** (`poc`): poc#35 in its five phases (harness, TC-001 and hard floors, TC-002, TC-004 and TC-005, matrix and nightly), all merged; the issue stays open until the nightly runs are green. Follow-ups: poc#70, poc#80.
+- **E2E** (`poc`): poc#35 in its five phases (harness, TC-001 and hard floors, TC-002, TC-004 and TC-005, matrix and nightly), all merged; closed 2026-11-05 after five green nightly runs in a row (2026-11-01 to 2026-11-05). Follow-ups: poc#70, poc#80.
 - **Toolchain** (not stacked, each its own PR from `main`): instrument#20 (PR #21), java#32 (PR #35), poc#67 (PR #69). They depend on nothing in the feature stacks; once merged, a rebased stacked PR gets a CI run.
 - **People, not agents:** poc#33, poc#32
 
 Sync points: poc#22 finishes before instrument#7 / java#20 start. poc#27
 decided D3 (`processor`, 2026-10-16). poc#27's final numbers and poc#29 need
 released versions of both extensions (C-006); both are released
-(otelfeature-instrument v0.3.0, otelfeature-java-extension v0.4.0) and pinned
-by poc#64, and poc#35 runs against those pins by default (C-013). The `traceSampleRatio` entry in
+(first otelfeature-instrument v0.3.0, otelfeature-java-extension v0.4.0, pinned
+by poc#64; now v0.4.0 and v0.5.0, PR poc#103), and poc#35 runs against those pins by default (C-013). The `traceSampleRatio` entry in
 `src/flagd/flagd.json` (poc#10) is a `poc` change, not part of the extension
 PRs.
 
@@ -113,7 +113,8 @@ State as of 2026-10-16, checked with `gh` and
 `git merge-base --is-ancestor <head> origin/main`. Both extension chains are
 **merged on `main`** and released as otelfeature-instrument v0.3.0 and
 otelfeature-java-extension v0.4.0; `poc` pins them (OTelFeature/poc#64, C-006). The toolchain PRs are
-merged, and so is the whole `poc` stack (rechecked for OTelFeature/poc#73).
+merged, and so is the whole `poc` stack (rechecked for OTelFeature/poc#73). Since then `poc` pins otelfeature-instrument
+v0.4.0 and otelfeature-java-extension v0.5.0 (PR OTelFeature/poc#103).
 
 ### Python (`OTelFeature/otelfeature-instrument`): merged
 
@@ -171,7 +172,7 @@ Every PR below is on `main`. The first stack (#36 ← #37 ← #40 ← #41 ← #4
 | OTelFeature/poc#40 | OTelFeature/poc#38 (closed, answers OQ-5) | FR-006 (traffic for the health-check rule, Demo 3 since OTelFeature/poc#110), FR-017 (health-check part) | UC-002 | TC-002 |
 | OTelFeature/poc#41 | OTelFeature/poc#26 (closed) | FR-019, NFR-004 | UC-008 | TC-006 |
 | OTelFeature/poc#42 | OTelFeature/poc#28 (closed) | FR-012 | UC-006 | TC-005 |
-| OTelFeature/poc#43, #44, #52, #53, #54, #57 | OTelFeature/poc#35, phases 1 to 5 and the TC-006 stage progression (#57) (open: the nightly flake check has not run yet) | NFR-015, C-013 | UC-008 (BR-005) | TC-001, TC-002, TC-004, TC-005, TC-006 |
+| OTelFeature/poc#43, #44, #52, #53, #54, #57 | OTelFeature/poc#35, phases 1 to 5 and the TC-006 stage progression (#57) (closed 2026-11-05: five green nightly runs in a row) | NFR-015, C-013 | UC-008 (BR-005) | TC-001, TC-002, TC-004, TC-005, TC-006 |
 | OTelFeature/poc#56 | OTelFeature/poc#29 (closed) | FR-013, NFR-012 | UC-005, UC-008 (BR-006) | TC-005, TC-006 |
 | OTelFeature/poc#68 | none (OQ-14: incident share 0.5) | FR-012, FR-013 | UC-005, UC-006 (BR-003) | TC-005 |
 | OTelFeature/poc#71 | OTelFeature/poc#59 (closed) | FR-026 | UC-004, UC-005 (A7) | TC-004 |
@@ -196,7 +197,7 @@ parity in e2e),
 OTelFeature/poc#76 (`geocode` on Python 3.15: blocked, because
 `openfeature-provider-flagd` requires `cachebox<6` and cachebox 5 has no
 3.15 build; `geocode` stays on 3.14 and Dependabot ignores 3.15 until then,
-decided by Simon, 2026-10-16), and OTelFeature/poc#35 until its nightly runs are green.
+decided by Simon, 2026-10-16).
 People, not agents: OTelFeature/poc#74 (full stage rehearsal three times,
 offline, NFR-012), OTelFeature/poc#32 (fallback videos),
 OTelFeature/poc#33 (OTel Demo footage).
