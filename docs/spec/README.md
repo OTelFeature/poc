@@ -217,7 +217,10 @@ e2e green (see [traceability.md](traceability.md#merge-order)).
 
 **Releases** (Simon, 2026-10-16): GitHub Releases created by a `v*` tag in
 each extension repo. The first releases with the talk's features are
-otelfeature-instrument v0.3.0 and otelfeature-java-extension v0.4.0. The
+otelfeature-instrument v0.3.0 and otelfeature-java-extension v0.4.0. `poc`
+now pins otelfeature-instrument v0.4.0 and otelfeature-java-extension v0.5.0
+(PR OTelFeature/poc#103; v0.5.0 replaced the planned v0.4.1,
+OTelFeature/otelfeature-java-extension#40, closed as not planned, 2026-11-05). The
 stage never builds from git refs; unreleased code gets a pre-release
 (`v…-rc.N`).
 
