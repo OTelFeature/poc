@@ -5,7 +5,7 @@
 - **ID:** TC-004
 - **Goal:** With production and staging instances running, the operator sets `traceSampleRatio` rules by `deployment.environment.name` and `service.name` and verifies the sampled volume per instance and that sampled traces are complete across services.
 - **Priority:** Critical
-- **Status:** Draft
+- **Status:** Passed
 
 ## Roles
 
@@ -49,7 +49,7 @@
 ## Automation
 
 - **Tests:** `test_tc004_target_sampling`, `test_tc004_cross_service` and `test_tc004_stage_preset_ratio` (`slow`) in `tests/e2e/` (OTelFeature/poc#35, phase 4). Needs the production and staging instances (OTelFeature/poc#25) and the ratio code in both extensions.
-- **How:** CI asserts only deterministic ratios (0.0 and 1.0); the 0.1 and 0.5 volumes of steps 3 and 5 are not asserted. The statistical case, the stage preset's 0.1, runs nightly (`test_tc004_stage_preset_ratio`, item 11); until a nightly run is green, this test case stays Draft (status rule in [requirements.md](../requirements.md)).
+- **How:** CI asserts only deterministic ratios (0.0 and 1.0); the 0.1 and 0.5 volumes of steps 3 and 5 are not asserted. The statistical case, the stage preset's 0.1, runs nightly (`test_tc004_stage_preset_ratio`, item 11); it has been green in both Java modes since 2026-11-01, so this test case is Passed (status rule in [requirements.md](../requirements.md)).
 - **Matrix:** runs in both Java enforcement modes (`processor`, `sampler`).
 - **Extension code:** the pinned released versions (C-006): otelfeature-instrument v0.4.0, otelfeature-java-extension v0.5.0. A git ref can be passed explicitly to check unreleased extension code (C-013).
 - **Step 6:** `test_tc004_cross_service` (OTelFeature/poc#59) asserts completeness, not the 10% volume. At baseline a `/forecast` trace has spans from both services, `weather`'s server span is a child of `geocode`'s HTTP client span, and the tree is connected. With `geocode` at 0.0 and `weather` at 1.0 in production, `/forecast` traces are absent from both services while direct `POST /weather` traces are sampled: the entry point decides (UC-004 BR-003, A2).

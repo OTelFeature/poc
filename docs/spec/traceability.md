@@ -102,8 +102,8 @@ issue is one PR, stacked on the previous one in its lane (see the
 Sync points: poc#22 finishes before instrument#7 / java#20 start. poc#27
 decided D3 (`processor`, 2026-10-16). poc#27's final numbers and poc#29 need
 released versions of both extensions (C-006); both are released
-(first otelfeature-instrument v0.3.0, otelfeature-java-extension v0.4.0, pinned
-by poc#64; now v0.4.0 and v0.5.0, PR poc#103), and poc#35 runs against those pins by default (C-013). The `traceSampleRatio` entry in
+(first released as otelfeature-instrument v0.3.0 and otelfeature-java-extension
+v0.4.0, pinned by poc#64; pinned at v0.4.0 and v0.5.0 since PR OTelFeature/poc#103), and poc#35 runs against those pins by default (C-013). The `traceSampleRatio` entry in
 `src/flagd/flagd.json` (poc#10) is a `poc` change, not part of the extension
 PRs.
 
@@ -236,7 +236,7 @@ Set by the Tested/Passed rule ([requirements.md](requirements.md), Simon,
 | UC-001 | Tested | Tested | TC-001 green |
 | UC-002 | Implemented | Tested | TC-002 green |
 | UC-003 | Draft | Draft | harness merged (PR OTelFeature/poc#79), OTelFeature/poc#27 open; TC-003 is not automated |
-| UC-004 | Draft | Implemented | flows on `main` (#37, #71); TC-004's `slow` check has not run in a nightly yet |
+| UC-004 | Draft | Tested | flows on `main` (#37, #71); TC-004 green, its `slow` check in the nightly runs since 2026-11-01 |
 | UC-005 | Draft | Tested | TC-005 green (#56, #68) |
 | UC-006 | Implemented | Tested | TC-005 and TC-006 green |
 | UC-007 | Draft | Tested | TC-005 green, with the hook check (#78) |
@@ -246,7 +246,7 @@ Set by the Tested/Passed rule ([requirements.md](requirements.md), Simon,
 | Test case | Before | After |
 |---|---|---|
 | TC-001, TC-002, TC-005, TC-006 | Draft | Passed |
-| TC-004 | Draft | Draft (Passed once a nightly run with `test_tc004_stage_preset_ratio` is green) |
+| TC-004 | Draft | Passed (`test_tc004_stage_preset_ratio` green in the nightly runs since 2026-11-01, both Java modes) |
 | TC-003, TC-007 | Draft | Draft (not automated) |
 | TC-008 | - | Draft (new, Flagsmith mode; its Cloud check is a rehearsal, OQ-16) |
 
