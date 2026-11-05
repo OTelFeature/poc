@@ -1,0 +1,5 @@
+# The build context is src/; only these go into the image.
+*
+!flagd/presets/*.json
+!flagsmith-proxy/demo.json
+!flagsmith-proxy/otelfeature_flagsmith/*.py

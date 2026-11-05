@@ -131,12 +131,30 @@ test: image
 
 # The checks that need no stack, the same as CI: every preset against the
 # flagd schema (fetched, so this needs network), committed flagd.json =
-# baseline, and the Python flagd provider's evaluation of every preset.
+# baseline, the Python flagd provider's evaluation of every preset, and the
+# Flagsmith-mode translation of every preset (TC-008 items 1 and 2).
 test-only:
 	$(CI_RUN) --entrypoint sh $(CI_IMAGE) -ec '\
 		check-jsonschema --schemafile $(FLAGD_SCHEMA) src/flagd/flagd.json $(PRESET_DIR)/*.json; \
 		cmp src/flagd/flagd.json $(PRESET_DIR)/00-baseline.json; \
-		python src/flagd/test_presets.py'
+		python src/flagd/test_presets.py; \
+		python src/flagsmith-proxy/test_translate.py'
+
+# Flagsmith mode (UC-008 A4, TC-008 items 3 to 5): the Flagsmith proxy and
+# flagd against a stub of Flagsmith Cloud, in a compose project of its own.
+# Needs only Docker. On failure it prints the logs. CI: flagsmith.yml.
+FLAGSMITH_TEST := docker compose -p otelfeature-flagsmith-test -f src/flagsmith-proxy/compose.test.yaml
+
+.PHONY: flagsmith-test flagsmith-test-only
+flagsmith-test: image
+	@$(MAKE) --no-print-directory flagsmith-test-only
+
+flagsmith-test-only:
+	$(FLAGSMITH_TEST) build
+	$(FLAGSMITH_TEST) up -d --wait --wait-timeout 120
+	@rc=0; CI_IMAGE=$(CI_IMAGE) $(FLAGSMITH_TEST) --profile runner run --rm runner -s test_integration.py || rc=$$?; \
+		[ $$rc -eq 0 ] || $(FLAGSMITH_TEST) logs --no-color stub-cloud flagsmith-proxy flagd | tail -n 200; \
+		$(FLAGSMITH_TEST) --profile runner down -v; exit $$rc
 
 # The services' own unit tests (OTelFeature/poc#75), in the test stage of
 # each service's Dockerfile: the same pinned builder images as the stage

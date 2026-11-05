@@ -28,6 +28,7 @@ Issue refs: `OTelFeature/poc#N` (poc), `OTelFeature/otelfeature-instrument#N`
 | Stage risk: live demo fails | C-008 | UC-008 | TC-006 | OTelFeature/poc#32 |
 | Stage risk: a laptop's backend (Aspire everywhere, Dash0 on the co-speaker's laptop) | C-016 | UC-008 (BR-009) | TC-006 | none (maintainer decision, Simon, 2026-11-03); OTelFeature/poc#114 |
 | Stage risk: a beat broke since the last rehearsal | NFR-004, NFR-012, NFR-015, NFR-016, C-013, C-014 | UC-008 (BR-005) | TC-001, TC-002, TC-004, TC-005, TC-006 (Automation sections) | OTelFeature/poc#35, OTelFeature/otelfeature-instrument#20, OTelFeature/otelfeature-java-extension#32, OTelFeature/poc#67, OTelFeature/poc#70 |
+| Optional: the flags authored in Flagsmith, flipped in the Flagsmith UI or with its CLI (OQ-16) | FR-027, NFR-004, C-002 | UC-008 (A4, A5, A6, BR-010 to BR-014) | TC-008 | none yet (proof of concept, `feat/flagsmith-edge-proxy`) |
 | Q&A: what else can become a flag | FR-021 | UC-009 | TC-007 | OTelFeature/poc#14, OTelFeature/poc#15 |
 
 ## Issue → spec
@@ -246,6 +247,7 @@ Set by the Tested/Passed rule ([requirements.md](requirements.md), Simon,
 | TC-001, TC-002, TC-005, TC-006 | Draft | Passed |
 | TC-004 | Draft | Draft (Passed once a nightly run with `test_tc004_stage_preset_ratio` is green) |
 | TC-003, TC-007 | Draft | Draft (not automated) |
+| TC-008 | - | Draft (new, Flagsmith mode; its Cloud check is a rehearsal, OQ-16) |
 
 ### Toolchain
 

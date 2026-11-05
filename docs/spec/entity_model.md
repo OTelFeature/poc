@@ -254,6 +254,138 @@ Every writer of a watched flag file therefore:
 This applies to the preset scripts, `make demo-reset`, the extension tests
 that rewrite flag files, and the e2e flag-flip helper (NFR-004, TC-006).
 
+### Flagsmith mode
+
+Opt-in (FR-027, UC-008 A4, Simon, 2026-11-03). The flags are authored in one
+Flagsmith environment; the Flagsmith proxy (`src/flagsmith-proxy`, Flagsmith's
+Edge Proxy with a flagd endpoint added) translates its environment document
+into a flagd flag set; flagd polls the proxy instead of reading
+`flagd.json`, and both services still sync from flagd (C-002). The preset
+files stay the source of the demo states (UC-008 BR-010):
+`src/flagsmith-proxy/demo.json` maps them onto Flagsmith.
+
+```text
+Flagsmith CLI ──writes──> Flagsmith ──real-time event──> Flagsmith proxy ──HTTP, 1 s──> flagd ──gRPC sync──> services
+                              ▲                               │
+                              └──── environment document ─────┘  (once per event; fallback poll 60 s)
+```
+
+**Features.** One Flagsmith feature per flag, same key. Every flag's
+variants, metadata and `state` come from `00-baseline.json`; Flagsmith
+supplies only which variant is served, and for a gated flag whether its
+rules apply (UC-008 BR-014, Simon, 2026-11-04).
+
+| Flag | Gated | Switch (the feature's enabled state) | Value in Flagsmith | Seeded as |
+|---|---|---|---|---|
+| `otelEnabled` | no | the variant: on = `on`, off = `off` | none | on |
+| `telemetryLevel` | no | on; off serves `state: DISABLED` | `FULL`, `IO` or `OFF` | on, `FULL` |
+| `recordSpan` | yes | the gate: off = as in `00-baseline.json` (`on`, no targeting); on = `on` with its switched-on overrides | none | off |
+| `traceSampleRatio` | yes | the gate: off = as in `00-baseline.json` (`all`, no targeting); on = its value with its switched-on overrides | a decimal string (`1.0`), one of the variant values | off, `1.0` |
+| `weatherUpstreamFailure` | yes | the gate: off = as in `00-baseline.json` (`none`); on = its value | a decimal string (`0.5`), one of the variant values | off, `0.5` (so switching it on is the incident) |
+
+A non-boolean feature that is not gated and is switched off is served with
+`state: DISABLED`, so the services fall back to their defaults (NFR-001).
+Features that are no flag of the presets (such as `demoPreset`, which
+earlier versions wrote) are not translated and never cause a rejection. A
+flag missing in Flagsmith is served as in `00-baseline.json`.
+
+**Preset name.** The flag set's `metadata.preset` is the name of the preset
+file whose flags it equals (they all differ), checked in stage order, and
+`custom` when it equals none (UC-008 BR-010).
+
+This is not how Flagsmith itself evaluates the environment: there, an
+override applies even when it or the environment default is switched off,
+and a boolean override serves its own switch.
+The Flagsmith UI's own evaluation (an identity's flags) can therefore
+disagree with flagd; what flagd serves is the translation's (UC-008
+BR-014).
+
+**Segments** (created once by the seed command). Each is feature-specific:
+it belongs to the one flag whose overrides use it (`segment create
+--feature`), so the Flagsmith UI shows it only on that flag, and no other
+feature can override it (UC-008 BR-014, Simon, 2026-11-04). Each is a
+Flagsmith rule tree of one `ALL` rule with one condition per sub-rule, the
+shape the Flagsmith UI builds:
+
+| Segment | Feature | Conditions (all must hold) |
+|---|---|---|
+| `skip-geocode-health` | `recordSpan` | `service.name` = `geocode`, `span.kind` = `server`, `url.path` = `/health` |
+| `skip-weather-jdbc` | `recordSpan` | `service.name` = `weather`, `otel.scope.name` = `io.opentelemetry.jdbc` |
+| `high-error-rate` | `traceSampleRatio` | `otelfeature.http.server.error_rate` > `0.05` |
+| `production-weather` | `traceSampleRatio` | `deployment.environment.name` = `production`, `service.name` = `weather` |
+| `production` | `traceSampleRatio` | `deployment.environment.name` = `production` |
+
+The two `recordSpan` segments are named after what their override does
+there, `skip-`, since they belong to that flag only (Simon, 2026-11-04); a
+project seeded with the earlier names `geocode-health` and `weather-jdbc`
+renames them in the Flagsmith UI, which keeps their overrides.
+
+A project-wide segment of the same name (from an earlier seed) is not
+converted: the seed command stops and names it, and the operator deletes it
+in the Flagsmith UI before seeding again.
+
+**Segment overrides** in priority order (first match wins). The seed command
+creates all of them, switched off, and they stay (UC-008 BR-014). An
+override applies only while it is switched on; switched off, flagd does not
+get its rule. A boolean flag's override (`recordSpan`) then serves the
+flag's other variant than the default it serves (`off` for `recordSpan`), a non-boolean flag's
+(`traceSampleRatio`) its value. A preset command sets
+each switch and value; it creates or deletes an override only to repair
+the environment: it recreates a missing one, restores the order, and
+deletes overrides of a demo flag that are not in this table (added by hand
+in the Flagsmith UI). It counts as applied only once the proxy's flag
+set equals the preset file and flagd serves it; if the environment document
+it diffed against was stale, it writes every value again (UC-008 BR-011).
+
+| Flag | Priority | Segment | Serves | Applies in |
+|---|---|---|---|---|
+| `recordSpan` | 0 | `skip-geocode-health` | `off` | `03-semconv-rules`, `03a-weather-boost`, `03b-incident` (`recordSpan` on) |
+| `recordSpan` | 1 | `skip-weather-jdbc` | `off` | `03-semconv-rules`, `03a-weather-boost`, `03b-incident` (`recordSpan` on) |
+| `traceSampleRatio` | 0 | `high-error-rate` | `all` (1.0) | `03b-incident` |
+| `traceSampleRatio` | 1 | `production-weather` | `half` (0.5) | `03a-weather-boost`, `03b-incident` |
+| `traceSampleRatio` | 2 | `production` | `tenth` (0.1) | `03-semconv-rules`, `03a-weather-boost`, `03b-incident` |
+
+**Beats as switches** (UC-008 A4 step 3), from the state before:
+
+| Preset | Switch in the Flagsmith UI |
+|---|---|
+| `00-baseline` | everything as seeded |
+| `01-otel-off` | `otelEnabled` off |
+| `02-quiet-noise` | `otelEnabled` on, `telemetryLevel` = `IO` |
+| `03-semconv-rules` | `recordSpan` on with its `skip-geocode-health` and `skip-weather-jdbc` overrides on, `traceSampleRatio` on with its `production` override on |
+| `03a-weather-boost` | the `production-weather` override on |
+| `03b-incident` | the `high-error-rate` override on, `weatherUpstreamFailure` on |
+| back to `03a-weather-boost` | the `high-error-rate` override off, `weatherUpstreamFailure` off |
+
+**Translation** (UC-008 BR-010). A gated flag that is switched off is the
+baseline flag; otherwise a flag's applying overrides become one flagd
+`if` chain in priority order, ending in the default variant; consecutive
+overrides that serve the same variant are joined with `or`. A segment's
+rules become JsonLogic: `ALL` → `and`, `ANY` → `or`, `NONE` → `!` of `or`,
+an `and` or `or` of one element is that element, and nested ones of the
+same kind are flattened. Conditions: `EQUAL` → `==` and `NOT_EQUAL` → `!=`
+with the value as a string (Flagsmith casts the value to the attribute's type, JsonLogic does not, so an `EQUAL` on a boolean or number attribute does not match; the presets compare strings only); `GREATER_THAN`, `GREATER_THAN_INCLUSIVE`,
+`LESS_THAN`, `LESS_THAN_INCLUSIVE` → `>`, `>=`, `<`, `<=` with the value as a
+number. The property is the JsonLogic `var`, so dotted semconv keys resolve
+as in the flag files (FR-005). An environment with any other operator, a
+value that is not a variant of its flag, or a percentage split
+(multivariate feature state) is rejected as a whole: the proxy logs why
+and keeps the last flag set it translated (UC-008 A5). A switched-off
+override is no rejection; it just does not apply.
+
+**Configuration** (`compose.flagsmith.yaml`):
+
+| Variable | Default | Meaning |
+|---|---|---|
+| `FLAGSMITH_SERVER_KEY` | none, required | Server-side environment key (`ser.…`). Only the proxy and the preset command use it, to fetch the environment document; it never appears in flagd's configuration |
+| `FLAGSMITH_CLIENT_KEY` | none, required | Client-side key of the same environment: names its real-time stream, is the CLI's `FLAGSMITH_ENVIRONMENT`, and is the bearer token flagd presents to the proxy (it is in flagd's command line, so it must be a key that may be seen) |
+| `FLAGSMITH_API_KEY` | none, for the preset command | Flagsmith Admin API key the CLI writes with |
+| `FLAGSMITH_PROJECT` | none, for the preset command | Flagsmith project, by id or name |
+| `FLAGSMITH_EDGE_API_URL` | `https://edge.api.flagsmith.com/api/v1` | Where the proxy and the preset command fetch the environment document (the Edge Proxy's `API_URL`). Not `FLAGSMITH_API_URL`: the CLI reads that as its Admin API URL |
+| `FLAGSMITH_REALTIME_URL` | `https://realtime.flagsmith.com/` | Flagsmith's real-time stream; empty switches the stream off and leaves only the poll |
+| `FLAGSMITH_POLL_SECONDS` | `60` | The proxy's fallback poll of the environment document |
+| `FLAG_CONFIRM_TIMEOUT` | `10` | Seconds the preset command waits for flagd to serve the preset |
+
 ### Policy field resolution
 
 | Field | From flags | Startup default (flag missing or broken) |
@@ -422,6 +554,7 @@ manual runs; pull requests build them for both platforms without pushing
 | `ghcr.io/otelfeature/poc-geocode` | `src/geocode` | `linux/amd64`, `linux/arm64` | `main`, `sha-<short>` | `io.github.otelfeature.instrument.version`: the `otelfeature-instrument` tag in `uv.lock` (C-006) |
 | `ghcr.io/otelfeature/poc-weather` | `src/weather` | `linux/amd64`, `linux/arm64` | `main`, `sha-<short>` | `io.github.otelfeature.java-extension.version`: `OTELFEATURE_EXTENSION_VERSION` (C-006); `io.opentelemetry.javaagent.version`: `OTEL_AGENT_VERSION` |
 | `ghcr.io/otelfeature/poc-stub-apis` | `src/stub-apis` | `linux/amd64`, `linux/arm64` | `main`, `sha-<short>` | none |
+| `ghcr.io/otelfeature/poc-flagsmith-proxy` | `src/flagsmith-proxy/Dockerfile`, context `src` (it bakes in `src/flagd/presets`) | `linux/amd64`, `linux/arm64` | `main`, `sha-<short>` | `io.github.otelfeature.edge-proxy.version`, `io.github.otelfeature.flagsmith-cli.version`: the base image tags in the Dockerfile. Flagsmith mode only (FR-027, UC-008 A4) |
 
 Every image also carries `org.opencontainers.image.source` (the repository),
 `org.opencontainers.image.revision` (the full commit) and

@@ -4,7 +4,8 @@ name: images
 # Docker only (NFR-017, OTelFeature/poc#91): `docker compose pull && docker
 # compose up -d` uses them (compose.yaml), nothing is built locally.
 #
-#   ghcr.io/otelfeature/poc-geocode, poc-weather, poc-stub-apis
+#   ghcr.io/otelfeature/poc-geocode, poc-weather, poc-stub-apis,
+#   poc-flagsmith-proxy (Flagsmith mode, FR-027; it bakes in src/flagd/presets)
 #   platforms linux/amd64, linux/arm64
 #
 # - push to main: tags `main` and `sha-<short>`
@@ -22,6 +23,8 @@ on:
       - "src/geocode/**"
       - "src/weather/**"
       - "src/stub-apis/**"
+      - "src/flagsmith-proxy/**"
+      - "src/flagd/presets/**"
       - ".github/workflows/images.yml"
   workflow_dispatch:
 
@@ -47,7 +50,12 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        service: [geocode, weather, stub-apis]
+        service: [geocode, weather, stub-apis, flagsmith-proxy]
+        include:
+          - service: flagsmith-proxy
+            # It copies src/flagd/presets, so its context is src/.
+            context: src
+            file: src/flagsmith-proxy/Dockerfile
     env:
       PUSH: ${{ github.event_name != 'pull_request' }}
       # Description and source also on the multi-arch index, where GHCR
@@ -74,6 +82,17 @@ jobs:
                 echo "labels<<EOF"
                 echo "io.github.otelfeature.java-extension.version=$ext"
                 echo "io.opentelemetry.javaagent.version=$agent"
+                echo "EOF"
+              } >> "$GITHUB_OUTPUT"
+              ;;
+            flagsmith-proxy)
+              edge=$(sed -n "s|^FROM flagsmith/edge-proxy:\([^@]*\)@.*|\1|p" src/flagsmith-proxy/Dockerfile)
+              cli=$(sed -n "s|^FROM ghcr.io/flagsmith/flagsmith-cli:\([^@]*\)@.*|\1|p" src/flagsmith-proxy/Dockerfile)
+              test -n "$edge" && test -n "$cli"
+              {
+                echo "labels<<EOF"
+                echo "io.github.otelfeature.edge-proxy.version=$edge"
+                echo "io.github.otelfeature.flagsmith-cli.version=$cli"
                 echo "EOF"
               } >> "$GITHUB_OUTPUT"
               ;;
@@ -115,7 +134,8 @@ jobs:
       - name: Build${{ env.PUSH == 'true' && ' and push' || ' (no push)' }}
         uses: docker/build-push-action@v7.4.0
         with:
-          context: src/${{ matrix.service }}
+          context: ${{ matrix.context || format('src/{0}', matrix.service) }}
+          file: ${{ matrix.file }}
           platforms: linux/amd64,linux/arm64
           push: ${{ env.PUSH == 'true' }}
           tags: ${{ steps.meta.outputs.tags }}
