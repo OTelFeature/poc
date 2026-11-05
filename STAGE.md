@@ -34,19 +34,18 @@ confirmation.
 
 | Step | Command | Expect |
 |---|---|---|
-| Log in to GHCR (until the repo is public, OTelFeature/poc#31) | `docker login ghcr.io` with a token that has `read:packages` (or `gh auth token \| docker login ghcr.io -u <github-user> --password-stdin`) | `Login Succeeded` |
 | Pull everything, nothing built | `docker compose --profile staging --profile tools pull` (or `make prepare-offline`) | No errors |
 | Check the images are the published ones | `docker image inspect ghcr.io/otelfeature/poc-weather:${POC_IMAGE_TAG:-main} --format '{{index .Config.Labels "org.opencontainers.image.revision"}}'` (same for `poc-geocode`, `poc-stub-apis`) | A commit id; empty means a local build |
 | Start empty, with staging | `docker compose --profile staging down -v` then `docker compose --profile staging up -d --pull never --no-build` | 4 app containers + 2 k6 |
 | Baseline flags, fresh traffic | `docker compose run --rm flag 00-baseline` then `docker compose --profile staging restart load-generator load-generator-staging` (or `make demo-reset`) | `flagd serves 00-baseline` |
 
-If the pull fails (not logged in, or a local code change to show), build
+If the pull fails (registry unreachable, or a local code change to show), build
 from source while still online: `docker compose --profile staging build`
 (UC-008 A3).
 
-Then go offline. From here nothing needs the network (see "Running on stage"
-in the [README](README.md)). Start with the `staging` profile, because Demo 3
-needs the staging twins.
+Then go offline. From here nothing needs the network (see
+[Offline, live APIs, staging and Dash0](#offline-live-apis-staging-and-dash0)). Start
+with the `staging` profile, because Demo 3 needs the staging twins.
 
 ## During the talk
 
@@ -80,6 +79,46 @@ so their error rate moves with the sampling and isn't the loop's input
 
 If a beat doesn't show its effect, switch to the fallback video for that demo
 (OTelFeature/poc#32) and carry on with the next command.
+
+## Offline, live APIs, staging and Dash0
+
+**Offline.** Once its images exist the stack needs no network: `geocode`
+and `weather` call [stub-apis](src/stub-apis) instead of Nominatim and
+Open-Meteo. `--pull never --no-build` makes a missing image fail loudly.
+Plain `docker compose up -d` and `make start` pull a missing image and build
+it if the pull fails, so don't run them, `make build` or `--build` offline.
+`make prepare-offline BUILD=1` builds the three images from source instead
+of pulling them, which needs the network too. The stubbed `CLIENT` spans
+are real HTTP calls (`server.address` = `stub-apis`, 20–120 ms), but only on
+a cache miss, and the Postgres volume survives `make stop`. To show them
+again, start empty with `docker compose --profile staging down -v`.
+
+**Live APIs.** `make start-live` calls the real Nominatim and Open-Meteo for
+that invocation only; a later `make start` or `docker compose up -d
+<service>` goes back to the stubs. To keep it, set `NOMINATIM_URL`,
+`OPEN_METEO_GEOCODING_URL` and `OPEN_METEO_FORECAST_URL` in `.env`
+(git-ignored). Only cache misses go out, but k6 sends one request per second
+per service (`REQUEST_INTERVAL_SECONDS` in compose.yaml), so stay within
+[Nominatim's usage policy](https://operations.osmfoundation.org/policies/nominatim/).
+
+**Staging twins.** The `staging` profile adds `geocode-staging` (port 8002),
+`weather-staging` (port 8003) and a second k6. Each service sets
+`deployment.environment.name` (`production` or `staging`) and
+`service.instance.id` (the container name) itself in
+[compose.yaml](compose.yaml), because the flag rules are evaluated in the
+SDK. The collector only inserts `deployment.environment.name=otelfeature`
+for senders without one (flagd, k6, docker stats). Both environments share
+`coordinates-db`, so a location one has resolved is a cache hit for the
+other.
+
+**Dash0** is opt-in per laptop (on stage, the co-speaker's): copy the lines
+of [.env.dash0.example](.env.dash0.example) to `.env` and fill in the token;
+every stage command (`docker compose …`, `make start/stop/flag/demo-reset`)
+then includes it; `make e2e` and `make bench` never do (C-016, see
+[otel-collector's README](src/otel-collector/README.md#dash0-export)).
+Offline, the collector logs dropped Dash0 batches (also visible in Aspire as
+collector logs). The services see no errors and Aspire still gets
+everything, so ignore them.
 
 ## What each preset sets
 

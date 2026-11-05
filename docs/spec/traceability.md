@@ -26,8 +26,9 @@ Issue refs: `OTelFeature/poc#N` (poc), `OTelFeature/otelfeature-instrument#N`
 | "Why not the collector?" (could read the same flags) | C-010 | - | - | none (D4, script only) |
 | CTA: repo and demo on the slide | FR-020, FR-021, NFR-017 | UC-009 | TC-007 | OTelFeature/poc#31, OTelFeature/poc#14, OTelFeature/poc#91 |
 | Stage risk: live demo fails | C-008 | UC-008 | TC-006 | OTelFeature/poc#32 |
+| Stage risk: a laptop's backend (Aspire everywhere, Dash0 on the co-speaker's laptop) | C-016 | UC-008 (BR-009) | TC-006 | none (maintainer decision, Simon, 2026-11-03); OTelFeature/poc#114 |
 | Stage risk: a beat broke since the last rehearsal | NFR-004, NFR-012, NFR-015, NFR-016, C-013, C-014 | UC-008 (BR-005) | TC-001, TC-002, TC-004, TC-005, TC-006 (Automation sections) | OTelFeature/poc#35, OTelFeature/otelfeature-instrument#20, OTelFeature/otelfeature-java-extension#32, OTelFeature/poc#67, OTelFeature/poc#70 |
-| Optional: the flags authored in Flagsmith, flipped in the Flagsmith UI or with its CLI (OQ-16) | FR-027, NFR-004, C-002 | UC-008 (A4, A5, A6, BR-009 to BR-013) | TC-008 | none yet (proof of concept, `feat/flagsmith-edge-proxy`) |
+| Optional: the flags authored in Flagsmith, flipped in the Flagsmith UI or with its CLI (OQ-16) | FR-027, NFR-004, C-002 | UC-008 (A4, A5, A6, BR-010 to BR-014) | TC-008 | none yet (proof of concept, `feat/flagsmith-edge-proxy`) |
 | Q&A: what else can become a flag | FR-021 | UC-009 | TC-007 | OTelFeature/poc#14, OTelFeature/poc#15 |
 
 ## Issue → spec
@@ -182,6 +183,7 @@ Every PR below is on `main`. The first stack (#36 ← #37 ← #40 ← #41 ← #4
 | OTelFeature/poc#88 | OTelFeature/poc#75 | FR-012 | UC-006 (BR-002, A1 to A3) | TC-005 (item 7) |
 | OTelFeature/poc#89 | OTelFeature/poc#14 | FR-021 | UC-009 (BR-003) | TC-007 (item 2) |
 | OTelFeature/poc#92 | OTelFeature/poc#91 (closed) | NFR-017, FR-019, FR-020, C-006 | UC-008 (BR-007, BR-008, A3), UC-009 (BR-001, A1) | TC-006, TC-007 |
+| OTelFeature/poc#114 | none (maintainer decisions: Dash0 replaces Datadog, 2026-11-03; README scope, 2026-11-04) | C-016, FR-021 | UC-008 (BR-009), UC-009 (BR-003) | TC-006 (item 8), TC-007 (item 2) |
 
 PR OTelFeature/poc#58 (stage stack from git refs, FR-027) was closed
 unmerged, and OTelFeature/poc#61 as not planned: the stage runs released
@@ -214,8 +216,9 @@ What PR OTelFeature/poc#92 built is on `main` and works: the merge
 `linux/arm64`. Before the merge, Simon pulled the branch's images in WSL with
 Docker only (`docker compose pull`, `docker compose up -d --pull never
 --no-build`, the presets through the `flag` service, traces in Aspire;
-2026-10-16). TC-007 can pass only after OTelFeature/poc#31, once the
-packages are public as well.
+2026-10-16). The owner made the repository and the packages public on
+2026-11-04, and anonymous pulls work. TC-007 now waits only on the gitleaks
+audit of OTelFeature/poc#31 and a manual run.
 
 Closed `poc` issues: #8, #9, #10, #12 (both halves landed), #13 (Java on the
 flagd in-process resolver), #22 (spike done), #24, #25, #26, #28, #29, #30,
@@ -237,7 +240,7 @@ Set by the Tested/Passed rule ([requirements.md](requirements.md), Simon,
 | UC-006 | Implemented | Tested | TC-005 and TC-006 green |
 | UC-007 | Draft | Tested | TC-005 green, with the hook check (#78) |
 | UC-008 | Draft | Draft | TC-006 green, but the fallback videos and the footage (precondition, A1, C-007, C-008; OTelFeature/poc#32, OTelFeature/poc#33) don't exist yet, and the rehearsal runs (NFR-012, OTelFeature/poc#74) are open |
-| UC-009 | Draft | Draft | OTelFeature/poc#31 open; TC-007 is not automated |
+| UC-009 | Draft | Draft | Public since 2026-11-04; gitleaks audit (OTelFeature/poc#31) open; TC-007 not run, not automated |
 
 | Test case | Before | After |
 |---|---|---|

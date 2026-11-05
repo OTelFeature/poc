@@ -4,7 +4,7 @@ Runs in compose.test.yaml (`make flagsmith-test`): a stub of Flagsmith Cloud
 (otelfeature_flagsmith.stub_cloud) applies each preset command's CLI calls
 one by one, each with its own real-time event; the Flagsmith proxy follows
 the stream and serves flagd, and flagd's OFREP endpoint is what the preset
-command confirms against (UC-008 BR-010).
+command confirms against (UC-008 BR-011).
 """
 
 import json
@@ -20,7 +20,7 @@ STUB = os.environ["STUB_URL"]
 PROXY = os.environ["PROXY_URL"]
 OFREP = os.environ["FLAGD_OFREP_URL"]
 CLIENT_KEY = os.environ["FLAGSMITH_CLIENT_KEY"]
-# UC-008 BR-011: from the event of the last write to flagd serving the preset.
+# UC-008 BR-012: from the event of the last write to flagd serving the preset.
 BOUND = 2.0
 
 

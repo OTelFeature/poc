@@ -261,7 +261,7 @@ Flagsmith environment; the Flagsmith proxy (`src/flagsmith-proxy`, Flagsmith's
 Edge Proxy with a flagd endpoint added) translates its environment document
 into a flagd flag set; flagd polls the proxy instead of reading
 `flagd.json`, and both services still sync from flagd (C-002). The preset
-files stay the source of the demo states (UC-008 BR-009):
+files stay the source of the demo states (UC-008 BR-010):
 `src/flagsmith-proxy/demo.json` maps them onto Flagsmith.
 
 ```text
@@ -273,7 +273,7 @@ Flagsmith CLI ──writes──> Flagsmith ──real-time event──> Flagsmi
 **Features.** One Flagsmith feature per flag, same key. Every flag's
 variants, metadata and `state` come from `00-baseline.json`; Flagsmith
 supplies only which variant is served, and for a gated flag whether its
-rules apply (UC-008 BR-013, Simon, 2026-11-04).
+rules apply (UC-008 BR-014, Simon, 2026-11-04).
 
 | Flag | Gated | Switch (the feature's enabled state) | Value in Flagsmith | Seeded as |
 |---|---|---|---|---|
@@ -291,19 +291,19 @@ flag missing in Flagsmith is served as in `00-baseline.json`.
 
 **Preset name.** The flag set's `metadata.preset` is the name of the preset
 file whose flags it equals (they all differ), checked in stage order, and
-`custom` when it equals none (UC-008 BR-009).
+`custom` when it equals none (UC-008 BR-010).
 
 This is not how Flagsmith itself evaluates the environment: there, an
 override applies even when it or the environment default is switched off,
 and a boolean override serves its own switch.
 The Flagsmith UI's own evaluation (an identity's flags) can therefore
 disagree with flagd; what flagd serves is the translation's (UC-008
-BR-013).
+BR-014).
 
 **Segments** (created once by the seed command). Each is feature-specific:
 it belongs to the one flag whose overrides use it (`segment create
 --feature`), so the Flagsmith UI shows it only on that flag, and no other
-feature can override it (UC-008 BR-013, Simon, 2026-11-04). Each is a
+feature can override it (UC-008 BR-014, Simon, 2026-11-04). Each is a
 Flagsmith rule tree of one `ALL` rule with one condition per sub-rule, the
 shape the Flagsmith UI builds:
 
@@ -325,7 +325,7 @@ converted: the seed command stops and names it, and the operator deletes it
 in the Flagsmith UI before seeding again.
 
 **Segment overrides** in priority order (first match wins). The seed command
-creates all of them, switched off, and they stay (UC-008 BR-013). An
+creates all of them, switched off, and they stay (UC-008 BR-014). An
 override applies only while it is switched on; switched off, flagd does not
 get its rule. A boolean flag's override (`recordSpan`) then serves the
 flag's other variant than the default it serves (`off` for `recordSpan`), a non-boolean flag's
@@ -335,7 +335,7 @@ the environment: it recreates a missing one, restores the order, and
 deletes overrides of a demo flag that are not in this table (added by hand
 in the Flagsmith UI). It counts as applied only once the proxy's flag
 set equals the preset file and flagd serves it; if the environment document
-it diffed against was stale, it writes every value again (UC-008 BR-010).
+it diffed against was stale, it writes every value again (UC-008 BR-011).
 
 | Flag | Priority | Segment | Serves | Applies in |
 |---|---|---|---|---|
@@ -357,7 +357,7 @@ it diffed against was stale, it writes every value again (UC-008 BR-010).
 | `03b-incident` | the `high-error-rate` override on, `weatherUpstreamFailure` on |
 | back to `03a-weather-boost` | the `high-error-rate` override off, `weatherUpstreamFailure` off |
 
-**Translation** (UC-008 BR-009). A gated flag that is switched off is the
+**Translation** (UC-008 BR-010). A gated flag that is switched off is the
 baseline flag; otherwise a flag's applying overrides become one flagd
 `if` chain in priority order, ending in the default variant; consecutive
 overrides that serve the same variant are joined with `or`. A segment's
@@ -538,6 +538,10 @@ Demo stack (`compose.yaml`, NFR-017, OTelFeature/poc#91):
 | `FLAG_CONFIRM_TIMEOUT` | `10` | Seconds the `flag` compose service waits for flagd to serve the preset it wrote before it fails |
 | `OTEL_INSTRUMENTATION_COMMON_EXPERIMENTAL_CONTROLLER_TELEMETRY_ENABLED` | `true` (set for `weather` in `compose.yaml`; the Java agent's own default is `false`, and the setting is experimental) | Makes the Java agent create Spring MVC controller spans (`INTERNAL`), so `weather` has `INTERNAL` spans for `telemetryLevel=IO` to suppress in Demo 2 (C-015, UC-002 BR-010, A9; Simon, 2026-11-03) |
 | `FLAGD_OFREP_URL` | `http://flagd:8016` | flagd's OFREP endpoint that the `flag` service and the e2e flag helper confirm a write against |
+| `COMPOSE_FILE` | unset (`compose.yaml`) | Docker Compose's own setting. In a laptop's git-ignored `.env`, `compose.yaml:compose.dash0.yaml` turns on Dash0 for every `docker compose` command on that laptop (C-016). Commands that pass `-f` (the e2e suite, `make bench`) ignore it. `COMPOSE_PATH_SEPARATOR=:` keeps the `:` valid on native Windows |
+| `DASH0_ENDPOINT` | none, required with `compose.dash0.yaml` | Dash0's OTLP/gRPC ingress, `ingress.<region>.aws.dash0.com:4317` |
+| `DASH0_AUTHORIZATION_TOKEN` | none, required with `compose.dash0.yaml` | Dash0 auth token, sent as `Authorization: Bearer …`; only in the `.env`. It reaches the collector as the compose secret `dash0_token`, so `docker compose config` and `docker inspect` don't show it |
+| `DASH0_DATASET` | `default` | Dash0 dataset the telemetry goes to |
 
 ### Prebuilt images
 

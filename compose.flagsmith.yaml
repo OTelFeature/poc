@@ -1,6 +1,6 @@
 # Flagsmith mode (FR-027, UC-008 A4): the flags are authored in Flagsmith,
 # not in src/flagd/flagd.json. Opt-in, online only, not the stage default
-# (UC-008 BR-012, OQ-16):
+# (UC-008 BR-013, OQ-16):
 #
 #   export FLAGSMITH_SERVER_KEY=ser.… FLAGSMITH_CLIENT_KEY=… \
 #          FLAGSMITH_API_KEY=… FLAGSMITH_PROJECT=…
@@ -55,7 +55,7 @@ services:
   # Stage control in Flagsmith mode, the counterpart of the `flag` service:
   #   docker compose -f compose.yaml -f compose.flagsmith.yaml run --rm flagsmith-flag <preset>
   # Writes the preset with the Flagsmith CLI and waits until flagd serves it
-  # (UC-008 BR-010). Also `seed`, `plan <preset>` and `check [<preset>]`.
+  # (UC-008 BR-011). Also `seed`, `plan <preset>` and `check [<preset>]`.
   flagsmith-flag:
     image: ghcr.io/otelfeature/poc-flagsmith-proxy:${POC_IMAGE_TAG:-main}
     profiles: [tools]

@@ -4,7 +4,7 @@
 
 The Edge Proxy keeps the environment document of each configured key pair
 in memory and polls Flagsmith for it (here only as a fallback,
-`API_POLL_FREQUENCY_SECONDS`). This module adds (UC-008 BR-009 to BR-011):
+`API_POLL_FREQUENCY_SECONDS`). This module adds (UC-008 BR-010 to BR-012):
 
 - `GET /api/v1/flagd/flags.json`, the document as a flagd flag set, for
   flagd's HTTP sync (`authHeader: Bearer <client-side key>`; the server-side

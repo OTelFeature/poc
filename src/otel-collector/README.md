@@ -1,97 +1,102 @@
 # otel-collector
 
-An `otel/opentelemetry-collector-contrib` instance that's the hub of this
-repo's telemetry: it receives OTLP from [geocode](../geocode),
-[load-generator](../load-generator), and [flagd](../flagd), scrapes Docker
-container stats directly, derives span metrics, and forwards everything to
-the Aspire Dashboard — and, optionally, to Datadog.
+An `otel/opentelemetry-collector-contrib` instance. It receives OTLP from
+[geocode](../geocode), [weather](../weather),
+[load-generator](../load-generator) and [flagd](../flagd), reads Docker
+container stats, derives span metrics, and sends everything to the Aspire
+Dashboard, and to Dash0 where that is enabled.
 
-Configured entirely by [config.yaml](config.yaml), mounted read-only into the
-container via [compose.yaml](../../compose.yaml).
+Configured by [config.yaml](config.yaml), plus [dash0.yaml](dash0.yaml)
+when [compose.dash0.yaml](../../compose.dash0.yaml) is in use.
 
 ## Pipelines
 
-- **traces**: `otlp` receiver → `resource` processor → `debug` +
-  `otlp_grpc/aspire` + `otlp_http/datadog` exporters, and the `span_metrics`
-  connector (derives RED metrics from spans).
-- **metrics**: `otlp` + `span_metrics` + `docker_stats` receivers → a
-  `transform` processor (relabels `docker_stats`-sourced metrics'
-  `service.name` to `docker-stats`, so they show up as their own service in
-  Aspire rather than under `otelcol-contrib`), a `resource` processor, and
-  `cumulativetodelta` (Datadog's metrics intake expects delta temporality,
-  not the OTLP default of cumulative) → `debug` + `otlp_grpc/aspire` +
-  `otlp_http/datadog` exporters.
-- **logs**: `otlp` receiver → `resource` processor → `debug` +
-  `otlp_grpc/aspire` + `otlp_http/datadog` exporters.
+| Pipeline | Receivers | Processors | Exporters |
+|---|---|---|---|
+| `traces` | `otlp` | `resource` | `debug`, `otlp_grpc/aspire`, `span_metrics` |
+| `metrics` | `otlp`, `span_metrics`, `docker_stats` | `transform`, `resource` | `debug`, `otlp_grpc/aspire` |
+| `logs` | `otlp` | `resource` | `debug`, `otlp_grpc/aspire` |
 
-## Resource processor
+- `resource` sets `deployment.environment.name=otelfeature` with
+  `action: insert`, so only senders without one get it (flagd, k6, docker
+  stats). `geocode` and `weather` set their own, and their flag rules depend
+  on it, so the collector must not overwrite it.
+- `transform` sets `service.name=docker-stats` on the `docker_stats`
+  metrics, so they show up as their own service.
+- `span_metrics` derives RED metrics from the spans. Metrics stay
+  cumulative.
 
-The `resource` processor sets `deployment.environment.name=otelfeature` with
-`action: insert`, so it only fills the attribute when a sender didn't set one
-(flagd, k6, docker stats). `geocode` and `weather` set their own
-(`production` or `staging`) because the flag rules that read it run inside
-their SDKs; the collector must not overwrite it.
+The collector's own metrics and logs go to Aspire through
+`service::telemetry` and show up as a separate resource.
 
-## Datadog export
+## Dash0 export
 
-`otlp_http/datadog` forwards all three signals to Datadog's OTLP intake
-(`https://otlp.${DD_SITE}/`), authenticated via `DD_API_KEY`. Both are read
-from the environment with no default — see [Configuration](#configuration).
-This is optional: if `DD_SITE`/`DD_API_KEY` are unset, the exporter still
-starts, but with a malformed endpoint (`https://otlp./`) and no valid API
-key, so those requests just fail — everything else (Aspire, `debug` logging)
-keeps working unaffected. Set both in a git-ignored `.env` file at the repo
-root to enable it (`docker compose` loads `.env` automatically).
+Opt-in per laptop (C-016). To enable it, add the lines of
+[.env.dash0.example](../../.env.dash0.example) to the git-ignored `.env` at
+the repo root and fill in the token. `COMPOSE_FILE` there makes every
+stage command (`docker compose …`, `make start/stop/flag/demo-reset`) load
+[compose.dash0.yaml](../../compose.dash0.yaml), which passes
+[dash0.yaml](dash0.yaml) as a second `--config`. `make e2e` and `make bench` pass `-f` and never load it. Without `.env` nothing goes
+to Dash0.
 
-## Self-telemetry
+dash0.yaml adds the `otlp_grpc/dash0` exporter and three pipelines,
+`traces/dash0`, `metrics/dash0` and `logs/dash0`, with the same receivers and
+processors as config.yaml. Keep them in step. It adds pipelines instead of
+extending config.yaml's because the collector replaces lists when it merges
+configs.
 
-The collector also exports its own internal metrics and logs to the Aspire
-Dashboard, via `service::telemetry` in [config.yaml](config.yaml):
+The token is the compose secret `dash0_token`, read with
+`${file:/run/secrets/dash0_token}`, so `docker compose config` and
+`docker inspect` don't show it.
 
-- **metrics**: a `periodic` reader pushes internal metrics (e.g. receiver/
-  exporter throughput, queue sizes) to Aspire over OTLP/gRPC.
-- **logs**: a `batch` processor forwards the collector's own log records to
-  Aspire over OTLP/gRPC, in addition to the default stdout logging.
+Offline, each batch gets one attempt (2 s timeout, no retries, 20 consumers)
+and is dropped. The queue never fills, so the SDKs never re-send, which
+would show those batches twice in Aspire (UC-008 BR-009).
 
-These show up in Aspire as their own resource, separate from the
-`otlp_grpc/aspire` exporter used for the pipelines above (which carries
-telemetry *received from* other services).
+Validate a change with the pinned image (the variable values don't matter):
+
+```sh
+docker run --rm -v "$PWD/src/otel-collector:/c:ro" \
+  -v /dev/null:/run/secrets/dash0_token:ro \
+  -e OTEL_COLLECTOR_HOST=0.0.0.0 -e OTEL_COLLECTOR_PORT_GRPC=4317 -e OTEL_COLLECTOR_PORT_HTTP=4318 \
+  -e DASH0_ENDPOINT=x:4317 \
+  otel/opentelemetry-collector-contrib:0.164.0 validate --config=/c/config.yaml --config=/c/dash0.yaml
+```
 
 ## Ports
 
-| Port   | Protocol       | Purpose                          |
-|--------|----------------|----------------------------------|
-| `4317` | OTLP/gRPC      | Used by `load-generator`         |
-| `4318` | OTLP/HTTP      | Used by `geocode` and `flagd`    |
-
-## Docker socket access
-
-The `docker_stats` receiver reads container stats from
-`/var/run/docker.sock`, mounted read-only. The image runs as a non-root user
-(`10001`) by default, but the socket (as seen inside a Linux container under
-Docker Desktop) is owned by `root:root`, mode `660`. `compose.yaml` sets
-`user: "10001:0"` — keeps the non-root UID but runs with GID `0` (root
-group), which has `rw` on the socket via the group bit. This is the minimal
-privilege needed; running as full root isn't necessary.
+| Port | Protocol | Used by |
+|---|---|---|
+| `4317` | OTLP/gRPC | `load-generator` |
+| `4318` | OTLP/HTTP | `geocode`, `weather`, `flagd` |
 
 ## Configuration
 
-Reads its own OTLP receiver endpoints, plus Datadog export credentials, from
-environment variables (set in [compose.yaml](../../compose.yaml), which
-passes `DD_SITE`/`DD_API_KEY` through from the shell/`.env` unchanged):
+| Environment variable | Default | Description |
+|---|---|---|
+| `OTEL_COLLECTOR_HOST` | `otel-collector` | Bind host for the OTLP receivers |
+| `OTEL_COLLECTOR_PORT_GRPC` | `4317` | OTLP/gRPC receiver port |
+| `OTEL_COLLECTOR_PORT_HTTP` | `4318` | OTLP/HTTP receiver port |
+| `DASH0_ENDPOINT` | - | Dash0 only: OTLP/gRPC ingress, `ingress.<region>.aws.dash0.com:4317` |
+| `DASH0_AUTHORIZATION_TOKEN` | - | Dash0 only: auth token, passed in as the secret `dash0_token` |
+| `DASH0_DATASET` | `default` | Dash0 only: dataset |
 
-| Environment variable       | Default           | Description                                     |
-|----------------------------|-------------------|-------------------------------------------------|
-| `OTEL_COLLECTOR_HOST`      | `otel-collector`  | Bind host for the OTLP receivers                |
-| `OTEL_COLLECTOR_PORT_GRPC` | `4317`            | OTLP/gRPC receiver port                         |
-| `OTEL_COLLECTOR_PORT_HTTP` | `4318`            | OTLP/HTTP receiver port                         |
-| `DD_SITE`                  | -                 | Datadog site to export to, e.g. `datadoghq.com` |
-| `DD_API_KEY`               | -                 | Datadog API key                                 |
+The first three are set in [compose.yaml](../../compose.yaml), the Dash0
+ones in `.env`.
 
-## Debugging
+## Troubleshooting
 
-The `debug` exporter logs every received trace/metric/log batch to stdout:
+- **Dash0 answers 401:** `DASH0_AUTHORIZATION_TOKEN` in `.env` is empty or wrong.
+  Nothing checks it at startup, so an empty token only shows up as
+  rejected batches in the collector log.
+
+The `debug` exporter logs every batch it receives:
 
 ```sh
 docker compose logs -f otel-collector
 ```
+
+The collector runs as root (`user: "0:0"`) so the `docker_stats` receiver
+can read `/var/run/docker.sock`. On a native engine (WSL2, Linux) the socket
+is `root:docker 660`. As a non-root user the receiver fails to start and the
+collector exits, so no telemetry arrives at all.

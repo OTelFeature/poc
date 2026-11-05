@@ -1,7 +1,7 @@
 """A Flagsmith environment document as a flagd flag set, for the demo flags.
 
 The rules are the spec's (docs/spec/entity_model.md#flagsmith-mode, UC-008
-BR-009, BR-013): the flags, their variants and metadata come from the
+BR-010, BR-014): the flags, their variants and metadata come from the
 catalog (`00-baseline.json`); Flagsmith only decides which variant each flag
 serves, by default and per segment override, and for a gated flag whether
 it is served as in the catalog. `metadata.preset` names the preset file the
@@ -32,7 +32,7 @@ COMPARISONS = {
 }
 NUMERIC = {">", ">=", "<", "<="}
 
-# The name of a flag set that equals no preset file (UC-008 BR-009).
+# The name of a flag set that equals no preset file (UC-008 BR-010).
 CUSTOM = "custom"
 
 
@@ -90,7 +90,7 @@ def translate(document: dict[str, Any], catalog: dict[str, Any],
             what = f"the override for segment {name!r}"
             if _is_boolean(base):
                 _no_split(key, fs, what)
-                # Switched on, it serves the flag's other variant (BR-013), not its own switch.
+                # Switched on, it serves the flag's other variant (BR-014), not its own switch.
                 variant = next((v for v in base["variants"] if v != flag["defaultVariant"]), None)
                 if variant is None:
                     raise TranslationError(f"{key}: a boolean flag needs two variants for {what}")

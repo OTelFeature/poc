@@ -8,7 +8,7 @@
 (`docker compose -f compose.yaml -f compose.flagsmith.yaml run --rm
 flagsmith-flag …`.) A preset file in src/flagd/presets is the state; demo.json
 says which flags are gated and which segment overrides each preset switches
-on (UC-008 BR-009, BR-013). Every override stays in Flagsmith, so a preset
+on (UC-008 BR-010, BR-014). Every override stays in Flagsmith, so a preset
 is switches and values, the same an operator sets in the Flagsmith UI. The
 command reads the environment document first and writes only what differs;
 it creates or deletes an override only to repair one changed by hand
@@ -16,7 +16,7 @@ it creates or deletes an override only to repair one changed by hand
 everything and ignores deleting an override that isn't there.
 
 The flip counts once the proxy's flag set equals the preset file and flagd
-serves it (BR-010). The document it diffed against can lag behind
+serves it (BR-011). The document it diffed against can lag behind
 Flagsmith's last write; if the proxy doesn't match within half the timeout,
 it writes everything again.
 """
@@ -286,7 +286,7 @@ def main(args: list[str]) -> int:
     plan = apply_plan(name, fetch_document())
     if not plan:
         # Held already, by the document; read it once more, in case a switch in the
-        # Flagsmith UI just before is not in it yet (BR-010).
+        # Flagsmith UI just before is not in it yet (BR-011).
         time.sleep(1)
         plan = apply_plan(name, fetch_document())
     execute(plan, run_cli)

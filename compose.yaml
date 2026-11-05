@@ -268,6 +268,8 @@ services:
     # the socket is root:docker 660, the receiver fails to start, and the
     # collector exits: no telemetry at all.
     user: "0:0"
+    security_opt:
+      - label=disable
     command:
       - --config=/etc/otel-collector-config.yaml
     volumes:
@@ -280,8 +282,6 @@ services:
       - OTEL_COLLECTOR_HOST=otel-collector
       - OTEL_COLLECTOR_PORT_GRPC=4317
       - OTEL_COLLECTOR_PORT_HTTP=4318
-      - DD_SITE
-      - DD_API_KEY
     depends_on:
       aspire-dashboard:
         condition: service_started

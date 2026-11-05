@@ -1,0 +1,41 @@
+# Dash0 export, opt-in per laptop (C-016, UC-008 BR-009). Merged on top of
+# config.yaml by compose.dash0.yaml (a second --config). It adds pipelines
+# of its own instead of extending config.yaml's: the collector replaces lists
+# when it merges, so extending would mean copying their exporter lists.
+#
+# Offline, each batch gets one attempt (timeout, no retries) and is dropped.
+# The queue never fills, so no error goes back to the receiver: a full queue
+# would make the SDKs re-send, and Aspire would show those batches twice.
+extensions:
+  bearertokenauth/dash0:
+    scheme: Bearer
+    token: ${env:DASH0_AUTHORIZATION_TOKEN}
+
+exporters: 
+  otlp_grpc/dash0:
+    auth:
+      authenticator: bearertokenauth/dash0
+    endpoint: ${env:DASH0_ENDPOINT}
+    headers:
+      Dash0-Dataset:  ${env:DASH0_DATASET:-default}
+    sending_queue:
+      batch:
+        min_size: 10
+        max_size: 100
+        flush_timeout: 10s
+
+service:
+  extensions: [bearertokenauth/dash0]
+  pipelines:
+    traces/dash0:
+      receivers: [otlp]
+      processors: [memory_limiter, resource]
+      exporters: [otlp_grpc/dash0]
+    metrics/dash0:
+      receivers: [otlp, span_metrics, docker_stats]
+      processors: [memory_limiter, transform, resource]
+      exporters: [otlp_grpc/dash0]
+    logs/dash0:
+      receivers: [otlp]
+      processors: [memory_limiter, resource]
+      exporters: [otlp_grpc/dash0]

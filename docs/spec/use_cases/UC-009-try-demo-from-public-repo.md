@@ -9,15 +9,15 @@
 **Goal:** After the talk, an adopter clones the public demo repository and reproduces Demos 1 to 3 with only Docker installed, so that the talk's claims can be checked and the extensions evaluated.  
 **Status:** Draft  
 **Requirements:** FR-020, FR-021, FR-018, NFR-008, NFR-017  
-**Work Items:** OTelFeature/poc#31, OTelFeature/poc#14, OTelFeature/poc#15, OTelFeature/poc#91  
+**Work Items:** OTelFeature/poc#31, OTelFeature/poc#14, OTelFeature/poc#15, OTelFeature/poc#91, OTelFeature/poc#114  
 **Test Cases:** TC-007  
 **Script Beat:** call to action ("repo and demo are on the slide")  
 
 ## Preconditions
 
-- The owner, not an agent, has made the repository public (OTelFeature/poc#31); its history is free of secrets.
+- The owner, not an agent, has made the repository public (OTelFeature/poc#31, done 2026-11-04); its history is free of secrets.
 - The README has a "Try it locally" section and links both extensions.
-- The prebuilt images of `main` are published (NFR-017) and the adopter can pull them: the owner has made the packages public with the repository (OTelFeature/poc#31); until then a `docker login ghcr.io` with read access is needed.
+- The prebuilt images of `main` are published (NFR-017) and the adopter can pull them: the owner has made the packages public with the repository (OTelFeature/poc#31, done 2026-11-04), so no `docker login` is needed.
 
 ## Main Success Scenario
 
@@ -60,4 +60,4 @@ The stack needs no network access to the real APIs once its images are pulled (o
 
 ### BR-003: Env-var tiers
 
-The README says which `OTEL_*` env vars have a live flag, which are honoured only at startup, which are deferred or excluded, and which cannot be live flags, with the reason for each, and links the extension READMEs. It states the governing rule, "the env var is the default, the flag is the live override", and its two exceptions, the hard floors `OTEL_SDK_DISABLED=true` and `OTEL_TRACES_SAMPLER=always_off` (C-011). The OTLP endpoint and headers are excluded on security grounds. The tiers are in the [entity model](../entity_model.md#otel_-env-vars-and-live-flags) (FR-021, OTelFeature/poc#14).
+The [entity model](../entity_model.md#otel_-env-vars-and-live-flags) says which `OTEL_*` env vars have a live flag, which are honoured only at startup, which are deferred or excluded, and which cannot be live flags, with the reason for each. It states the governing rule, "the env var is the default, the flag is the live override", and its two exceptions, the hard floors `OTEL_SDK_DISABLED=true` and `OTEL_TRACES_SAMPLER=always_off` (C-011). The OTLP endpoint and headers are excluded on security grounds (FR-021, OTelFeature/poc#14). The README links that table and both extension READMEs and does not repeat it. The README covers trying and running the demo. Stage material (offline run, live APIs, the Dash0 opt-in) lives in the stage runbook `STAGE.md`. The flag reference lives in the spec. Neither is kept twice (Simon, 2026-11-04).

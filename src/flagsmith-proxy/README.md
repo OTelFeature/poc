@@ -31,13 +31,13 @@ The preset files in [src/flagd/presets](../flagd/presets) stay the source
 of every demo state. Flagsmith only decides which variant each flag serves,
 and for the gated flags whether their rules reach flagd at all.
 The variants, their names and their descriptions come from `00-baseline.json`,
-so in Flagsmith mode flagd serves exactly the preset files (UC-008 BR-009).
+so in Flagsmith mode flagd serves exactly the preset files (UC-008 BR-010).
 
 ## In Flagsmith
 
 One project and one environment with real-time updates switched on
 (Flagsmith Enterprise; without it, see the fallback poll below). `seed`
-creates everything, once (UC-008 BR-013):
+creates everything, once (UC-008 BR-014):
 
 - one feature per flag: `otelEnabled`, `telemetryLevel`, `recordSpan`,
   `traceSampleRatio`, `weatherUpstreamFailure`. `recordSpan`,

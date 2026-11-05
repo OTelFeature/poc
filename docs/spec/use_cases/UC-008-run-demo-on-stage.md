@@ -5,11 +5,11 @@
 **Use Case ID:** UC-008  
 **Use Case Name:** Run the demo on stage  
 **Primary Actor:** Operator  
-**Secondary Actors:** flagd, demo stack, Aspire dashboard, Flagsmith (A4 only)  
+**Secondary Actors:** flagd, demo stack, Aspire dashboard, Dash0 (opt-in, C-016), Flagsmith (A4 only)  
 **Goal:** The operator runs Demos 1 to 3 from a laptop without network access, moving between states with one command per script beat and resetting between rehearsals, so that the live demo cannot be broken by venue Wi-Fi or a typo in a JSON file.  
 **Status:** Draft  
-**Requirements:** FR-018, FR-019, FR-010, NFR-004, NFR-012, NFR-015, NFR-017, C-006, C-007, C-008, C-009, FR-027  
-**Work Items:** OTelFeature/poc#24, OTelFeature/poc#26, OTelFeature/poc#25, OTelFeature/poc#32, OTelFeature/poc#33, OTelFeature/poc#35, OTelFeature/poc#64, OTelFeature/poc#74, OTelFeature/poc#91, OTelFeature/poc#110  
+**Requirements:** FR-018, FR-019, FR-010, NFR-004, NFR-012, NFR-015, NFR-017, C-006, C-007, C-008, C-009, C-016, FR-027  
+**Work Items:** OTelFeature/poc#24, OTelFeature/poc#26, OTelFeature/poc#25, OTelFeature/poc#32, OTelFeature/poc#33, OTelFeature/poc#35, OTelFeature/poc#64, OTelFeature/poc#74, OTelFeature/poc#91, OTelFeature/poc#110, OTelFeature/poc#114  
 **Test Cases:** TC-006, TC-008  
 **Script Beat:** all demos; cold open uses OTel Demo footage (D1)  
 **Open Questions:** OQ-16 (OQ-10 resolved)  
@@ -19,6 +19,7 @@
 - The operator has pulled all images while online: the prebuilt `geocode`, `weather` and `stub-apis` images published from `main`, which carry the pinned extension releases (C-006, NFR-017), and the third-party images, including the `flag` command's busybox (BR-008).
 - Presets exist for each demo state: baseline, tracing off, quiet noise, semconv rules, weather boost, incident (BR-006).
 - A fallback video exists for each demo.
+- Each laptop's backend is set up: the Aspire dashboard on every laptop, Dash0 only on a laptop whose `.env` enables it (C-016).
 
 ## Main Success Scenario
 
@@ -60,18 +61,18 @@
 
 ### A4: Flags authored in Flagsmith
 
-**Trigger:** The operator runs the demo with the flags in Flagsmith instead of the flag file (FR-027) and stays online (step 1); not the stage default (BR-012).
+**Trigger:** The operator runs the demo with the flags in Flagsmith instead of the flag file (FR-027) and stays online (step 1); not the stage default (BR-013).
 
 **Flow:**
 
-1. The operator starts the stack in Flagsmith mode. The Flagsmith proxy loads the demo environment from Flagsmith and subscribes to its real-time updates; flagd syncs its flag set from the proxy instead of reading the flag file (BR-011). Both services still evaluate in process from flagd (C-002).
+1. The operator starts the stack in Flagsmith mode. The Flagsmith proxy loads the demo environment from Flagsmith and subscribes to its real-time updates; flagd syncs its flag set from the proxy instead of reading the flag file (BR-012). Both services still evaluate in process from flagd (C-002).
 2. The operator resets to the baseline with the Flagsmith preset command.
-3. For each script beat, the operator switches that beat's flags and segment overrides on or off in the Flagsmith UI (BR-013), or runs the Flagsmith preset command for the beat's preset, which makes the same changes with the Flagsmith CLI and reports once flagd serves the preset (BR-010). The flag set flagd serves is the preset file's, named after it (BR-009).
+3. For each script beat, the operator switches that beat's flags and segment overrides on or off in the Flagsmith UI (BR-014), or runs the Flagsmith preset command for the beat's preset, which makes the same changes with the Flagsmith CLI and reports once flagd serves the preset (BR-011). The flag set flagd serves is the preset file's, named after it (BR-010).
 4. Use case continues at step 5.
 
 ### A5: Flagsmith sends something the proxy cannot translate
 
-**Trigger:** In Flagsmith mode the environment uses a segment operator, a flag value or an override the translation does not support (BR-009), when the operator applies a preset or switches a beat (step 4, in A4 step 3).
+**Trigger:** In Flagsmith mode the environment uses a segment operator, a flag value or an override the translation does not support (BR-010), when the operator applies a preset or switches a beat (step 4, in A4 step 3).
 
 **Flow:**
 
@@ -86,7 +87,7 @@
 
 **Flow:**
 
-1. The proxy keeps serving the last flag set it translated and retries; without the stream it picks up changes only at its fallback poll, once a minute (BR-011).
+1. The proxy keeps serving the last flag set it translated and retries; without the stream it picks up changes only at its fallback poll, once a minute (BR-012).
 2. The preset command does not see its preset served and fails after its timeout; after a switch in the Flagsmith UI, flagd's `metadata.preset` still names the previous preset.
 3. The operator switches to the flag file and applies the beat's preset with the file command.
 4. Use case continues at step 4.
@@ -125,7 +126,7 @@ Each demo beat runs as an automated end-to-end test in CI, with the same presets
 
 ### BR-006: Presets are cumulative, in a fixed order
 
-Decided by Simon, 2026-10-16 (OTelFeature/poc#26, PR OTelFeature/poc#41). Each preset keeps the rules of the preset before it, so a later beat never brings back spans an earlier beat dropped: `03-semconv-rules`, `03a-weather-boost` and `03b-incident` keep `02-quiet-noise`'s `telemetryLevel=IO`, and `03a-weather-boost` and `03b-incident` keep `03-semconv-rules`'s `recordSpan` drop rules. `01-otel-off` is the baseline with tracing off. Demo 2 has one preset, `02-quiet-noise`: `telemetryLevel` IO, a cut by span kind only, with `recordSpan` untargeted (decided by Simon, 2026-11-03, OTelFeature/poc#110, UC-002 BR-009). Demo 3 has three presets: `03-semconv-rules` (the `recordSpan` drop rules of UC-002 steps 5 and 6, and production `traceSampleRatio` 0.1, UC-004 step 6), `03a-weather-boost` (adds `weather` at 0.5, UC-004 step 7) and `03b-incident` (the fault and the control-loop rule, UC-005). The stage order is `00-baseline` → `01-otel-off` → `02-quiet-noise` → `03-semconv-rules` → `03a-weather-boost` → `03b-incident` → back to `03a-weather-boost` (incident over). The demo is a **progression**: the operator never resets on stage. `03b-incident` builds on `03a-weather-boost`, which sets `weather` to 0.5, so the error-rate rule visibly raises it from 0.5 to 1.0 when the fault is injected (OQ-10 resolved, Simon, 2026-10-16). Going back to `03a-weather-boost` removes the fault and the rule together, so `weather` is back at 0.5 at once (UC-005 A6; OQ-14 resolved, Simon, 2026-10-16). The e2e suite runs the same progression in order without resets (`test_stage_progression`, OTelFeature/poc#35). See the [entity model](../entity_model.md#flag_preset).
+Decided by Simon, 2026-10-16 (OTelFeature/poc#26, PR OTelFeature/poc#41). Each preset keeps the rules of the preset before it, so a later beat never brings back spans an earlier beat dropped: `03-semconv-rules`, `03a-weather-boost` and `03b-incident` keep `02-quiet-noise`'s `telemetryLevel=IO`, and `03a-weather-boost` and `03b-incident` keep `03-semconv-rules`'s `recordSpan` drop rules. `01-otel-off` is the baseline with tracing off. Demo 2 has one preset, `02-quiet-noise`: `telemetryLevel` IO, a cut by span kind only, with `recordSpan` untargeted (decided by Simon, 2026-11-03, OTelFeature/poc#110, UC-002 BR-010). Demo 3 has three presets: `03-semconv-rules` (the `recordSpan` drop rules of UC-002 steps 5 and 6, and production `traceSampleRatio` 0.1, UC-004 step 6), `03a-weather-boost` (adds `weather` at 0.5, UC-004 step 7) and `03b-incident` (the fault and the control-loop rule, UC-005). The stage order is `00-baseline` → `01-otel-off` → `02-quiet-noise` → `03-semconv-rules` → `03a-weather-boost` → `03b-incident` → back to `03a-weather-boost` (incident over). The demo is a **progression**: the operator never resets on stage. `03b-incident` builds on `03a-weather-boost`, which sets `weather` to 0.5, so the error-rate rule visibly raises it from 0.5 to 1.0 when the fault is injected (OQ-10 resolved, Simon, 2026-10-16). Going back to `03a-weather-boost` removes the fault and the rule together, so `weather` is back at 0.5 at once (UC-005 A6; OQ-14 resolved, Simon, 2026-10-16). The e2e suite runs the same progression in order without resets (`test_stage_progression`, OTelFeature/poc#35). See the [entity model](../entity_model.md#flag_preset).
 
 ### BR-007: A flip counts only once flagd serves it
 
@@ -135,22 +136,26 @@ flagd reloads a flag file only when its mtime strictly increases, so every prese
 
 The stage runs the images published from `main` (NFR-017), so the operator's laptop needs Docker only and no build can fail on the day. `POC_IMAGE_TAG` selects them: `main` by default, or the `sha-<short>` tag of the commit that was rehearsed, so the stage runs exactly the rehearsed images. The stage starts with `--pull never --no-build`, so a missing image fails before the talk instead of being built quietly. Building from source is the fallback (A3), never the default (Simon, 2026-10-16, OTelFeature/poc#91).
 
-### BR-009: Flagsmith mode serves the preset files
+### BR-009: An external backend never holds up the stage
 
-In Flagsmith mode (A4) the flag set the proxy derives from the Flagsmith environment is the preset file of the preset the environment is switched to: the same flags, variants, default variants and targeting. Its `metadata.preset` is that preset's name, derived by comparing the flags with every preset file, and `custom` when they match none (as after a switch the script does not use). The preset files stay the single source of the demo states; each Flagsmith preset only says which flags and segment overrides are switched on (BR-013), and CI checks for every preset that the Flagsmith state the command produces translates back to that preset's file. The translation covers the comparisons the presets use and their direct counterparts, nothing more: Flagsmith segments whose rules are `ALL`, `ANY` or `NONE` with the conditions `EQUAL`, `NOT_EQUAL`, `GREATER_THAN`, `GREATER_THAN_INCLUSIVE`, `LESS_THAN` and `LESS_THAN_INCLUSIVE`, and flag values that are a variant of the flag, with no percentage split. For a flag of the presets, any other operator, value or override is rejected, and the environment as a whole with it; Flagsmith features that are no flag of the presets are not translated and do not cause a rejection. On a rejected environment the proxy logs why and keeps serving the last flag set it translated (A5), as flagd keeps its last flag set when a file does not parse. See the [entity model](../entity_model.md#flagsmith-mode) (Simon, 2026-11-03).
+Dash0, where a laptop enables it (C-016), receives the same traces, metrics and logs as Aspire. Offline, its exporter tries each batch once, with a 2 s timeout and no retries, and drops it; 20 parallel attempts drain more batches per second than the collector sends. Its queue never fills, so no export error reaches the services, nothing is sent to Aspire twice, and BR-001 holds on that laptop too; Dash0 misses what was sent while offline; the dashboard shown on stage is the one the laptop has (Simon, 2026-11-03).
 
-### BR-010: A Flagsmith flip counts only once flagd serves it
+### BR-010: Flagsmith mode serves the preset files
 
-The Flagsmith preset command checks that the proxy's flag set equals the preset file, because the environment document the command diffed against can lag behind Flagsmith's last write; on a mismatch it writes every value again. A preset the document already holds needs no write; the command then reads the document once more a second later, so that a switch made in the Flagsmith UI just before is not missed. Then it confirms the flip over flagd's OFREP endpoint exactly as BR-007 does, by the `metadata.preset` the proxy derives (BR-009), and fails after its timeout. A switch in the Flagsmith UI has no command to confirm it; flagd's `metadata.preset` names the preset once the switches match one.
+In Flagsmith mode (A4) the flag set the proxy derives from the Flagsmith environment is the preset file of the preset the environment is switched to: the same flags, variants, default variants and targeting. Its `metadata.preset` is that preset's name, derived by comparing the flags with every preset file, and `custom` when they match none (as after a switch the script does not use). The preset files stay the single source of the demo states; each Flagsmith preset only says which flags and segment overrides are switched on (BR-014), and CI checks for every preset that the Flagsmith state the command produces translates back to that preset's file. The translation covers the comparisons the presets use and their direct counterparts, nothing more: Flagsmith segments whose rules are `ALL`, `ANY` or `NONE` with the conditions `EQUAL`, `NOT_EQUAL`, `GREATER_THAN`, `GREATER_THAN_INCLUSIVE`, `LESS_THAN` and `LESS_THAN_INCLUSIVE`, and flag values that are a variant of the flag, with no percentage split. For a flag of the presets, any other operator, value or override is rejected, and the environment as a whole with it; Flagsmith features that are no flag of the presets are not translated and do not cause a rejection. On a rejected environment the proxy logs why and keeps serving the last flag set it translated (A5), as flagd keeps its last flag set when a file does not parse. See the [entity model](../entity_model.md#flagsmith-mode) (Simon, 2026-11-03).
 
-### BR-011: Pushed from Flagsmith, polled only locally
+### BR-011: A Flagsmith flip counts only once flagd serves it
+
+The Flagsmith preset command checks that the proxy's flag set equals the preset file, because the environment document the command diffed against can lag behind Flagsmith's last write; on a mismatch it writes every value again. A preset the document already holds needs no write; the command then reads the document once more a second later, so that a switch made in the Flagsmith UI just before is not missed. Then it confirms the flip over flagd's OFREP endpoint exactly as BR-007 does, by the `metadata.preset` the proxy derives (BR-010), and fails after its timeout. A switch in the Flagsmith UI has no command to confirm it; flagd's `metadata.preset` names the preset once the switches match one.
+
+### BR-012: Pushed from Flagsmith, polled only locally
 
 The proxy is Flagsmith's Edge Proxy with a flagd endpoint added. It fetches the environment document again when Flagsmith's real-time stream reports a change (Flagsmith Enterprise), and polls Flagsmith only as a fallback, once a minute. flagd polls the proxy over the local network every second. The bound is measured from the real-time event that reports the preset command's last write (when it writes anything) to the moment flagd serves the preset over OFREP: at most 2 s (the bound of NFR-004), including the proxy's refetches while the document is older than the event. Without the stream (A6) there is no bound beyond the fallback poll. CI measures this against a stub of Flagsmith; against Flagsmith Cloud it is a rehearsal check (OQ-16).
 
-### BR-012: Flagsmith mode is not the stage default
+### BR-013: Flagsmith mode is not the stage default
 
 Flagsmith mode (A4) needs network, unlike the Goal and BR-001. Its proxy image is published like the others (BR-008, NFR-017), so the operator pulls it while online. This stands until OQ-16 decides whether Flagsmith mode goes on stage; until then the file mode is the stage run and the fallback (Simon, 2026-11-03).
 
-### BR-013: Every rule is in Flagsmith; switches decide what flagd gets
+### BR-014: Every rule is in Flagsmith; switches decide what flagd gets
 
 A flag without targeting resolves with reason `STATIC`, so the extensions decide a span with one read and no flag evaluation; a flag with targeting is evaluated per span. So in Flagsmith mode a flag carries targeting only while a beat uses its rules. The seed command creates every segment override of the presets, and they stay in Flagsmith. Each segment is feature-specific to the one flag whose overrides use it, so the Flagsmith UI shows it only on that flag. `recordSpan`, `traceSampleRatio` and `weatherUpstreamFailure` are gated: while a gated flag is switched off, the proxy serves it as in `00-baseline.json`, without targeting; switched on, it serves the flag's value and the targeting of its overrides. Every override counts only while it is switched on, so each rule of Demo 3 is its own switch; a switched-on override of a boolean flag serves the flag's other variant (a `recordSpan` rule drops), one of a non-boolean flag its value. Each beat is therefore a few switches in the Flagsmith UI, and the preset command makes the same switches; in a seeded environment it creates or deletes an override only to repair one changed by hand. See the [entity model](../entity_model.md#flagsmith-mode) (Simon, 2026-11-04).
