@@ -135,7 +135,7 @@ services:
       OTEL_RESOURCE_ATTRIBUTES: deployment.environment.name=staging,service.namespace=otelfeature,service.version=0.1.0,service.instance.id=weather-staging
 
   load-generator:
-    image: grafana/k6:2.3.0
+    image: grafana/k6:2.4.0
     container_name: load-generator
     command: run --out opentelemetry /scripts/load-test.js
     volumes:
@@ -160,7 +160,7 @@ services:
   # Second k6 instance for the staging profile, same script and rate.
   load-generator-staging:
     profiles: [staging]
-    image: grafana/k6:2.3.0
+    image: grafana/k6:2.4.0
     container_name: load-generator-staging
     command: run --out opentelemetry /scripts/load-test.js
     volumes:
